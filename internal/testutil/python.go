@@ -45,6 +45,14 @@ func RunCommand(t *testing.T, name string, args ...string) (string, string, erro
 	return stdout.String(), stderr.String(), err
 }
 
+func RunPythonScript(t *testing.T, script string, args ...string) (string, string, error) {
+	t.Helper()
+
+	python := PythonPath(t)
+	cmdArgs := append([]string{script}, args...)
+	return RunCommand(t, python, cmdArgs...)
+}
+
 // RunApprise executes the apprise CLI via python -m to avoid shebang issues
 // when the repo is moved.
 func RunApprise(t *testing.T, args ...string) (string, string, error) {

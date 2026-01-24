@@ -110,6 +110,28 @@ func Run(args []string, stdout, stderr io.Writer) int {
 				fmt.Fprintf(stderr, "json notify error: %s\n", err)
 				failed = true
 			}
+		case "form", "forms":
+			formTarget, err := notify.NewFormTarget(parsed)
+			if err != nil {
+				fmt.Fprintf(stderr, "form target error: %s\n", err)
+				failed = true
+				continue
+			}
+			if err := formTarget.Send(body, title, nt); err != nil {
+				fmt.Fprintf(stderr, "form notify error: %s\n", err)
+				failed = true
+			}
+		case "xml", "xmls":
+			xmlTarget, err := notify.NewXMLTarget(parsed)
+			if err != nil {
+				fmt.Fprintf(stderr, "xml target error: %s\n", err)
+				failed = true
+				continue
+			}
+			if err := xmlTarget.Send(body, title, nt); err != nil {
+				fmt.Fprintf(stderr, "xml notify error: %s\n", err)
+				failed = true
+			}
 		default:
 			fmt.Fprintf(stderr, "unsupported url schema: %s\n", parsed.Scheme)
 			failed = true
