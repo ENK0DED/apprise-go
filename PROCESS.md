@@ -8,6 +8,7 @@ Current status
 - Pinned Go version string to the installed apprise version (1.9.7).
 - Added runbook (`AGENTS.md`) and `.gitignore`.
 - Added a localhost capture server and Python parity tests (version + JSON payload).
+- Implemented a minimal CLI runner, URL parsing, and JSON notifier with Go/Python payload parity tests.
 
 Environment setup
 1) Python apprise for parity checks:
@@ -30,8 +31,8 @@ Planned PR stack
 3) Implement URL parsing + `json://` plugin + minimal CLI flags needed by tests.
 
 Next steps
-- Implement JSON notifier and URL parsing in Go for initial parity.
 - Expand CLI option handling to match apprise usage.
+- Add more plugins and parity tests as apprise coverage grows.
 
 Notes
 - Version updates: edit `internal/version/version.go` or override at build time with:
