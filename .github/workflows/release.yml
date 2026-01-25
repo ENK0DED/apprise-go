@@ -27,10 +27,10 @@ jobs:
             notarize: true
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e1148
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582
         with:
           go-version-file: go.mod
 
@@ -61,7 +61,7 @@ jobs:
 
       - name: Sign and notarize darwin binary
         if: matrix.notarize
-        uses: indygreg/apple-code-sign-action@v1
+        uses: indygreg/apple-code-sign-action@44d0985b
         with:
           input_path: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
           p12_file: apple_codesign.p12
@@ -75,13 +75,13 @@ jobs:
 
       - name: Upload release asset
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@a06a81a0
         with:
           files: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload artifact
         if: github.event_name != 'release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d
         with:
           name: apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
