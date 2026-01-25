@@ -49,8 +49,8 @@ jobs:
           path = Path("internal/version/version.go")
           data = path.read_text()
           version = os.environ["UPSTREAM_VERSION"]
-          pattern = r'(var\\s+UpstreamVersion\\s*=\\s*")([^"]+)(")'
-          updated, count = re.subn(pattern, r'\\1' + version + r'\\3', data)
+          pattern = r'(var\s+UpstreamVersion\s*=\s*")([^"]+)(")'
+          updated, count = re.subn(pattern, r'\g<1>' + version + r'\g<3>', data)
           if count == 0:
             raise SystemExit("UpstreamVersion not found in version.go")
           if updated != data:
@@ -68,4 +68,3 @@ jobs:
             Syncs `internal/version.UpstreamVersion` to the latest upstream release.
 
             Upstream release: `${{ steps.upstream.outputs.tag }}`
-          skip-no-changes: true
