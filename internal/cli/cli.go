@@ -66,13 +66,6 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 
-	if body == "" {
-		data, err := io.ReadAll(os.Stdin)
-		if err == nil {
-			body = string(data)
-		}
-	}
-
 	nt, ok := notify.ParseNotifyType(notificationType)
 	if !ok {
 		fmt.Fprintf(stderr, "unsupported notification type: %s\n", notificationType)
@@ -83,6 +76,13 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	if len(urls) == 0 {
 		printUsage(stdout)
 		return 1
+	}
+
+	if body == "" {
+		data, err := io.ReadAll(os.Stdin)
+		if err == nil {
+			body = string(data)
+		}
 	}
 
 	_ = inputFormat

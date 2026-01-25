@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "0 9 * * 1"
 
 jobs:
   parity:
@@ -28,6 +30,14 @@ jobs:
 
       - name: Run parity tests
         run: bash scripts/ci/run_parity_tests.sh
+      - name: Notify Discord on scheduled parity failure
+        if: failure() && github.event_name == 'schedule' && env.DISCORD_WEBHOOK != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          payload=$(printf '{"content":"parity cron failed for %s: %s"}' "$GITHUB_REPOSITORY" "$run_url")
+          curl -sS -X POST -H "Content-Type: application/json" -d "$payload" "$DISCORD_WEBHOOK"
 
   build:
     runs-on: ubuntu-latest
