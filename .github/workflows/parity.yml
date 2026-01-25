@@ -11,6 +11,8 @@ on:
 jobs:
   parity:
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,9 +33,7 @@ jobs:
       - name: Run parity tests
         run: bash scripts/ci/run_parity_tests.sh
       - name: Notify Discord on scheduled parity failure
-        if: failure() && github.event_name == 'schedule' && secrets.DISCORD_WEBHOOK != ''
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        if: failure() && github.event_name == 'schedule' && env.DISCORD_WEBHOOK != ''
         run: |
           run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           payload=$(printf '{"content":"parity cron failed for %s: %s"}' "$GITHUB_REPOSITORY" "$run_url")
