@@ -27,7 +27,7 @@ jobs:
             notarize: true
     steps:
       - name: Checkout
-        uses: actions/checkout@34e1148
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@40f1582
