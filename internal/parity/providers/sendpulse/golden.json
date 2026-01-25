@@ -1,0 +1,28 @@
+[
+  {
+    "name": "oauth",
+    "requests": [
+      {
+        "body": "{\"grant_type\": \"client_credentials\", \"client_id\": \"clientid\", \"client_secret\": \"clientsecret\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.sendpulse.com/oauth/access_token"
+      },
+      {
+        "body": "{\"email\": {\"from\": {\"name\": \"Apprise\", \"email\": \"user@example.com\"}, \"to\": [{\"email\": \"target@example.com\"}], \"subject\": \"apprise parity\", \"text\": \"hello from python\", \"html\": \"aGVsbG8gZnJvbSBweXRob24=\"}}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.sendpulse.com/smtp/emails"
+      }
+    ]
+  }
+]

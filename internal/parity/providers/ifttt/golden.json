@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"value1\": \"apprise parity\", \"value2\": \"hello from python\", \"value3\": \"info\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://maker.ifttt.com/trigger/event1/with/key/webhook123"
+      }
+    ]
+  },
+  {
+    "name": "user-host",
+    "requests": [
+      {
+        "body": "{\"value1\": \"title\", \"value2\": \"hello\", \"value3\": \"success\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://maker.ifttt.com/trigger/event1/with/key/webhook123"
+      }
+    ]
+  }
+]

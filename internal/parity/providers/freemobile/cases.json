@@ -1,0 +1,16 @@
+[
+  {
+    "name": "host-password",
+    "url": "freemobile://user@password",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "userinfo-password",
+    "url": "freemobile://user:pass@ignored",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

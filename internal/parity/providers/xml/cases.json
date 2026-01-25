@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "xml://example.com/notify",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "overrides",
+    "url": "xmls://user:pass@example.com:8443/notify?method=post&:Message=Body&:Extra=Note&+X-Token=abc",
+    "body": "hello",
+    "title": "title",
+    "type": "success"
+  }
+]

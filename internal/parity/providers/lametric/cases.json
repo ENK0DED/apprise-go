@@ -1,0 +1,8 @@
+[
+  {
+    "name": "device",
+    "url": "lametrics://apikey@lametric.local",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

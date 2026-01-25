@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "sfr://user:pass@space123/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "with-options",
+    "url": "sfr://user:pass@space123/15551231234?from=ACME&timeout=120&voice=claire08s&lang=fr_FR&media=SMSUnicode",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

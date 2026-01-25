@@ -1,0 +1,32 @@
+[
+  {
+    "name": "phone-status",
+    "requests": [
+      {
+        "body": "{\"method\": \"sms.send_sms\", \"params\": {\"to\": \"15551231234\", \"access_token\": \"token123\", \"message\": \"[i] title\\r\\nbody\", \"highpriority\": 1, \"unicode\": 1, \"message_type\": \"sms\", \"responsetype\": \"extended\", \"flash\": 0, \"test\": 0}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://smseagle.local/jsonrpc/sms"
+      }
+    ]
+  },
+  {
+    "name": "group-batch",
+    "requests": [
+      {
+        "body": "{\"method\": \"sms.send_togroup\", \"params\": {\"groupname\": \"ops\", \"access_token\": \"token123\", \"message\": \"hello\", \"highpriority\": 0, \"unicode\": 1, \"message_type\": \"sms\", \"responsetype\": \"extended\", \"flash\": 1, \"test\": 1}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://smseagle.local/jsonrpc/sms"
+      }
+    ]
+  }
+]

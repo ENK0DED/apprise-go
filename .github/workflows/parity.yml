@@ -1,0 +1,30 @@
+name: parity
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install parity dependencies
+        run: bash scripts/ci/setup_parity_env.sh
+
+      - name: Run parity tests
+        run: bash scripts/ci/run_parity_tests.sh

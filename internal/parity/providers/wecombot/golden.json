@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"msgtype\": \"text\", \"text\": {\"content\": \"hello from python\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=ABC123"
+      }
+    ]
+  },
+  {
+    "name": "key-override",
+    "requests": [
+      {
+        "body": "{\"msgtype\": \"text\", \"text\": {\"content\": \"title\\r\\nbody\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=OVERRIDE_123"
+      }
+    ]
+  }
+]

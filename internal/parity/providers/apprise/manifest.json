@@ -1,0 +1,4 @@
+{
+  "name": "apprise",
+  "schemas": ["apprise", "apprises"]
+}

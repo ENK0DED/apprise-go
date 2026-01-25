@@ -1,0 +1,9 @@
+[
+  {
+    "name": "webhook_basic",
+    "url": "slack://T1JJ3T3L2/A1BRTD4JD/TIAJKDNL0AZKC0XRIDEVI7?image=no&footer=no&timestamp=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

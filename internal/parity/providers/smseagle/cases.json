@@ -1,0 +1,16 @@
+[
+  {
+    "name": "phone-status",
+    "url": "smseagles://token123@smseagle.local/15551231234?status=yes&priority=high",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "group-batch",
+    "url": "smseagle://token123@smseagle.local/%23ops?batch=yes&test=yes&flash=yes",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

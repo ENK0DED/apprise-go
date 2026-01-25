@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-status",
+    "url": "pushme://token123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "warning"
+  },
+  {
+    "name": "no-status",
+    "url": "pushme://token123?status=no",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  }
+]

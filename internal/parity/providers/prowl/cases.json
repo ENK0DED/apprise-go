@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "prowl://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "provider",
+    "url": "prowl://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccc?priority=high",
+    "body": "body",
+    "title": "title",
+    "type": "warning"
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://platform.clickatell.com/messages/http/send?apiKey=apikey123&content=title%0D%0Abody&to=15551231234"
+      }
+    ]
+  },
+  {
+    "name": "with-from",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://platform.clickatell.com/messages/http/send?apiKey=apikey123&from=14051231234&content=hello&to=15557654321"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://platform.clickatell.com/messages/http/send?apiKey=apikey123&from=14051231234&content=hello&to=15550001111"
+      }
+    ]
+  }
+]

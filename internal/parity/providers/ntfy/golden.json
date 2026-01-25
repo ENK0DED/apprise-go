@@ -1,0 +1,32 @@
+[
+  {
+    "name": "cloud-default",
+    "requests": [
+      {
+        "body": "{\"topic\": \"topic\", \"title\": \"apprise parity\", \"message\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://ntfy.sh/"
+      }
+    ]
+  },
+  {
+    "name": "cloud-explicit",
+    "requests": [
+      {
+        "body": "{\"topic\": \"topic\", \"title\": \"title\", \"message\": \"body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://ntfy.sh/"
+      }
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "signl4://secret123",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "options",
+    "url": "signl4://secret123?service=svc&location=loc&alerting_scenario=alert&filtering=yes&external_id=ext&status=ok",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

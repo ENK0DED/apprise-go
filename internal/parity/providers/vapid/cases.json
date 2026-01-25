@@ -1,0 +1,8 @@
+[
+  {
+    "name": "basic",
+    "url": "vapid://user@example.com?keyfile=providers/vapid/private_key.pem&subfile=providers/vapid/subscriptions.json",
+    "body": "hello",
+    "title": ""
+  }
+]

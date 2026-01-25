@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "smsmgr://apikey123@15551231234?gateway=high",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "batch-sender",
+    "url": "smsmanager://apikey123@15551231234/15557654321?batch=yes&sender=ACME",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

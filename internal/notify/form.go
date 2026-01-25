@@ -2,7 +2,6 @@ package notify
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -62,6 +61,15 @@ func NewFormTarget(target *ParsedURL) (*FormTarget, error) {
 }
 
 func (f *FormTarget) Send(body, title string, notifyType NotifyType) error {
+	spec, err := f.BuildRequest(body, title, notifyType)
+	if err != nil {
+		return err
+	}
+
+	return SendRequest(spec)
+}
+
+func (f *FormTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
 	payload := map[string]string{}
 
 	base := map[string]string{
@@ -110,49 +118,41 @@ func (f *FormTarget) Send(body, title string, notifyType NotifyType) error {
 		u.RawQuery = values.Encode()
 	}
 
-	var bodyReader *strings.Reader
+	bodyPayload := ""
 	if f.method != "GET" {
 		values := url.Values{}
 		for key, value := range payload {
 			values.Set(key, value)
 		}
-		bodyReader = strings.NewReader(values.Encode())
+		bodyPayload = values.Encode()
 	}
 
-	req, err := http.NewRequest(f.method, u.String(), bodyReader)
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
-	}
-
-	if f.method != "GET" {
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	}
 	if f.method != "GET" && len(f.params) > 0 {
 		values := url.Values{}
 		for key, value := range f.params {
 			values.Set(key, value)
 		}
-		req.URL.RawQuery = values.Encode()
+		u.RawQuery = values.Encode()
 	}
 
-	req.Header.Set("User-Agent", "Apprise")
+	headers := map[string]string{
+		"User-Agent": "Apprise",
+		"Accept":     "*/*",
+	}
+	if f.method != "GET" {
+		headers["Content-Type"] = "application/x-www-form-urlencoded"
+	}
 	for key, value := range f.headers {
-		req.Header.Set(key, value)
+		headers[key] = value
 	}
-
 	if f.target.User != "" {
-		req.SetBasicAuth(f.target.User, f.target.Password)
+		headers["Authorization"] = basicAuthHeader(f.target.User, f.target.Password)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
-	}
-
-	return nil
+	return RequestSpec{
+		Method:  f.method,
+		URL:     u.String(),
+		Headers: headers,
+		Body:    bodyPayload,
+	}, nil
 }

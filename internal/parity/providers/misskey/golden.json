@@ -1,0 +1,17 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"i\": \"token\", \"text\": \"apprise parity\\r\\nhello from python\", \"visibility\": \"public\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://misskey.example/api/notes/create"
+      }
+    ]
+  }
+]

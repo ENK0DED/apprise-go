@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "feishu://TOKEN_123",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "token-override",
+    "url": "feishu://ignored?token=OVERRIDE_123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

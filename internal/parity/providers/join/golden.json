@@ -1,0 +1,17 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://joinjoaomgcd.appspot.com/_ah/api/messaging/v1/sendPush?apikey=abcdef0123456789abcdef0123456789&priority=0&title=apprise+parity&text=hello+from+python&deviceId=group.all"
+      }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+{
+  "name": "bluesky",
+  "schemas": ["bluesky", "bsky"]
+}

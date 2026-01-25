@@ -1,0 +1,101 @@
+package testutil
+
+import (
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/unraid/apprise-go/internal/notify"
+)
+
+type captureTransport struct {
+	requests []notify.RequestSpec
+}
+
+func (c *captureTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	body := ""
+	if req.Body != nil {
+		data, err := io.ReadAll(req.Body)
+		if err == nil {
+			body = string(data)
+		}
+		_ = req.Body.Close()
+	}
+
+	headers := map[string]string{}
+	for key, values := range req.Header {
+		headers[key] = strings.Join(values, ",")
+	}
+
+	c.requests = append(c.requests, notify.RequestSpec{
+		Method:  req.Method,
+		URL:     req.URL.String(),
+		Headers: headers,
+		Body:    body,
+	})
+
+	responseBody := "ok"
+	contentType := "text/plain"
+	if strings.Contains(req.URL.String(), "sendpulse.com/oauth/access_token") {
+		responseBody = `{"access_token":"token","expires_in":3600}`
+		contentType = "application/json"
+	} else if strings.Contains(req.URL.String(), "reddit.com/api/v1/access_token") {
+		responseBody = `{"access_token":"token","expires_in":3600}`
+		contentType = "application/json"
+	} else if req.URL.Host == "public.api.bsky.app" && strings.HasSuffix(req.URL.Path, "/xrpc/com.atproto.identity.resolveHandle") {
+		responseBody = `{"did":"did:plc:123"}`
+		contentType = "application/json"
+	} else if req.URL.Host == "plc.directory" && strings.HasPrefix(req.URL.Path, "/did:plc:") {
+		responseBody = `{"service":[{"type":"AtprotoPersonalDataServer","serviceEndpoint":"https://bsky.social"}]}`
+		contentType = "application/json"
+	} else if strings.Contains(req.URL.Host, "login.microsoftonline.com") && strings.HasSuffix(req.URL.Path, "/oauth2/v2.0/token") {
+		responseBody = `{"access_token":"token","expires_in":3600}`
+		contentType = "application/json"
+	} else if strings.HasSuffix(req.URL.Path, "/xrpc/com.atproto.server.createSession") {
+		responseBody = `{"accessJwt":"token","refreshJwt":"refresh"}`
+		contentType = "application/json"
+	} else if strings.HasSuffix(req.URL.Path, "/xrpc/com.atproto.repo.createRecord") {
+		responseBody = `{"uri":"at://example/post"}`
+		contentType = "application/json"
+	} else if strings.Contains(req.URL.Path, "/Users/AuthenticateByName") {
+		responseBody = `{"AccessToken":"token","Id":"user-id","User":{"Id":"user-id"}}`
+		contentType = "application/json"
+	} else if req.Method == http.MethodGet && req.URL.Path == "/Sessions" {
+		responseBody = `[{"Id":"session-id"}]`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.twist.com" && strings.HasSuffix(req.URL.Path, "/users/login") {
+		responseBody = `{"token":"token","default_workspace":12345}`
+		contentType = "application/json"
+	} else if strings.Contains(req.URL.Host, "sns.") && strings.Contains(body, "Action=CreateTopic") {
+		responseBody = `<CreateTopicResponse><CreateTopicResult><TopicArn>arn:aws:sns:us-east-1:000000000000:topic</TopicArn></CreateTopicResult></CreateTopicResponse>`
+		contentType = "application/xml"
+	}
+
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader(responseBody)),
+		Header:     make(http.Header),
+		Request:    req,
+	}
+	resp.Header.Set("Content-Type", contentType)
+
+	return resp, nil
+}
+
+func CaptureGoRequests(t *testing.T, send func() error) []notify.RequestSpec {
+	t.Helper()
+
+	capture := &captureTransport{}
+	previous := http.DefaultTransport
+	http.DefaultTransport = capture
+	defer func() {
+		http.DefaultTransport = previous
+	}()
+
+	if err := send(); err != nil {
+		t.Fatalf("send request failed: %v", err)
+	}
+
+	return capture.requests
+}

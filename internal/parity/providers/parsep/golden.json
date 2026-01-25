@@ -1,0 +1,36 @@
+[
+  {
+    "name": "default-all",
+    "requests": [
+      {
+        "body": "{\"where\": {\"deviceType\": {\"$in\": [\"ios\", \"android\"]}}, \"data\": {\"title\": \"title\", \"alert\": \"body\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-parse-application-id": "app123",
+          "x-parse-master-key": "master456"
+        },
+        "method": "POST",
+        "url": "https://parse.example.com/parse/push/"
+      }
+    ]
+  },
+  {
+    "name": "device-ios",
+    "requests": [
+      {
+        "body": "{\"where\": {\"deviceType\": {\"$in\": [\"ios\"]}}, \"data\": {\"title\": \"subject\", \"alert\": \"message\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-parse-application-id": "app123",
+          "x-parse-master-key": "master456"
+        },
+        "method": "POST",
+        "url": "http://parse.example.com:8080/api/parse/push/"
+      }
+    ]
+  }
+]

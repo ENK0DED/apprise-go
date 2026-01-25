@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "pagerduty://routingkey@apikey/source/component?region=eu&severity=error&image=no&group=ops&class=service&+trace=abc",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "warning"
+  }
+]

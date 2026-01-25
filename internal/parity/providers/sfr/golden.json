@@ -1,0 +1,28 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*"
+        },
+        "method": "POST",
+        "url": "https://www.dmc.sfr-sh.fr/DmcWS/1.5.8/JsonService/MessagesUnitairesWS/addSingleCall?authenticate=%7B%22serviceId%22%3A+%22user%22%2C+%22servicePassword%22%3A+%22pass%22%2C+%22spaceId%22%3A+%22space123%22%2C+%22lang%22%3A+%22fr_FR%22%7D&messageUnitaire=%7B%22media%22%3A+%22SMSUnicode%22%2C+%22textMsg%22%3A+%22title%5Cr%5Cnbody%22%2C+%22to%22%3A+%2215551231234%22%2C+%22from%22%3A+%22%22%2C+%22timeout%22%3A+2880%2C+%22ttsVoice%22%3A+%22claire08s%22%7D"
+      }
+    ]
+  },
+  {
+    "name": "with-options",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*"
+        },
+        "method": "POST",
+        "url": "https://www.dmc.sfr-sh.fr/DmcWS/1.5.8/JsonService/MessagesUnitairesWS/addSingleCall?authenticate=%7B%22serviceId%22%3A+%22user%22%2C+%22servicePassword%22%3A+%22pass%22%2C+%22spaceId%22%3A+%22space123%22%2C+%22lang%22%3A+%22fr_FR%22%7D&messageUnitaire=%7B%22media%22%3A+%22SMSUnicode%22%2C+%22textMsg%22%3A+%22hello%22%2C+%22to%22%3A+%2215551231234%22%2C+%22from%22%3A+%22ACME%22%2C+%22timeout%22%3A+120%2C+%22ttsVoice%22%3A+%22claire08s%22%7D"
+      }
+    ]
+  }
+]

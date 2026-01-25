@@ -1,0 +1,45 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"to\": \"+15551231234\", \"body\": \"title\\r\\nbody\", \"routingGroup\": \"STANDARD\", \"encoding\": \"UNICODE\", \"deliveryReports\": \"ERRORS\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.bulksms.com/v1/messages"
+      }
+    ]
+  },
+  {
+    "name": "group-batch",
+    "requests": [
+      {
+        "body": "{\"to\": [\"+15551231234\"], \"body\": \"hello\", \"routingGroup\": \"PREMIUM\", \"encoding\": \"UNICODE\", \"deliveryReports\": \"ERRORS\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.bulksms.com/v1/messages"
+      },
+      {
+        "body": "{\"to\": {\"type\": \"GROUP\", \"name\": \"ops\"}, \"body\": \"hello\", \"routingGroup\": \"PREMIUM\", \"encoding\": \"UNICODE\", \"deliveryReports\": \"ERRORS\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.bulksms.com/v1/messages"
+      }
+    ]
+  }
+]

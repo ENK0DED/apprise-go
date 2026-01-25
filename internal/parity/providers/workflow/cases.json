@@ -1,0 +1,16 @@
+[
+  {
+    "name": "legacy",
+    "url": "workflow://example.com/WORKFLOWID/SIGNATURE?wrap=yes&image=yes",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "power-automate",
+    "url": "workflows://example.com:8443/WORKFLOWID/SIGNATURE?pa=yes&ver=2022-03-01-preview",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

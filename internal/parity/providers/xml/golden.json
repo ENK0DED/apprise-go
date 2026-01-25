@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "<?xml version='1.0' encoding='utf-8'?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n    <soapenv:Body>\n        <Notification xmlns:xsi=\"https://raw.githubusercontent.com/caronc/apprise/master/apprise/assets/NotifyXML-1.1.xsd\">\n            <Version>1.1</Version><Subject>apprise parity</Subject><Message>hello from python</Message><MessageType>info</MessageType>\n            \n       </Notification>\n    </soapenv:Body>\n</soapenv:Envelope>",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/xml",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/notify"
+      }
+    ]
+  },
+  {
+    "name": "overrides",
+    "requests": [
+      {
+        "body": "<?xml version='1.0' encoding='utf-8'?>\n<soapenv:Envelope\n    xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\"\n    xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n    <soapenv:Body>\n        <Notification>\n            <Version>1.1</Version><Subject>title</Subject><Body>hello</Body><MessageType>success</MessageType><Extra>Note</Extra>\n            \n       </Notification>\n    </soapenv:Body>\n</soapenv:Envelope>",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/xml",
+          "user-agent": "Apprise",
+          "x-token": "abc"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/notify"
+      }
+    ]
+  }
+]

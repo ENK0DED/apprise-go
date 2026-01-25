@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "pjet://example.com/secret123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "auth",
+    "url": "pjets://user:pass@example.com:8443/secret123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

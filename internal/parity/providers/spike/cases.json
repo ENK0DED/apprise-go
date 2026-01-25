@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "spike://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "body-only",
+    "url": "spike://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

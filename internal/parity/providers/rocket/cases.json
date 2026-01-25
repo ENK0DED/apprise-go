@@ -1,0 +1,9 @@
+[
+  {
+    "name": "webhook_default",
+    "url": "rocket://abc123%2Fdef456@chat.example.com?avatar=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

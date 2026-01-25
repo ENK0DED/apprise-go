@@ -2,7 +2,6 @@ package notify
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -94,6 +93,15 @@ func NewXMLTarget(target *ParsedURL) (*XMLTarget, error) {
 }
 
 func (x *XMLTarget) Send(body, title string, notifyType NotifyType) error {
+	spec, err := x.BuildRequest(body, title, notifyType)
+	if err != nil {
+		return err
+	}
+
+	return SendRequest(spec)
+}
+
+func (x *XMLTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
 	payloadBase := []struct {
 		key   string
 		value string
@@ -142,32 +150,24 @@ func (x *XMLTarget) Send(body, title string, notifyType NotifyType) error {
 		Path:   x.target.Path,
 	}
 
-	req, err := http.NewRequest(x.method, u.String(), strings.NewReader(payload))
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+	headers := map[string]string{
+		"User-Agent":   "Apprise",
+		"Accept":       "*/*",
+		"Content-Type": "application/xml",
 	}
-
-	req.Header.Set("User-Agent", "Apprise")
-	req.Header.Set("Content-Type", "application/xml")
 	for key, value := range x.headers {
-		req.Header.Set(key, value)
+		headers[key] = value
 	}
-
 	if x.target.User != "" {
-		req.SetBasicAuth(x.target.User, x.target.Password)
+		headers["Authorization"] = basicAuthHeader(x.target.User, x.target.Password)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
-	}
-
-	return nil
+	return RequestSpec{
+		Method:  x.method,
+		URL:     u.String(),
+		Headers: headers,
+		Body:    payload,
+	}, nil
 }
 
 func sanitizeXMLKey(value string) string {

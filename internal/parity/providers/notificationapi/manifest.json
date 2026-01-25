@@ -1,0 +1,4 @@
+{
+  "name": "notificationapi",
+  "schemas": ["napi", "notificationapi"]
+}

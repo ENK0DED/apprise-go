@@ -1,0 +1,16 @@
+[
+  {
+    "name": "official",
+    "url": "notica://token123",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "selfhosted",
+    "url": "noticas://example.com/token123",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://api.kavenegar.com/v1/apikey123/sms/send.json?receptor=15551231234&message=title%0D%0Abody"
+      }
+    ]
+  },
+  {
+    "name": "from-query",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://api.kavenegar.com/v1/apikey123/sms/send.json?receptor=15551231234&message=hello&sender=14051231234"
+      }
+    ]
+  }
+]

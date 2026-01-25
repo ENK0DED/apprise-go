@@ -1,0 +1,32 @@
+[
+  {
+    "name": "host-password",
+    "requests": [
+      {
+        "body": "{\"user\": \"user\", \"pass\": \"password\", \"msg\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://smsapi.free-mobile.fr/sendmsg"
+      }
+    ]
+  },
+  {
+    "name": "userinfo-password",
+    "requests": [
+      {
+        "body": "{\"user\": \"user\", \"pass\": \"pass\", \"msg\": \"title\\r\\nbody\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://smsapi.free-mobile.fr/sendmsg"
+      }
+    ]
+  }
+]

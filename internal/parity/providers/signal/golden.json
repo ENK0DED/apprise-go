@@ -1,0 +1,33 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"message\": \"title\\r\\nbody\", \"number\": \"+15551231234\", \"text_mode\": \"normal\", \"recipients\": [\"+15557654321\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://signal.local:8080/v2/send"
+      }
+    ]
+  },
+  {
+    "name": "group-status",
+    "requests": [
+      {
+        "body": "{\"message\": \"[~] hello\", \"number\": \"+15551231234\", \"text_mode\": \"normal\", \"recipients\": [\"group.groupabc\"]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://signal.local/v2/send"
+      }
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "default",
+    "url": "tgram://123456%3Aabcdef/12345",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

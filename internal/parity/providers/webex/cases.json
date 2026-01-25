@@ -1,0 +1,16 @@
+[
+  {
+    "name": "wxteams-default",
+    "url": "wxteams://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "webex-title",
+    "url": "webex://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

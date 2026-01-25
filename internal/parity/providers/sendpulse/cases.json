@@ -1,0 +1,9 @@
+[
+  {
+    "name": "oauth",
+    "url": "sendpulse://user@example.com/clientid/clientsecret/target@example.com",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

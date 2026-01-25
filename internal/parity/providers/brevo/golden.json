@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"sender\": {\"email\": \"sender@domain.com\"}, \"to\": [{\"email\": \"recipient@domain.com\"}], \"subject\": \"title\", \"htmlContent\": \"body\", \"textContent\": \"body\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.brevo.com/v3/smtp/email"
+      }
+    ]
+  },
+  {
+    "name": "fallback",
+    "requests": [
+      {
+        "body": "{\"sender\": {\"email\": \"sender@domain.com\"}, \"to\": [{\"email\": \"sender@domain.com\"}], \"subject\": \"<no subject>\", \"htmlContent\": \"hello\", \"textContent\": \"hello\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.brevo.com/v3/smtp/email"
+      }
+    ]
+  }
+]

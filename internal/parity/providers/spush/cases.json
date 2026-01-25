@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "spush://apikey123456",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "event",
+    "url": "spush://apikey123456?event=deploy",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

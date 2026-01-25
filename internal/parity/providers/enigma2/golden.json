@@ -1,0 +1,32 @@
+[
+  {
+    "name": "http-default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "user-agent": "Apprise",
+          "x-test": "abc"
+        },
+        "method": "GET",
+        "url": "http://receiver.local/notify/api/message?text=title%0D%0Abody&type=1&timeout=10"
+      }
+    ]
+  },
+  {
+    "name": "https-custom-port",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://example.com:8443/notify/api/message?text=subject%0D%0Amessage&type=2&timeout=13"
+      }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+{
+  "name": "smsmanager",
+  "schemas": ["smsmanager", "smsmgr"]
+}

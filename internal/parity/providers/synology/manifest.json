@@ -1,0 +1,4 @@
+{
+  "name": "synology",
+  "schemas": ["synology", "synologys"]
+}

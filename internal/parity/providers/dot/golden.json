@@ -1,0 +1,34 @@
+[
+  {
+    "name": "text-basic",
+    "requests": [
+      {
+        "body": "{\"refreshNow\": false, \"deviceId\": \"device123\", \"title\": \"title\", \"message\": \"body\", \"signature\": \"Sig\", \"icon\": \"ICON\", \"link\": \"https://example.com\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://dot.mindreset.tech/api/open/text"
+      }
+    ]
+  },
+  {
+    "name": "image-mode",
+    "requests": [
+      {
+        "body": "{\"refreshNow\": true, \"deviceId\": \"device123\", \"image\": \"IMGDATA\", \"border\": 1, \"ditherType\": \"ORDERED\", \"ditherKernel\": \"ATKINSON\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://dot.mindreset.tech/api/open/image"
+      }
+    ]
+  }
+]

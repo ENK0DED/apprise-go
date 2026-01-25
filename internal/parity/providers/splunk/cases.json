@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-map",
+    "url": "splunk://route123@apikey456",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "explicit-action",
+    "url": "victorops://route123@apikey456/entity-1?action=critical",
+    "body": "message",
+    "title": "alert",
+    "type": "warning"
+  }
+]

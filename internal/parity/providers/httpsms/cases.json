@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-self",
+    "url": "httpsms://key123@14051231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "query-from-to",
+    "url": "httpsms://?key=key123&from=14051231234&to=15551231234",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

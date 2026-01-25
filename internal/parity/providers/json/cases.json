@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "json://example.com/notify",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "extras",
+    "url": "json://user:pass@example.com:8080/notify?method=put&:message=body&:attachments=&:extra=note&+X-Token=abc&-ref=xyz",
+    "body": "hello",
+    "title": "title",
+    "type": "success"
+  }
+]

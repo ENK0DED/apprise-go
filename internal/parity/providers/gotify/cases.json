@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "gotify://example.com/ABC123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "priority-high",
+    "url": "gotify://example.com/ABC123?priority=high",
+    "body": "hello",
+    "title": "title",
+    "type": "success"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "template",
+    "url": "notificationapi://clientid/secret/@john?mode=template",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

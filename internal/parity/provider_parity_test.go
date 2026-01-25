@@ -1,0 +1,53 @@
+package parity
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/unraid/apprise-go/internal/notify"
+	"github.com/unraid/apprise-go/internal/testutil"
+)
+
+func TestProviderRequestParity(t *testing.T) {
+	defs := loadProviderDefinitions(t)
+
+	for _, name := range sortedProviderNames(defs) {
+		def := defs[name]
+		builder, ok := providerBuilders[name]
+		if !ok {
+			t.Fatalf("missing provider builder for %s", name)
+		}
+
+		for _, c := range def.Cases {
+			c := c
+			t.Run(name+"/"+c.Name, func(t *testing.T) {
+				logProgress(t, "python-vs-go "+name+"/"+c.Name)
+				notifyType := notify.NotifyInfo
+				if strings.TrimSpace(c.Type) != "" {
+					parsed, ok := notify.ParseNotifyType(c.Type)
+					if !ok {
+						t.Fatalf("invalid notify type %s for %s", c.Type, c.Name)
+					}
+					notifyType = parsed
+				}
+
+				pythonSpecs := testutil.CapturePythonRequestsWithType(t, c.URL, c.Body, c.Title, notifyType)
+				parsedURL, err := notify.ParseURL(c.URL)
+				if err != nil {
+					t.Fatalf("parse url: %v", err)
+				}
+
+				target, err := builder(parsedURL)
+				if err != nil {
+					t.Fatalf("build target: %v", err)
+				}
+
+				goSpecs := testutil.CaptureGoRequests(t, func() error {
+					return target.Send(c.Body, c.Title, notifyType)
+				})
+
+				assertRequestSpecSequenceMatches(t, pythonSpecs, goSpecs)
+			})
+		}
+	}
+}

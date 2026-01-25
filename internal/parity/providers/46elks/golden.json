@@ -1,0 +1,45 @@
+[
+  {
+    "name": "default-target",
+    "requests": [
+      {
+        "body": "to=14051231234&from=14051231234&message=title%0D%0Abody",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.46elks.com/a1/sms"
+      }
+    ]
+  },
+  {
+    "name": "path-plus-target",
+    "requests": [
+      {
+        "body": "to=%2B15551231234&from=Acme&message=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.46elks.com/a1/sms"
+      },
+      {
+        "body": "to=15557654321&from=Acme&message=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.46elks.com/a1/sms"
+      }
+    ]
+  }
+]

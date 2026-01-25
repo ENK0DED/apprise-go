@@ -1,0 +1,45 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "originator=%2B14051231234&recipients=%2B15551231234&body=title%0D%0Abody",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "AccessKey aaaaaaaaaaaaaaaaaaaaaaaaa",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.messagebird.com/messages"
+      }
+    ]
+  },
+  {
+    "name": "query-from",
+    "requests": [
+      {
+        "body": "originator=%2B14051231234&recipients=%2B15557654321&body=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "AccessKey aaaaaaaaaaaaaaaaaaaaaaaaa",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.messagebird.com/messages"
+      },
+      {
+        "body": "originator=%2B14051231234&recipients=%2B15550001111&body=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "AccessKey aaaaaaaaaaaaaaaaaaaaaaaaa",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.messagebird.com/messages"
+      }
+    ]
+  }
+]

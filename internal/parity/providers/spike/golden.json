@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"message\": \"apprise parity\", \"description\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.spike.sh/v1/alerts/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ]
+  },
+  {
+    "name": "body-only",
+    "requests": [
+      {
+        "body": "{\"message\": \"body\", \"description\": \"body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.spike.sh/v1/alerts/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    ]
+  }
+]

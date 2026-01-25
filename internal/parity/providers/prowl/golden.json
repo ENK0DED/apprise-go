@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "apikey=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&application=Apprise&event=apprise+parity&description=hello+from+python&priority=0",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.prowlapp.com/publicapi/add"
+      }
+    ]
+  },
+  {
+    "name": "provider",
+    "requests": [
+      {
+        "body": "apikey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&application=Apprise&event=title&description=body&priority=1&providerkey=cccccccccccccccccccccccccccccccccccccccc",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.prowlapp.com/publicapi/add"
+      }
+    ]
+  }
+]

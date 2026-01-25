@@ -1,0 +1,4 @@
+{
+  "name": "pushdeer",
+  "schemas": ["pushdeer", "pushdeers"]
+}

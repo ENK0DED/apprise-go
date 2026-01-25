@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"body\": \"title\\r\\nbody\", \"from\": \"+14051231234\", \"to\": [\"+15551231234\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer abcdef123456",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://us.sms.api.sinch.com/xms/v1/abcdef123456/batches"
+      }
+    ]
+  },
+  {
+    "name": "region-eu",
+    "requests": [
+      {
+        "body": "{\"body\": \"hello\", \"from\": \"+14051231234\", \"to\": [\"+15557654321\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer abcdef123456",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://eu.sms.api.sinch.com/xms/v1/abcdef123456/batches"
+      }
+    ]
+  }
+]

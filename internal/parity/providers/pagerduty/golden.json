@@ -1,0 +1,18 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"routing_key\": \"routingkey\", \"payload\": {\"summary\": \"apprise parity\\r\\nhello from python\", \"severity\": \"error\", \"source\": \"source\", \"component\": \"component\", \"group\": \"ops\", \"class\": \"service\", \"custom_details\": {\"trace\": \"abc\"}}, \"client\": \"Apprise\", \"event_action\": \"trigger\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Token token=apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://events.eu.pagerduty.com/v2/enqueue"
+      }
+    ]
+  }
+]

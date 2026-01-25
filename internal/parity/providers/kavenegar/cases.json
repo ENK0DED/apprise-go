@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "kavenegar://apikey123/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "from-query",
+    "url": "kavenegar://apikey123/15551231234?from=14051231234",
+    "body": "hello",
+    "title": "",
+    "type": "success"
+  }
+]

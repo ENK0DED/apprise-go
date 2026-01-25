@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"token\": \"token12345678901234567890123456789012\", \"title\": \"apprise parity\", \"content\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://www.pushplus.plus/send"
+      }
+    ]
+  },
+  {
+    "name": "title-fallback",
+    "requests": [
+      {
+        "body": "{\"token\": \"token12345678901234567890123456789012\", \"title\": \"hello\", \"content\": \"hello\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://www.pushplus.plus/send"
+      }
+    ]
+  }
+]

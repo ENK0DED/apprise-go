@@ -1,0 +1,16 @@
+[
+  {
+    "name": "mixed-targets",
+    "url": "wxpusher://AT_TOKEN/12345/UID_USER?to=UID_OTHER,6789",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "token-in-query",
+    "url": "wxpusher://UID_HOST?token=AT_TOKEN2&to=123",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

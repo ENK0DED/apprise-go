@@ -1,0 +1,16 @@
+[
+  {
+    "name": "single",
+    "url": "clicksend://user:apikey@15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "batch",
+    "url": "clicksend://user:apikey@15551231234/15557654321?batch=yes",
+    "body": "hello",
+    "title": "",
+    "type": "success"
+  }
+]

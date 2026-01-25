@@ -1,0 +1,27 @@
+[
+  {
+    "name": "multi-target",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://msgapi.threema.ch/send_simple?secret=secret&from=ABCDEFGH&text=apprise+parity%0D%0Ahello+from+python&phone=15551234567"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://msgapi.threema.ch/send_simple?secret=secret&from=ABCDEFGH&text=apprise+parity%0D%0Ahello+from+python&to=ABCDEFGH"
+      }
+    ]
+  }
+]

@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"title\": \"title\", \"body\": \"body\", \"X-S4-SourceSystem\": \"Apprise\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json"
+        },
+        "method": "POST",
+        "url": "https://connect.signl4.com/webhook/secret123/"
+      }
+    ]
+  },
+  {
+    "name": "options",
+    "requests": [
+      {
+        "body": "{\"title\": \"Apprise Notifications\", \"body\": \"hello\", \"X-S4-SourceSystem\": \"Apprise\", \"X-S4-Service\": \"svc\", \"X-S4-AlertingScenario\": \"alert\", \"X-S4-Location\": \"loc\", \"X-S4-Filtering\": true, \"X-S4-ExternalID\": \"ext\", \"X-S4-Status\": \"ok\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json"
+        },
+        "method": "POST",
+        "url": "https://connect.signl4.com/webhook/secret123/"
+      }
+    ]
+  }
+]

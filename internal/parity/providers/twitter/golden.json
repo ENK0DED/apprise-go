@@ -1,0 +1,34 @@
+[
+  {
+    "name": "tweet",
+    "requests": [
+      {
+        "body": "status=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "OAuth oauth_nonce=\"parity-nonce\", oauth_timestamp=\"1704067200\", oauth_version=\"1.0\", oauth_signature_method=\"HMAC-SHA1\", oauth_consumer_key=\"ckey\", oauth_token=\"akey\", oauth_signature=\"vhZONi8FpUs2t9kmejTpy5M9DWo%3D\"",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twitter.com/1.1/statuses/update.json"
+      }
+    ]
+  },
+  {
+    "name": "twitter-mode-tweet",
+    "requests": [
+      {
+        "body": "status=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "OAuth oauth_nonce=\"parity-nonce\", oauth_timestamp=\"1704067200\", oauth_version=\"1.0\", oauth_signature_method=\"HMAC-SHA1\", oauth_consumer_key=\"ckey\", oauth_token=\"akey\", oauth_signature=\"vhZONi8FpUs2t9kmejTpy5M9DWo%3D\"",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twitter.com/1.1/statuses/update.json"
+      }
+    ]
+  }
+]

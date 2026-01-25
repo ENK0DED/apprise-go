@@ -1,0 +1,4 @@
+{
+  "name": "webex",
+  "schemas": ["wxteams", "webex"]
+}

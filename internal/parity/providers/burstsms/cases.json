@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "burstsms://apikey123:secret456@Acme/15551231234?country=us",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "batch-validity",
+    "url": "burstsms://apikey123:secret456@Acme/15551231234/15557654321?country=us&validity=10&batch=yes",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

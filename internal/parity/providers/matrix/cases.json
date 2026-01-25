@@ -1,0 +1,8 @@
+[
+  {
+    "name": "t2bot-basic",
+    "url": "matrix://0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

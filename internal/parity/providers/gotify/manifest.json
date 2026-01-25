@@ -1,0 +1,4 @@
+{
+  "name": "gotify",
+  "schemas": ["gotify", "gotifys"]
+}

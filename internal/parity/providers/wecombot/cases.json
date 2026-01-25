@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "wecombot://ABC123",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "key-override",
+    "url": "wecombot://ignored?key=OVERRIDE_123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"tts\": false, \"wait\": true, \"avatar_url\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-256x256.png\", \"content\": \"apprise parity\\r\\nhello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1234567890/abcdef"
+      }
+    ]
+  },
+  {
+    "name": "botname",
+    "requests": [
+      {
+        "body": "{\"tts\": false, \"wait\": true, \"avatar_url\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-256x256.png\", \"username\": \"mybot\", \"content\": \"body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1234567890/abcdef"
+      }
+    ]
+  }
+]

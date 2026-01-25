@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "qq://aaaaaaaaaaaaaaaaaaaaaaaa",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "body-only",
+    "url": "qq://bbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "alert",
+    "requests": [
+      {
+        "body": "access_token=0123456789abcdef0123456789abcdef01234567&type=host&image_href=https%3A%2F%2Fexample.com%2Fimage.png&sound_href=HTTPS%3A%2F%2FEXAMPLE.COM%2FSOUND.MP3&message=apprise+parity&user_massage=hello+from+python&duration=2500&special_text_color=R",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://streamlabs.com/api/v1.0/alerts"
+      }
+    ]
+  },
+  {
+    "name": "donation",
+    "requests": [
+      {
+        "body": "name=TESTER&identifier=APPRISE&amount=5&currency=CAD&access_token=0123456789abcdef0123456789abcdef01234567&message=hello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://streamlabs.com/api/v1.0/donations"
+      }
+    ]
+  }
+]

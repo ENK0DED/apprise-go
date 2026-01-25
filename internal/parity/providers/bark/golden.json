@@ -1,0 +1,33 @@
+[
+  {
+    "name": "default-no-image",
+    "requests": [
+      {
+        "body": "{\"title\": \"apprise parity\", \"body\": \"hello from python\", \"device_key\": \"device1\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/push"
+      }
+    ]
+  },
+  {
+    "name": "image-options",
+    "requests": [
+      {
+        "body": "{\"title\": \"Apprise Notifications\", \"body\": \"body\", \"icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-warning-128x128.png\", \"sound\": \"minuet.caf\", \"url\": \"https://example.com\", \"badge\": 2, \"level\": \"passive\", \"category\": \"alerts\", \"group\": \"ops\", \"volume\": 3, \"device_key\": \"device1\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/push"
+      }
+    ]
+  }
+]

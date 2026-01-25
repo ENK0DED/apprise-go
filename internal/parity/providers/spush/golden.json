@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "key=apikey123456&msg=hello+from+python&title=apprise+parity",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepush.io/send"
+      }
+    ]
+  },
+  {
+    "name": "event",
+    "requests": [
+      {
+        "body": "key=apikey123456&msg=body&title=title&event=deploy",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepush.io/send"
+      }
+    ]
+  }
+]

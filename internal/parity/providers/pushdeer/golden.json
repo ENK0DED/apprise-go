@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default-host",
+    "requests": [
+      {
+        "body": "text=apprise+parity&type=text&desp=hello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "method": "POST",
+        "url": "http://api2.pushdeer.com:80/message/push?pushkey=abc123"
+      }
+    ]
+  },
+  {
+    "name": "custom-host",
+    "requests": [
+      {
+        "body": "text=title&type=text&desp=body",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/message/push?pushkey=abc123"
+      }
+    ]
+  }
+]

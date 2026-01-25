@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"api_key\": \"apikey\", \"sender\": \"sender@domain.com\", \"subject\": \"title\", \"to\": [\"recipient@domain.com\"], \"html_body\": \"body\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.smtp2go.com/v3/email/send"
+      }
+    ]
+  },
+  {
+    "name": "named",
+    "requests": [
+      {
+        "body": "{\"api_key\": \"apikey\", \"sender\": \"Sender <sender@domain.com>\", \"subject\": \"subject\", \"to\": [\"recipient@domain.com\"], \"html_body\": \"hello\", \"cc\": [\"cc@domain.com\"], \"bcc\": [\"bcc@domain.com\"]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.smtp2go.com/v3/email/send"
+      }
+    ]
+  }
+]

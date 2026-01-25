@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "pushplus://token12345678901234567890123456789012",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "title-fallback",
+    "url": "pushplus://token12345678901234567890123456789012",
+    "body": "hello",
+    "title": "",
+    "type": "info"
+  }
+]

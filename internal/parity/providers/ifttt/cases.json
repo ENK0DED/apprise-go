@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "ifttt://webhook123/event1",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "user-host",
+    "url": "ifttt://webhook123@event1",
+    "body": "hello",
+    "title": "title",
+    "type": "success"
+  }
+]

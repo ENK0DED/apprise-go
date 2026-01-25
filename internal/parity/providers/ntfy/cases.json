@@ -1,0 +1,16 @@
+[
+  {
+    "name": "cloud-default",
+    "url": "ntfy://topic?image=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "cloud-explicit",
+    "url": "ntfy://topic?mode=cloud&image=no",
+    "body": "body",
+    "title": "title",
+    "type": "failure"
+  }
+]

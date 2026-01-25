@@ -1,0 +1,8 @@
+[
+  {
+    "name": "multi-room",
+    "url": "nctalk://user:pass@talk.local/room1/room2?url_prefix=nextcloud&+X-Test=abc",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

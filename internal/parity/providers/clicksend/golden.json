@@ -1,0 +1,34 @@
+[
+  {
+    "name": "single",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"source\": \"php\", \"body\": \"title\\r\\nbody\", \"to\": \"+15551231234\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjphcGlrZXk=",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.clicksend.com/v3/sms/send"
+      }
+    ]
+  },
+  {
+    "name": "batch",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"source\": \"php\", \"body\": \"hello\", \"to\": \"+15551231234\"}, {\"source\": \"php\", \"body\": \"hello\", \"to\": \"+15557654321\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjphcGlrZXk=",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.clicksend.com/v3/sms/send"
+      }
+    ]
+  }
+]

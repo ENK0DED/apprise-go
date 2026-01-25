@@ -1,0 +1,16 @@
+[
+  {
+    "name": "all-devices",
+    "url": "pover://userkey123@token123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "device",
+    "url": "pover://userkey123@token123?to=device1",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

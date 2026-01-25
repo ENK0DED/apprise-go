@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const telegramAuthorityHost = "tgram.local"
+
 type ParsedURL struct {
 	Raw          string
 	Scheme       string
@@ -22,13 +24,40 @@ type ParsedURL struct {
 }
 
 func ParseURL(raw string) (*ParsedURL, error) {
-	if strings.TrimSpace(raw) == "" {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
 		return nil, fmt.Errorf("empty url")
 	}
 
-	u, err := url.Parse(raw)
+	schemeCandidate := ""
+	if parts := strings.SplitN(raw, "://", 2); len(parts) == 2 {
+		schemeCandidate = parts[0]
+	}
+	if schemeCandidate == "" {
+		return nil, fmt.Errorf("missing scheme")
+	}
+
+	sanitized := sanitizeFragment(raw)
+	if strings.EqualFold(schemeCandidate, "tgram") {
+		sanitized = sanitizeTelegramAuthority(sanitized)
+	}
+
+	u, err := url.Parse(sanitized)
 	if err != nil {
-		return nil, err
+		if schemeCandidate[0] < '0' || schemeCandidate[0] > '9' {
+			return nil, err
+		}
+
+		parts := strings.SplitN(sanitized, "://", 2)
+		if len(parts) != 2 || parts[1] == "" {
+			return nil, err
+		}
+		parsed, parseErr := url.Parse("scheme://" + parts[1])
+		if parseErr != nil {
+			return nil, err
+		}
+		u = parsed
+		u.Scheme = schemeCandidate
 	}
 
 	if u.Scheme == "" {
@@ -36,17 +65,21 @@ func ParseURL(raw string) (*ParsedURL, error) {
 	}
 
 	host := u.Hostname()
-	if host == "" {
-		return nil, fmt.Errorf("missing host")
-	}
 
 	port := 0
 	if portRaw := u.Port(); portRaw != "" {
 		value, err := strconv.Atoi(portRaw)
 		if err != nil {
-			return nil, fmt.Errorf("invalid port: %s", portRaw)
+			if strings.EqualFold(u.Scheme, "tgram") {
+				host = u.Host
+			} else {
+				return nil, fmt.Errorf("invalid port: %s", portRaw)
+			}
+		} else {
+			port = value
 		}
-		port = value
+	} else if strings.EqualFold(u.Scheme, "tgram") && strings.Contains(u.Host, ":") {
+		host = u.Host
 	}
 
 	user := ""
@@ -56,6 +89,14 @@ func ParseURL(raw string) (*ParsedURL, error) {
 		if pw, ok := u.User.Password(); ok {
 			password = pw
 		}
+	}
+	if strings.EqualFold(u.Scheme, "tgram") && strings.EqualFold(u.Hostname(), telegramAuthorityHost) && user != "" {
+		host = user
+		if password != "" {
+			host += ":" + password
+		}
+		user = ""
+		password = ""
 	}
 
 	parsedPath := u.EscapedPath()
@@ -164,4 +205,42 @@ func decodeQueryValue(value string) string {
 		return value
 	}
 	return decoded
+}
+
+func sanitizeFragment(raw string) string {
+	if !strings.Contains(raw, "#") {
+		return raw
+	}
+	return strings.ReplaceAll(raw, "#", "%23")
+}
+
+func sanitizeTelegramAuthority(raw string) string {
+	parts := strings.SplitN(raw, "://", 2)
+	if len(parts) != 2 {
+		return raw
+	}
+
+	scheme := parts[0]
+	authority := parts[1]
+	suffix := ""
+	if idx := strings.IndexAny(authority, "/?#"); idx != -1 {
+		suffix = authority[idx:]
+		authority = authority[:idx]
+	}
+
+	if strings.Contains(authority, "@") {
+		return raw
+	}
+
+	decoded, err := url.PathUnescape(authority)
+	if err != nil {
+		decoded = authority
+	}
+
+	tokenParts := strings.SplitN(decoded, ":", 2)
+	if len(tokenParts) != 2 || tokenParts[0] == "" || tokenParts[1] == "" {
+		return raw
+	}
+
+	return scheme + "://" + tokenParts[0] + ":" + tokenParts[1] + "@" + telegramAuthorityHost + suffix
 }

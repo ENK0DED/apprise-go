@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "signal://user:pass@signal.local:8080/15551231234/15557654321",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "group-status",
+    "url": "signals://signal.local/15551231234/@groupabc?status=yes&batch=yes",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

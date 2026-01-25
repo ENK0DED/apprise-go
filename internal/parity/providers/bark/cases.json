@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-no-image",
+    "url": "bark://example.com/device1?image=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "image-options",
+    "url": "barks://user:pass@example.com:8443/device1?image=yes&sound=minuet&level=passive&badge=2&volume=3&group=ops&category=alerts&click=https%3A%2F%2Fexample.com",
+    "body": "body",
+    "title": "",
+    "type": "warning"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-host",
+    "url": "pushdeer://abc123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "custom-host",
+    "url": "pushdeers://example.com:8443/abc123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

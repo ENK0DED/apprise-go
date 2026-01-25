@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"template_id\": \"template1\", \"short_url\": 0, \"recipients\": [{\"mobiles\": \"15551231234\", \"body\": \"title\\r\\nbody\", \"type\": \"info\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://control.msg91.com/api/v5/flow/"
+      }
+    ]
+  },
+  {
+    "name": "mapping",
+    "requests": [
+      {
+        "body": "{\"template_id\": \"template1\", \"short_url\": 1, \"recipients\": [{\"mobiles\": \"15551231234\", \"message\": \"hello\", \"category\": \"warning\", \"foo\": \"bar\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://control.msg91.com/api/v5/flow/"
+      }
+    ]
+  }
+]

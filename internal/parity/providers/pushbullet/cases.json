@@ -1,0 +1,16 @@
+[
+  {
+    "name": "all-devices",
+    "url": "pbul://token123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "channel",
+    "url": "pbul://token123?to=%23alerts",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

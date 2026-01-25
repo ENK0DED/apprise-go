@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "form://example.com/notify",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "get-extras",
+    "url": "forms://user:pass@example.com:8443/notify?method=get&:message=body&:type=&:extra=note&+X-Token=abc&-ref=xyz",
+    "body": "hello",
+    "title": "title",
+    "type": "success"
+  }
+]

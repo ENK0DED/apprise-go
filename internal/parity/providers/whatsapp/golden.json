@@ -1,0 +1,34 @@
+[
+  {
+    "name": "message",
+    "requests": [
+      {
+        "body": "{\"messaging_product\": \"whatsapp\", \"to\": \"+15551231234\", \"recipient_type\": \"individual\", \"type\": \"text\", \"text\": {\"body\": \"title\\r\\nbody\"}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://graph.facebook.com/v17.0/12345678901234/messages"
+      }
+    ]
+  },
+  {
+    "name": "template",
+    "requests": [
+      {
+        "body": "{\"messaging_product\": \"whatsapp\", \"to\": \"+15551231234\", \"type\": \"template\", \"template\": {\"name\": \"apptemplate\", \"language\": {\"code\": \"fr\"}, \"components\": [{\"type\": \"body\", \"parameters\": [{\"type\": \"text\", \"text\": \"static\"}, {\"type\": \"text\", \"text\": \"hello\"}]}]}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://graph.facebook.com/v17.0/12345678901234/messages"
+      }
+    ]
+  }
+]

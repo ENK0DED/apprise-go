@@ -1,0 +1,32 @@
+[
+  {
+    "name": "json-default",
+    "requests": [
+      {
+        "body": "{\"title\": \"apprise parity\", \"body\": \"hello from python\", \"type\": \"info\", \"format\": \"text\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/notify/ABC123"
+      }
+    ]
+  },
+  {
+    "name": "form-tags",
+    "requests": [
+      {
+        "body": "title=title&body=body&type=warning&format=text&tag=infra&tag=ops",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/notify/ABC123"
+      }
+    ]
+  }
+]

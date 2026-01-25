@@ -1,0 +1,4 @@
+{
+  "name": "hassio",
+  "schemas": ["hassio", "hassios"]
+}

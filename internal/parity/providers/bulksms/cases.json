@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "bulksms://user:pass@15551231234?route=standard&unicode=yes",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "group-batch",
+    "url": "bulksms://user:pass@15551231234/@ops?batch=yes&route=premium",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

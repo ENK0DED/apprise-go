@@ -1,0 +1,16 @@
+[
+  {
+    "name": "device",
+    "url": "pushy://apikey123/@device1",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "topic-sound",
+    "url": "pushy://apikey123/topic1?sound=ping.aiff&badge=3",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

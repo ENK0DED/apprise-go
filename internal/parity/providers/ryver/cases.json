@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "ryver://bot@acme/ABCDEF123456789",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "slack_mode",
+    "url": "ryver://bot@acme/ABCDEF123456789?mode=slack&image=no",
+    "body": "line1\nline2 & < >",
+    "title": "Title & < >",
+    "type": "warning"
+  }
+]

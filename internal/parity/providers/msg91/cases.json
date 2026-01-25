@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "msg91://template1@authkey123/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "mapping",
+    "url": "msg91://template1@authkey123/15551231234?short_url=yes&:body=message&:type=category&:foo=bar",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

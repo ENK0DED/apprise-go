@@ -1,0 +1,4 @@
+{
+  "name": "rocket",
+  "schemas": ["rocket", "rockets"]
+}

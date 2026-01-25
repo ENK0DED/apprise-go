@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "notifico://1234/abcd1234",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "warning",
+    "url": "notifico://1234/abcd1234?color=yes&prefix=yes",
+    "body": "body",
+    "title": "",
+    "type": "warning"
+  }
+]

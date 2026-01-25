@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"options\": {\"open_tracking\": false, \"click_tracking\": false}, \"content\": {\"from\": {\"name\": \"Apprise Notifications\", \"email\": \"sender@domain.com\"}, \"subject\": \"title\", \"reply_to\": \"sender@domain.com\", \"html\": \"body\"}, \"substitution_data\": {}, \"recipients\": [{\"address\": {\"email\": \"recipient@domain.com\"}}]}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.sparkpost.com/api/v1/transmissions/"
+      }
+    ]
+  },
+  {
+    "name": "region",
+    "requests": [
+      {
+        "body": "{\"options\": {\"open_tracking\": false, \"click_tracking\": false}, \"content\": {\"from\": {\"name\": \"Apprise Notifications\", \"email\": \"sender@domain.com\"}, \"subject\": \".\", \"reply_to\": \"sender@domain.com\", \"html\": \"hello\"}, \"substitution_data\": {}, \"recipients\": [{\"address\": {\"email\": \"recipient@domain.com\"}}]}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.eu.sparkpost.com/api/v1/transmissions/"
+      }
+    ]
+  }
+]

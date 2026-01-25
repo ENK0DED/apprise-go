@@ -1,0 +1,19 @@
+[
+  {
+    "name": "sms",
+    "requests": [
+      {
+        "body": "Action=Publish&Message=hello&Version=2010-03-31&PhoneNumber=%2B15551234567",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "AWS4-HMAC-SHA256 Credential=access123/20240101/us-east-1/sns/aws4_request, SignedHeaders=content-type;host;x-amz-date, Signature=8ba0fc0a3ef88783a48f63f0c64171302b4338747414077c2725af66519c4dbb",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise",
+          "x-amz-date": "20240101T000000Z"
+        },
+        "method": "POST",
+        "url": "https://sns.us-east-1.amazonaws.com/"
+      }
+    ]
+  }
+]

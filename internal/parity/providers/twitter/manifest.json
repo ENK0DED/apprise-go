@@ -1,0 +1,8 @@
+{
+  "name": "twitter",
+  "schemas": [
+    "tweet",
+    "twitter",
+    "x"
+  ]
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "basic",
+    "url": "twist://password:user@example.com/123:456",
+    "body": "hello",
+    "title": "Test Subject"
+  }
+]

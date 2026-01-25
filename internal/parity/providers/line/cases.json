@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-no-image",
+    "url": "line://token123/user1?image=no",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "image-title",
+    "url": "line://token123/user1?image=yes",
+    "body": "body",
+    "title": "title",
+    "type": "warning"
+  }
+]

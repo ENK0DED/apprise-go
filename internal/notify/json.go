@@ -1,10 +1,8 @@
 package notify
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 )
@@ -45,6 +43,15 @@ func NewJSONTarget(target *ParsedURL) (*JSONTarget, error) {
 }
 
 func (j *JSONTarget) Send(body, title string, notifyType NotifyType) error {
+	spec, err := j.BuildRequest(body, title, notifyType)
+	if err != nil {
+		return err
+	}
+
+	return SendRequest(spec)
+}
+
+func (j *JSONTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
 	payload := map[string]any{
 		"version":     "1.0",
 		"title":       title,
@@ -68,7 +75,7 @@ func (j *JSONTarget) Send(body, title string, notifyType NotifyType) error {
 
 	data, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("json encode: %w", err)
+		return RequestSpec{}, fmt.Errorf("json encode: %w", err)
 	}
 
 	scheme := "http"
@@ -95,32 +102,24 @@ func (j *JSONTarget) Send(body, title string, notifyType NotifyType) error {
 		u.RawQuery = values.Encode()
 	}
 
-	req, err := http.NewRequest(j.method, u.String(), bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+	headers := map[string]string{
+		"User-Agent":   "Apprise",
+		"Accept":       "*/*",
+		"Content-Type": "application/json",
 	}
-
-	req.Header.Set("User-Agent", "Apprise")
-	req.Header.Set("Content-Type", "application/json")
 	for key, value := range j.headers {
-		req.Header.Set(key, value)
+		headers[key] = value
 	}
-
 	if j.target.User != "" {
-		req.SetBasicAuth(j.target.User, j.target.Password)
+		headers["Authorization"] = basicAuthHeader(j.target.User, j.target.Password)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
-	}
-
-	return nil
+	return RequestSpec{
+		Method:  j.method,
+		URL:     u.String(),
+		Headers: headers,
+		Body:    string(data),
+	}, nil
 }
 
 func cloneMap(input map[string]string) map[string]string {

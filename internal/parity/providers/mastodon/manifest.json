@@ -1,0 +1,4 @@
+{
+  "name": "mastodon",
+  "schemas": ["mastodon", "mastodons", "toot", "toots"]
+}

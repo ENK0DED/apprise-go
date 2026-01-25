@@ -1,0 +1,17 @@
+[
+  {
+    "name": "create",
+    "requests": [
+      {
+        "body": "{\"id\": \"case-123\", \"event_type\": \"create\", \"title\": \"apprise parity\", \"description\": \"hello from python\", \"meta\": {}, \"tags\": []}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.pagertree.com/integration/int_abc12345"
+      }
+    ]
+  }
+]

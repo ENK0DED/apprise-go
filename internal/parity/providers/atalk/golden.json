@@ -1,0 +1,32 @@
+[
+  {
+    "name": "single-target",
+    "requests": [
+      {
+        "body": "username=appuser&to=%2B15551234567&from=AFRICASTKNG&message=title%0D%0Abody",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.africastalking.com/version1/messaging"
+      }
+    ]
+  },
+  {
+    "name": "batch-sandbox",
+    "requests": [
+      {
+        "body": "username=appuser&to=15551230000%2C%2B15557654321%2C%2B15550987654&from=ACME&message=subject%0D%0Amessage",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.sandbox.africastalking.com/version1/messaging"
+      }
+    ]
+  }
+]

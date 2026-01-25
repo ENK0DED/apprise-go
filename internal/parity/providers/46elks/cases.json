@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-target",
+    "url": "46elks://user:pass@14051231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "path-plus-target",
+    "url": "46elks://user:pass@Acme/+15551231234?to=15557654321",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

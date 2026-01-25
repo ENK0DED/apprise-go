@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default_stream",
+    "url": "zulip://goober@acme/0123456789abcdef0123456789abcdef",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "private_message",
+    "url": "zulip://goober@acme/0123456789abcdef0123456789abcdef/jane.doe@acme.zulipchat.com",
+    "body": "private hello",
+    "title": "dm",
+    "type": "success"
+  }
+]

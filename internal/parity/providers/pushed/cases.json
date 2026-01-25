@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "pushed://appkey123/appsecret456",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

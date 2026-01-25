@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "smtp2go://sender@domain.com/apikey/recipient@domain.com",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "named",
+    "url": "smtp2go://sender@domain.com/apikey?to=recipient@domain.com&cc=cc@domain.com&bcc=bcc@domain.com&name=Sender&batch=yes",
+    "body": "hello",
+    "title": "subject",
+    "type": "warning"
+  }
+]

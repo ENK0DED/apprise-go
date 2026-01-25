@@ -1,0 +1,14 @@
+[
+  {
+    "name": "path-token",
+    "url": "hassio://homeassistant.local/prefix/token123?nid=apprise_id",
+    "body": "hello from python",
+    "title": "apprise parity"
+  },
+  {
+    "name": "basic-auth-token",
+    "url": "hassios://user:pass@homeassistant.local/token456?nid=apprise_id",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

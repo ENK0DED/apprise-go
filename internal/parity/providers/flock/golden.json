@@ -1,0 +1,42 @@
+[
+  {
+    "name": "webhook",
+    "requests": [
+      {
+        "body": "{\"token\": \"token123\", \"flockml\": \"<flockml><b>title</b><br/>body</flockml>\", \"sendAs\": {\"name\": \"Apprise\", \"profileImage\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-72x72.png\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.flock.com/hooks/sendMessage/token123"
+      }
+    ]
+  },
+  {
+    "name": "direct-targets",
+    "requests": [
+      {
+        "body": "{\"token\": \"token123\", \"flockml\": \"<flockml><b>alert</b><br/>hello</flockml>\", \"sendAs\": {\"name\": \"bot\", \"profileImage\": null}, \"to\": \"g:TEAM\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.flock.co/v1/chat.sendMessage"
+      },
+      {
+        "body": "{\"token\": \"token123\", \"flockml\": \"<flockml><b>alert</b><br/>hello</flockml>\", \"sendAs\": {\"name\": \"bot\", \"profileImage\": null}, \"to\": \"u:USER\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.flock.co/v1/chat.sendMessage"
+      }
+    ]
+  }
+]

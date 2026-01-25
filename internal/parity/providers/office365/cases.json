@@ -1,0 +1,8 @@
+[
+  {
+    "name": "basic",
+    "url": "azure://sender@example.com/tenant123/client123/secret123/target@example.com",
+    "body": "hello",
+    "title": "Test Subject"
+  }
+]

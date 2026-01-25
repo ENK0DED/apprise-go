@@ -1,0 +1,8 @@
+[
+  {
+    "name": "sms",
+    "url": "sns://access123/secret123/us-east-1/15551234567",
+    "body": "hello",
+    "title": ""
+  }
+]

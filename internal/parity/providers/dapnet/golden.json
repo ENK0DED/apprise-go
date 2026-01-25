@@ -1,0 +1,56 @@
+[
+  {
+    "name": "single-target",
+    "requests": [
+      {
+        "body": "{\"text\": \"title\\r\\nbody\", \"callSignNames\": [\"AB1CD\"], \"transmitterGroupNames\": [\"dl-all\"], \"emergency\": false}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://www.hampager.de:8080/calls"
+      }
+    ]
+  },
+  {
+    "name": "multi-target-emergency",
+    "requests": [
+      {
+        "body": "{\"text\": \"urgent\\r\\nalert\", \"callSignNames\": [\"AB1CD\"], \"transmitterGroupNames\": [\"dl-all\", \"us-east\"], \"emergency\": true}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://www.hampager.de:8080/calls"
+      },
+      {
+        "body": "{\"text\": \"urgent\\r\\nalert\", \"callSignNames\": [\"EF2GH\"], \"transmitterGroupNames\": [\"dl-all\", \"us-east\"], \"emergency\": true}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://www.hampager.de:8080/calls"
+      },
+      {
+        "body": "{\"text\": \"urgent\\r\\nalert\", \"callSignNames\": [\"IJ3KL\"], \"transmitterGroupNames\": [\"dl-all\", \"us-east\"], \"emergency\": true}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://www.hampager.de:8080/calls"
+      }
+    ]
+  }
+]

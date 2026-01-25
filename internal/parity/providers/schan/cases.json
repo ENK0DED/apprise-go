@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "schan://token123",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

@@ -1,0 +1,56 @@
+[
+  {
+    "name": "players-basic",
+    "requests": [
+      {
+        "body": "{\"app_id\": \"app123\", \"contents\": {\"en\": \"body\"}, \"content_available\": true, \"headings\": {\"en\": \"title\"}, \"large_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-72x72.png\", \"small_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-32x32.png\", \"include_player_ids\": [\"player1\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic key123",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.onesignal.com/notifications"
+      },
+      {
+        "body": "{\"app_id\": \"app123\", \"contents\": {\"en\": \"body\"}, \"content_available\": true, \"headings\": {\"en\": \"title\"}, \"large_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-72x72.png\", \"small_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-32x32.png\", \"include_player_ids\": [\"player2\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic key123",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.onesignal.com/notifications"
+      }
+    ]
+  },
+  {
+    "name": "user-segment",
+    "requests": [
+      {
+        "body": "{\"app_id\": \"app123\", \"contents\": {\"en\": \"message\"}, \"content_available\": true, \"headings\": {\"en\": \"subject\"}, \"large_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-warning-72x72.png\", \"small_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-warning-32x32.png\", \"include_external_user_ids\": [\"@user\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic key123",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.onesignal.com/notifications"
+      },
+      {
+        "body": "{\"app_id\": \"app123\", \"contents\": {\"en\": \"message\"}, \"content_available\": true, \"headings\": {\"en\": \"subject\"}, \"large_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-warning-72x72.png\", \"small_icon\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-warning-32x32.png\", \"include_external_user_ids\": [\"@user\"], \"included_segments\": [\"#segment\"]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic key123",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.onesignal.com/notifications"
+      }
+    ]
+  }
+]

@@ -1,0 +1,4 @@
+{
+  "name": "pushover",
+  "schemas": ["pover"]
+}

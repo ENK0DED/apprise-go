@@ -1,0 +1,16 @@
+[
+  {
+    "name": "http-default",
+    "url": "enigma2://user:pass@receiver.local/notify?timeout=10&+X-Test=abc",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "https-custom-port",
+    "url": "enigma2s://example.com:8443/notify",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

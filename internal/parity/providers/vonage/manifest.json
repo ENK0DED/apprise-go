@@ -1,0 +1,4 @@
+{
+  "name": "vonage",
+  "schemas": ["vonage", "nexmo"]
+}

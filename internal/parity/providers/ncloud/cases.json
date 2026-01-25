@@ -1,0 +1,8 @@
+[
+  {
+    "name": "default",
+    "url": "nclouds://user:pass@nextcloud.local/target1",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

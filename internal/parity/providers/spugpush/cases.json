@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "spugpush://aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "title-fallback",
+    "url": "spugpush://bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

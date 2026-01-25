@@ -1,0 +1,34 @@
+[
+  {
+    "name": "path-token",
+    "requests": [
+      {
+        "body": "{\"title\": \"apprise parity\", \"message\": \"hello from python\", \"notification_id\": \"apprise_id\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://homeassistant.local:8123/prefix/api/services/persistent_notification/create"
+      }
+    ]
+  },
+  {
+    "name": "basic-auth-token",
+    "requests": [
+      {
+        "body": "{\"title\": \"apprise parity\", \"message\": \"hello from python\", \"notification_id\": \"apprise_id\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://homeassistant.local/api/services/persistent_notification/create"
+      }
+    ]
+  }
+]

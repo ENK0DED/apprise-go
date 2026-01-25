@@ -1,0 +1,29 @@
+[
+  {
+    "name": "basic",
+    "requests": [
+      {
+        "body": "grant_type=password&username=user&password=pass",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic YXBwaWQ6YXBwc2VjcmV0",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise v1.9.7"
+        },
+        "method": "POST",
+        "url": "https://www.reddit.com/api/v1/access_token"
+      },
+      {
+        "body": "ad=False&api_type=json&extension=json&sr=testsub&title=apprise+parity&kind=self&nsfw=False&resubmit=False&sendreplies=True&spoiler=False&text=hello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise v1.9.7"
+        },
+        "method": "POST",
+        "url": "https://oauth.reddit.com/api/submit"
+      }
+    ]
+  }
+]

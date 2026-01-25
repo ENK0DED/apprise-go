@@ -1,0 +1,16 @@
+[
+  {
+    "name": "json-default",
+    "url": "apprise://example.com/ABC123?method=json",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "form-tags",
+    "url": "apprise://example.com/ABC123?method=form&tags=ops,infra",
+    "body": "body",
+    "title": "title",
+    "type": "warning"
+  }
+]

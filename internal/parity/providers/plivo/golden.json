@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"src\": \"+15551231234\", \"dst\": null, \"text\": \"title\\r\\nbody\", \"recipients\": \"+15557654321\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic YWFhYWFhYWFhYWFhYWFhYWFhYWE6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.plivo.com/v1/Account/%7Bauth_id%7D/Message/"
+      }
+    ]
+  },
+  {
+    "name": "token-query",
+    "requests": [
+      {
+        "body": "{\"src\": \"+15551231234\", \"dst\": null, \"text\": \"hello\", \"recipients\": \"+15557654321\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic YWFhYWFhYWFhYWFhYWFhYWFhYWE6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.plivo.com/v1/Account/%7Bauth_id%7D/Message/"
+      }
+    ]
+  }
+]

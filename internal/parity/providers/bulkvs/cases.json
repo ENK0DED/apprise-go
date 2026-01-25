@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "bulkvs://user:pass@14051231234/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "batch-from-query",
+    "url": "bulkvs://user:pass@15551231234/15557654321?from=14051231234&batch=yes",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

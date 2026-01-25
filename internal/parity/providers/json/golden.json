@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"version\": \"1.0\", \"title\": \"apprise parity\", \"message\": \"hello from python\", \"attachments\": [], \"type\": \"info\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/notify"
+      }
+    ]
+  },
+  {
+    "name": "extras",
+    "requests": [
+      {
+        "body": "{\"version\": \"1.0\", \"title\": \"title\", \"type\": \"success\", \"body\": \"hello\", \"extra\": \"note\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-token": "abc"
+        },
+        "method": "PUT",
+        "url": "http://example.com:8080/notify?ref=xyz"
+      }
+    ]
+  }
+]

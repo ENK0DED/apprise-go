@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "vonage://apikey:secret@14155551234/15557654321",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "ttl-to",
+    "url": "nexmo://apikey:secret@14155551234?to=15551231234&ttl=40000",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

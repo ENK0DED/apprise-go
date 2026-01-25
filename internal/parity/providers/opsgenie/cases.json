@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "opsgenie://apikey/@user/%23team?region=eu&priority=high&tags=alpha,beta&entity=server1&alias=alert1&action=new&+detail=xyz",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "warning"
+  }
+]

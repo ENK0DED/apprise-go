@@ -3,6 +3,7 @@ package parity
 import (
 	"encoding/json"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -26,7 +27,11 @@ func TestSchemaCoverage(t *testing.T) {
 
 	pythonSet := map[string]struct{}{}
 	for _, schema := range pythonSchemas {
-		pythonSet[strings.ToLower(schema)] = struct{}{}
+		normalized := strings.ToLower(schema)
+		if isIgnoredSchema(normalized) {
+			continue
+		}
+		pythonSet[normalized] = struct{}{}
 	}
 
 	goSchemas := notify.SupportedSchemas()
@@ -43,6 +48,33 @@ func TestSchemaCoverage(t *testing.T) {
 	}
 
 	if len(missing) > 0 {
-		t.Fatalf("missing schemas in go: %s", strings.Join(missing, ", "))
+		sort.Strings(missing)
+		t.Fatalf("missing schemas in go (%d): %s", len(missing), strings.Join(missing, ", "))
 	}
+}
+
+func isIgnoredSchema(schema string) bool {
+	_, ok := ignoredSchemas[schema]
+	return ok
+}
+
+// Non-HTTP providers are excluded from schema coverage for the initial release.
+// Keep in sync with PROCESS.md.
+var ignoredSchemas = map[string]struct{}{
+	"aprs":    {},
+	"dbus":    {},
+	"gio":     {},
+	"glib":    {},
+	"gnome":   {},
+	"growl":   {},
+	"kde":     {},
+	"macosx":  {},
+	"mqtt":    {},
+	"mqtts":   {},
+	"qt":      {},
+	"rsyslog": {},
+	"smpp":    {},
+	"smpps":   {},
+	"syslog":  {},
+	"windows": {},
 }

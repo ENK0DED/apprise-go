@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "plivo://aaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/15551231234/15557654321",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "token-query",
+    "url": "plivo://aaaaaaaaaaaaaaaaaaaa@15557654321?token=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb&from=15551231234&batch=yes",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"text\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces/workspace123/messages?token=token789&key=key456"
+      }
+    ]
+  },
+  {
+    "name": "thread",
+    "requests": [
+      {
+        "body": "{\"text\": \"title\\r\\nbody\", \"thread\": {\"thread_key\": \"thread123\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces/workspace123/messages?token=token789&key=key456&messageReplyOption=REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
+      }
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "user@example.com": {
+    "endpoint": "https://fcm.googleapis.com/fcm/send/abc123",
+    "keys": {
+      "p256dh": "BEjUUxpWXFv5Pv8NfmQt-MT1-niwQW-ax0V5vT_8t1cZzk4xRafn2t6YGK6fulpgHBSa_dSH79aPD7olxAEdZRU",
+      "auth": "-8CnMKsjBJfCLhbdXMjRtQ"
+    }
+  }
+}

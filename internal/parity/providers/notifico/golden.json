@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://n.tkte.ch/h/1234/abcd1234?payload=%0310%5Bi%5D%03+%02Apprise%0F%3A+hello+from+python%0F"
+      }
+    ]
+  },
+  {
+    "name": "warning",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://n.tkte.ch/h/1234/abcd1234?payload=%0307%5B%21%5D%03+%02Apprise%0F%3A+body%0F"
+      }
+    ]
+  }
+]

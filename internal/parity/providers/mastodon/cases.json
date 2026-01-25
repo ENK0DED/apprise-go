@@ -1,0 +1,8 @@
+[
+  {
+    "name": "default",
+    "url": "mastodons://token@mastodon.local",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

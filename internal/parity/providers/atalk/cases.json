@@ -1,0 +1,16 @@
+[
+  {
+    "name": "single-target",
+    "url": "atalk://appuser@apikey/+15551234567",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "batch-sandbox",
+    "url": "atalk://15551230000?user=appuser&apikey=key123&batch=yes&mode=s&from=ACME&to=+15557654321,+15550987654",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

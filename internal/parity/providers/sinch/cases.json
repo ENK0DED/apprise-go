@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "sinch://abcdef123456:abcdef123456@14051231234/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "region-eu",
+    "url": "sinch://abcdef123456:abcdef123456@14051231234?to=15557654321&region=eu",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

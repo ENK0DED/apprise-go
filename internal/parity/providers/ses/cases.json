@@ -1,0 +1,8 @@
+[
+  {
+    "name": "basic",
+    "url": "ses://sender@example.com/access123/secret123/us-east-1/target@example.com",
+    "body": "hello",
+    "title": "Test Subject"
+  }
+]

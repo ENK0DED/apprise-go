@@ -1,0 +1,8 @@
+[
+  {
+    "name": "modal",
+    "url": "emby://user:pass@emby.local?modal=yes",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

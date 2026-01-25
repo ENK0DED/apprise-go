@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "sparkpost://sender@domain.com/apikey/recipient@domain.com",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "region",
+    "url": "sparkpost://sender@domain.com/apikey?to=recipient@domain.com&region=eu",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "push://b444a40f-3db9-4224-b489-9a514c41c009",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

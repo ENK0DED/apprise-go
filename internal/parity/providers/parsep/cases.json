@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default-all",
+    "url": "parseps://app123:master456@parse.example.com",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "device-ios",
+    "url": "parsep://app123:master456@parse.example.com:8080/api?device=ios",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

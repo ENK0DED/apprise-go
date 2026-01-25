@@ -1,0 +1,18 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"title\": \"apprise parity\", \"body\": \"hello from python\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "b444a40f-3db9-4224-b489-9a514c41c009"
+        },
+        "method": "POST",
+        "url": "https://push.techulus.com/api/v1/notify"
+      }
+    ]
+  }
+]

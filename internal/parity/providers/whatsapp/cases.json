@@ -1,0 +1,16 @@
+[
+  {
+    "name": "message",
+    "url": "whatsapp://token123@12345678901234/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "template",
+    "url": "whatsapp://apptemplate:token123@12345678901234/15551231234?lang=fr&:1=static&:body=2",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

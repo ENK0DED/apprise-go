@@ -1,0 +1,28 @@
+[
+  {
+    "name": "basic",
+    "requests": [
+      {
+        "body": "email=user%40example.com&password=password",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twist.com/api/v3/users/login"
+      },
+      {
+        "body": "channel_id=456&title=Test+Subject&content=hello",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twist.com/api/v3/threads/add"
+      }
+    ]
+  }
+]

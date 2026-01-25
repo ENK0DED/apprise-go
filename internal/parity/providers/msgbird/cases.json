@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "msgbird://aaaaaaaaaaaaaaaaaaaaaaaaa/14051231234/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "query-from",
+    "url": "msgbird://aaaaaaaaaaaaaaaaaaaaaaaaa/14051231234/15557654321?to=15550001111",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

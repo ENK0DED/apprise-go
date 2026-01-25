@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "discord://1234567890/abcdef",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  },
+  {
+    "name": "botname",
+    "url": "discord://mybot@1234567890/abcdef",
+    "body": "body",
+    "title": "",
+    "type": "info"
+  }
+]

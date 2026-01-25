@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default-status",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://push.i-i.me/?push_key=token123&title=%5B~%5D+apprise+parity&content=hello+from+python&type=text"
+      }
+    ]
+  },
+  {
+    "name": "no-status",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://push.i-i.me/?push_key=token123&title=title&content=body&type=text"
+      }
+    ]
+  }
+]

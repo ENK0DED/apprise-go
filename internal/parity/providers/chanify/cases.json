@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "chanify://tokenABC123",
+    "body": "hello from python",
+    "title": "ignored",
+    "type": "info"
+  },
+  {
+    "name": "token-override",
+    "url": "chanify://ignored?token=override123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

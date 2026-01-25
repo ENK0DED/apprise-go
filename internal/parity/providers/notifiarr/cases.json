@@ -1,0 +1,16 @@
+[
+  {
+    "name": "basic-channel",
+    "url": "notifiarr://apikey123/123456",
+    "body": "Hello <@123> @everyone",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "event-with-source-image",
+    "url": "notifiarr://987654?apikey=token456&image=yes&event=42&source=Scheduler&to=#111111,#222222",
+    "body": "body",
+    "title": "update",
+    "type": "warning"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "name": "players-basic",
+    "url": "onesignal://app123@key123/player1/player2?batch=no",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "user-segment",
+    "url": "onesignal://app123@key123/@user/#segment?batch=no",
+    "body": "message",
+    "title": "subject",
+    "type": "warning"
+  }
+]

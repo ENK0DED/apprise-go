@@ -1,0 +1,14 @@
+[
+  {
+    "name": "alert",
+    "url": "strmlabs://0123456789abcdef0123456789abcdef01234567?call=alerts&alert_type=host&image_href=https://example.com/image.png&sound_href=https://example.com/sound.mp3&duration=2500&special_text_color=R",
+    "body": "hello from python",
+    "title": "apprise parity"
+  },
+  {
+    "name": "donation",
+    "url": "strmlabs://0123456789abcdef0123456789abcdef01234567?call=donations&amount=5&currency=CAD&name=Tester&identifier=apprise",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

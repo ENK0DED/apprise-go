@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"to\": \"+15551231234\", \"text\": \"title\\r\\nbody\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "x-api-key": "apikey123"
+        },
+        "method": "POST",
+        "url": "https://gateway.seven.io/api/sms"
+      }
+    ]
+  },
+  {
+    "name": "flash-label",
+    "requests": [
+      {
+        "body": "{\"to\": \"+15551231234\", \"text\": \"hello\", \"from\": \"Acme\", \"flash\": true, \"label\": \"promo\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "x-api-key": "apikey123"
+        },
+        "method": "POST",
+        "url": "https://gateway.seven.io/api/sms"
+      }
+    ]
+  }
+]

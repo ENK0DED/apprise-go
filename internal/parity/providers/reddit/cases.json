@@ -1,0 +1,8 @@
+[
+  {
+    "name": "basic",
+    "url": "reddit://user:pass@appid/appsecret/testsub",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

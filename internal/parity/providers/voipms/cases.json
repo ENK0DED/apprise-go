@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "voipms://apipass:user@example.com/15551231234/15557654321",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "query-from",
+    "url": "voipms://apipass:user@example.com/?from=15551231234&to=15557654321",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

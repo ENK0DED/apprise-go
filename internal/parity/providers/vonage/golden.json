@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "api_key=apikey&api_secret=secret&ttl=900000&from=14155551234&text=title%0D%0Abody&to=15557654321",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.nexmo.com/sms/json"
+      }
+    ]
+  },
+  {
+    "name": "ttl-to",
+    "requests": [
+      {
+        "body": "api_key=apikey&api_secret=secret&ttl=40000&from=14155551234&text=hello&to=15551231234",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://rest.nexmo.com/sms/json"
+      }
+    ]
+  }
+]

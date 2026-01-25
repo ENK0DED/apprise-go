@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "lark://token-123",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "token-override",
+    "url": "lark://ignored?token=override-123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

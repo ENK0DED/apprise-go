@@ -1,0 +1,8 @@
+[
+  {
+    "name": "legacy-basic",
+    "url": "fcm://apikey/device-token",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

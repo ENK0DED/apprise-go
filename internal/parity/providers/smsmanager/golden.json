@@ -1,0 +1,30 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://http-api.smsmanager.cz/Send?apikey=apikey123&gateway=high&number=15551231234&message=title%0D%0Abody"
+      }
+    ]
+  },
+  {
+    "name": "batch-sender",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://http-api.smsmanager.cz/Send?apikey=apikey123&gateway=high&number=15551231234%3B15557654321&message=hello&sender=ACME"
+      }
+    ]
+  }
+]

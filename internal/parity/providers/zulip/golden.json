@@ -1,0 +1,34 @@
+[
+  {
+    "name": "default_stream",
+    "requests": [
+      {
+        "body": "subject=apprise+parity&content=hello+from+python&type=stream&to=general",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic Z29vYmVyLWJvdEBhY21lLnp1bGlwY2hhdC5jb206MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://acme.zulipchat.com/api/v1/messages"
+      }
+    ]
+  },
+  {
+    "name": "private_message",
+    "requests": [
+      {
+        "body": "subject=dm&content=private+hello&type=private&to=jane.doe%40acme.zulipchat.com",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic Z29vYmVyLWJvdEBhY21lLnp1bGlwY2hhdC5jb206MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://acme.zulipchat.com/api/v1/messages"
+      }
+    ]
+  }
+]

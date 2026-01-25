@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "text=ignored%0D%0Ahello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.chanify.net/v1/sender/tokenABC123/"
+      }
+    ]
+  },
+  {
+    "name": "token-override",
+    "requests": [
+      {
+        "body": "text=title%0D%0Abody",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.chanify.net/v1/sender/override123/"
+      }
+    ]
+  }
+]

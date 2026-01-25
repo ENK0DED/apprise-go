@@ -1,0 +1,16 @@
+[
+  {
+    "name": "webhook",
+    "url": "flock://token123",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "direct-targets",
+    "url": "flock://bot@token123/#TEAM/@USER?image=no",
+    "body": "hello",
+    "title": "alert",
+    "type": "warning"
+  }
+]

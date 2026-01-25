@@ -1,0 +1,16 @@
+[
+  {
+    "name": "single-target",
+    "url": "dapnet://user:pass@AB1CD",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "multi-target-emergency",
+    "url": "dapnet://user:pass@AB1CD/EF2GH?to=ab1cd-1,ij3kl&priority=e&txgroups=dl-all,US-East&batch=no",
+    "body": "alert",
+    "title": "urgent",
+    "type": "failure"
+  }
+]

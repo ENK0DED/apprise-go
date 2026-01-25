@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "resend://apikey:sender@domain.com/recipient@domain.com",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "fallback",
+    "url": "resend://apikey:sender@domain.com",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

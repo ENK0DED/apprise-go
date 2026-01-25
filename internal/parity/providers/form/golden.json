@@ -1,0 +1,33 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "version=1.0&title=apprise+parity&message=hello+from+python&type=info",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/notify"
+      }
+    ]
+  },
+  {
+    "name": "get-extras",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "user-agent": "Apprise",
+          "x-token": "abc"
+        },
+        "method": "GET",
+        "url": "https://example.com:8443/notify?version=1.0&title=title&body=hello&extra=note&ref=xyz"
+      }
+    ]
+  }
+]

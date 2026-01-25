@@ -1,0 +1,18 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"embeds\": [{\"title\": \"apprise parity\", \"description\": \"hello from python\", \"colour\": \"#3AA3E3\", \"replies\": null, \"icon_url\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-256x256.png\"}]}",
+        "headers": {
+          "accept": "application/json; charset=utf-8",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise",
+          "x-bot-token": "bot-token-123"
+        },
+        "method": "POST",
+        "url": "https://api.revolt.chat/channels/channel123/messages"
+      }
+    ]
+  }
+]

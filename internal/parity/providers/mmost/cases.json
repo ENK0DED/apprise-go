@@ -1,0 +1,9 @@
+[
+  {
+    "name": "webhook_default",
+    "url": "mmost://mattermost.example.com/hooks-token?image=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]

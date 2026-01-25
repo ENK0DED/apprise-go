@@ -5,13 +5,38 @@ import (
 	"strings"
 )
 
-var supportedSchemas = map[string]struct{}{
-	"json":  {},
-	"jsons": {},
-	"form":  {},
-	"forms": {},
-	"xml":   {},
-	"xmls":  {},
+var coreSchemas = map[string]struct{}{
+	"apprise":  {},
+	"apprises": {},
+	"gotify":   {},
+	"gotifys":  {},
+	"ifttt":    {},
+	"json":     {},
+	"jsons":    {},
+	"ntfy":     {},
+	"ntfys":    {},
+	"form":     {},
+	"forms":    {},
+	"xml":      {},
+	"xmls":     {},
+}
+
+var supportedSchemas = initSupportedSchemas()
+
+func initSupportedSchemas() map[string]struct{} {
+	merged := map[string]struct{}{}
+	addSchemas(merged, coreSchemas)
+	addSchemas(merged, chatSchemas)
+	addSchemas(merged, emailSchemas)
+	addSchemas(merged, pushSchemas)
+	addSchemas(merged, smsSchemas)
+	return merged
+}
+
+func addSchemas(dst, src map[string]struct{}) {
+	for schema := range src {
+		dst[schema] = struct{}{}
+	}
 }
 
 func SupportedSchemas() []string {

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "device",
+    "requests": [
+      {
+        "body": "{\"to\": \"device1\", \"data\": {\"message\": \"hello from python\"}, \"notification\": {\"body\": \"hello from python\", \"title\": \"apprise parity\"}}",
+        "headers": {
+          "accept": "*/*",
+          "accepts": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.pushy.me/push?api_key=apikey123"
+      }
+    ]
+  },
+  {
+    "name": "topic-sound",
+    "requests": [
+      {
+        "body": "{\"to\": \"topic1\", \"data\": {\"message\": \"body\"}, \"notification\": {\"body\": \"body\", \"title\": \"title\", \"sound\": \"ping.aiff\", \"badge\": 3}}",
+        "headers": {
+          "accept": "*/*",
+          "accepts": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.pushy.me/push?api_key=apikey123"
+      }
+    ]
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "name": "multi-target",
+    "url": "threema://ABCDEFGH@secret/ABCDEFGH/15551234567",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

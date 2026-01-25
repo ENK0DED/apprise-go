@@ -1,0 +1,4 @@
+{
+  "name": "ncloud",
+  "schemas": ["ncloud", "nclouds"]
+}

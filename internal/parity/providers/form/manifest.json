@@ -1,0 +1,4 @@
+{
+  "name": "form",
+  "schemas": ["form", "forms"]
+}

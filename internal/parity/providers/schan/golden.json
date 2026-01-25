@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "title=apprise+parity&desp=hello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "method": "POST",
+        "url": "https://sctapi.ftqq.com/token123.send"
+      }
+    ]
+  }
+]

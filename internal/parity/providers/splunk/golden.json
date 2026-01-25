@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default-map",
+    "requests": [
+      {
+        "body": "{\"entity_id\": \"Apprise/route123\", \"message_type\": \"INFO\", \"entity_display_name\": \"title\", \"state_message\": \"body\", \"monitoring_tool\": \"Apprise\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://alert.victorops.com/integrations/generic/20131114/alert/apikey456/route123"
+      }
+    ]
+  },
+  {
+    "name": "explicit-action",
+    "requests": [
+      {
+        "body": "{\"entity_id\": \"entity-1\", \"message_type\": \"CRITICAL\", \"entity_display_name\": \"alert\", \"state_message\": \"message\", \"monitoring_tool\": \"Apprise\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://alert.victorops.com/integrations/generic/20131114/alert/apikey456/route123"
+      }
+    ]
+  }
+]

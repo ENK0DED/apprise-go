@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "seven://apikey123/15551231234",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "flash-label",
+    "url": "seven://apikey123/15551231234?flash=yes&label=promo&from=Acme",
+    "body": "hello",
+    "title": "",
+    "type": "warning"
+  }
+]

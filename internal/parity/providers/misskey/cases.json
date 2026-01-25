@@ -1,0 +1,8 @@
+[
+  {
+    "name": "default",
+    "url": "misskeys://token@misskey.example",
+    "body": "hello from python",
+    "title": "apprise parity"
+  }
+]

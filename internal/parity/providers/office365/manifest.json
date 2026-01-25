@@ -1,0 +1,7 @@
+{
+  "name": "office365",
+  "schemas": [
+    "azure",
+    "o365"
+  ]
+}

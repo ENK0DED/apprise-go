@@ -1,0 +1,16 @@
+[
+  {
+    "name": "default",
+    "url": "gchat://workspace123/key456/token789",
+    "body": "hello from python",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "thread",
+    "url": "gchat://workspace123/key456/token789/thread123",
+    "body": "body",
+    "title": "title",
+    "type": "success"
+  }
+]

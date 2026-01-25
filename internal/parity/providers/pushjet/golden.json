@@ -1,0 +1,33 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"message\": \"hello from python\", \"title\": \"apprise parity\", \"link\": null, \"level\": null}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/message/?secret=secret123"
+      }
+    ]
+  },
+  {
+    "name": "auth",
+    "requests": [
+      {
+        "body": "{\"message\": \"body\", \"title\": \"title\", \"link\": null, \"level\": null}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/message/?secret=secret123"
+      }
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"source\": \"Apprise Notifications\", \"message\": \"apprise parity\", \"description\": \"hello from python\", \"details\": {\"detail\": \"xyz\", \"type\": \"warning\"}, \"priority\": \"P4\", \"tags\": [\"alpha\", \"beta\"], \"entity\": \"server1\", \"alias\": \"alert1\", \"responders\": [{\"type\": \"team\", \"name\": \"team\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "GenieKey apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.eu.opsgenie.com/v2/alerts"
+      },
+      {
+        "body": "{\"source\": \"Apprise Notifications\", \"message\": \"apprise parity\", \"description\": \"hello from python\", \"details\": {\"detail\": \"xyz\", \"type\": \"warning\"}, \"priority\": \"P4\", \"tags\": [\"alpha\", \"beta\"], \"entity\": \"server1\", \"alias\": \"alert1\", \"responders\": [{\"type\": \"user\", \"username\": \"user\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "GenieKey apikey",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.eu.opsgenie.com/v2/alerts"
+      }
+    ]
+  }
+]

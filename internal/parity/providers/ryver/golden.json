@@ -1,0 +1,32 @@
+[
+  {
+    "name": "default",
+    "requests": [
+      {
+        "body": "{\"body\": \"**apprise parity**\\r\\nhello from python\", \"createSource\": {\"displayName\": \"bot\", \"avatar\": \"https://github.com/caronc/apprise/raw/master/apprise/assets/themes/default/apprise-info-72x72.png\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://acme.ryver.com/application/webhook/ABCDEF123456789"
+      }
+    ]
+  },
+  {
+    "name": "slack_mode",
+    "requests": [
+      {
+        "body": "{\"body\": \"**Title &amp; &lt; &gt;**\\r\\nline1\\nline2 &amp; &lt; &gt;\", \"createSource\": {\"displayName\": \"bot\", \"avatar\": null}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://acme.ryver.com/application/webhook/ABCDEF123456789"
+      }
+    ]
+  }
+]

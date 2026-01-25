@@ -1,0 +1,9 @@
+[
+  {
+    "name": "default",
+    "url": "join://abcdef0123456789abcdef0123456789?image=no",
+    "body": "hello from python",
+    "title": "apprise parity",
+    "type": "info"
+  }
+]
