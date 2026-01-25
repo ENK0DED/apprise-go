@@ -49,6 +49,7 @@ jobs:
           APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
         run: |
           printf '%s' "$APPLE_BUILD_CERTIFICATE_BASE64" | base64 --decode > apple_codesign.p12
+          chmod 600 apple_codesign.p12
 
       - name: Write App Store Connect API key
         if: matrix.notarize
@@ -56,6 +57,7 @@ jobs:
           APP_STORE_CONNECT_KEY_JSON: ${{ secrets.APPLE_APP_STORE_CONNECT_KEY_JSON }}
         run: |
           printf '%s' "$APP_STORE_CONNECT_KEY_JSON" > app_store_connect_key.json
+          chmod 600 app_store_connect_key.json
 
       - name: Sign and notarize darwin binary
         if: matrix.notarize
@@ -66,6 +68,10 @@ jobs:
           p12_password: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
           notarize: true
           app_store_connect_api_key_json_file: app_store_connect_key.json
+
+      - name: Cleanup signing materials
+        if: always()
+        run: rm -f apple_codesign.p12 app_store_connect_key.json
 
       - name: Upload release asset
         if: github.event_name == 'release'

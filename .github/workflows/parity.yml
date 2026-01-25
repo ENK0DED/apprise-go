@@ -31,7 +31,7 @@ jobs:
       - name: Run parity tests
         run: bash scripts/ci/run_parity_tests.sh
       - name: Notify Discord on scheduled parity failure
-        if: failure() && github.event_name == 'schedule' && env.DISCORD_WEBHOOK != ''
+        if: failure() && github.event_name == 'schedule' && secrets.DISCORD_WEBHOOK != ''
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
