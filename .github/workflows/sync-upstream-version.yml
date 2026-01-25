@@ -1,0 +1,70 @@
+name: sync-upstream-version
+
+on:
+  workflow_dispatch:
+    inputs:
+      allow_sync:
+        description: Allow updating UpstreamVersion
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    - cron: "0 12 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    if: vars.ALLOW_UPSTREAM_VERSION_SYNC == 'true' || inputs.allow_sync == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch latest upstream release
+        id: upstream
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/caronc/apprise/releases/latest"
+          tag="$(curl -sSL "$api" | jq -r '.tag_name')"
+          if [ -z "$tag" ] || [ "$tag" = "null" ]; then
+            echo "Failed to read latest upstream release tag." >&2
+            exit 1
+          fi
+          version="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update UpstreamVersion
+        env:
+          UPSTREAM_VERSION: ${{ steps.upstream.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          path = Path("internal/version/version.go")
+          data = path.read_text()
+          version = os.environ["UPSTREAM_VERSION"]
+          pattern = r'(var\s+UpstreamVersion\s*=\s*")([^"]+)(")'
+          updated, count = re.subn(pattern, r'\g<1>' + version + r'\g<3>', data)
+          if count == 0:
+            raise SystemExit("UpstreamVersion not found in version.go")
+          if updated != data:
+            path.write_text(updated)
+          PY
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/sync-upstream-version
+          delete-branch: true
+          commit-message: "chore: sync upstream apprise version to ${{ steps.upstream.outputs.tag }}"
+          title: "chore: sync upstream apprise version to ${{ steps.upstream.outputs.tag }}"
+          body: |
+            Syncs `internal/version.UpstreamVersion` to the latest upstream release.
+
+            Upstream release: `${{ steps.upstream.outputs.tag }}`

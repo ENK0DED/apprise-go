@@ -1,0 +1,87 @@
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+            notarize: true
+          - goos: darwin
+            goarch: arm64
+            notarize: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e1148
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582
+        with:
+          go-version-file: go.mod
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          go build -o "dist/apprise-go-${GOOS}-${GOARCH}" ./cmd/apprise
+
+      - name: Write signing certificate
+        if: matrix.notarize
+        env:
+          APPLE_BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_BUILD_CERTIFICATE_BASE64 }}
+        run: |
+          printf '%s' "$APPLE_BUILD_CERTIFICATE_BASE64" | base64 --decode > apple_codesign.p12
+          chmod 600 apple_codesign.p12
+
+      - name: Write App Store Connect API key
+        if: matrix.notarize
+        env:
+          APP_STORE_CONNECT_KEY_JSON: ${{ secrets.APPLE_APP_STORE_CONNECT_KEY_JSON }}
+        run: |
+          printf '%s' "$APP_STORE_CONNECT_KEY_JSON" > app_store_connect_key.json
+          chmod 600 app_store_connect_key.json
+
+      - name: Sign and notarize darwin binary
+        if: matrix.notarize
+        uses: indygreg/apple-code-sign-action@44d0985b
+        with:
+          input_path: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
+          p12_file: apple_codesign.p12
+          p12_password: ${{ secrets.APPLE_BUILD_CERTIFICATE_PASSWORD }}
+          notarize: true
+          app_store_connect_api_key_json_file: app_store_connect_key.json
+
+      - name: Cleanup signing materials
+        if: always()
+        run: rm -f apple_codesign.p12 app_store_connect_key.json
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@a06a81a0
+        with:
+          files: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
+
+      - name: Upload artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@ea165f8d
+        with:
+          name: apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}
