@@ -1,0 +1,37 @@
+name: knope-release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check release token
+        env:
+          KNOPE_RELEASE_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$KNOPE_RELEASE_TOKEN" ]; then
+            echo "UNRAID_BOT_GITHUB_ADMIN_TOKEN is required to create a release that triggers workflows." >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
+
+      - name: Install Knope
+        uses: knope-dev/action@v2.1.0
+        with:
+          version: 0.22.1
+          github-token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
+        run: knope release

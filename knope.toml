@@ -1,0 +1,28 @@
+[package]
+name = "apprise-go"
+changelog = "CHANGELOG.md"
+versioned_files = [
+  { path = "internal/version/version.go", regex = "var\\s+Version\\s*=\\s*\\\"(?<version>[^\\\"]+)\\\"" }
+]
+
+[[workflows]]
+name = "release"
+
+[[workflows.steps]]
+type = "PrepareRelease"
+
+[[workflows.steps]]
+type = "Release"
+
+[[workflows]]
+name = "document-change"
+
+[[workflows.steps]]
+type = "CreateChangeFile"
+
+[bot.releases]
+enabled = true
+
+[github]
+owner = "unraid"
+repo = "apprise-go"
