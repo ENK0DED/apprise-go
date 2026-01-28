@@ -10,3 +10,7 @@
 
 # Local tooling
 /.venv/
+/.gocache/
+/.tmp/pycapture/
+/.tmp/pycases/
+__pycache__/

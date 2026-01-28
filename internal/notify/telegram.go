@@ -19,10 +19,12 @@ type telegramRecipient struct {
 }
 
 type TelegramTarget struct {
-	botToken string
-	targets  []telegramRecipient
-	silent   bool
-	preview  bool
+	botToken     string
+	targets      []telegramRecipient
+	silent       bool
+	preview      bool
+	detect       bool
+	includeImage bool
 }
 
 func NewTelegramTarget(target *ParsedURL) (*TelegramTarget, error) {
@@ -49,6 +51,9 @@ func NewTelegramTarget(target *ParsedURL) (*TelegramTarget, error) {
 		botToken = decodedHost + ":" + segments[0]
 		rawTargets = append(rawTargets, segments[1:]...)
 	}
+	if len(botToken) >= 3 && strings.EqualFold(botToken[:3], "bot") {
+		botToken = botToken[3:]
+	}
 
 	if toValue := strings.TrimSpace(target.Query["to"]); toValue != "" {
 		rawTargets = append(rawTargets, parseDelimitedList(toValue)...)
@@ -66,20 +71,23 @@ func NewTelegramTarget(target *ParsedURL) (*TelegramTarget, error) {
 		}
 	}
 
-	if len(targets) == 0 {
-		return nil, fmt.Errorf("missing targets")
-	}
+	detect := parseBoolValue(target.Query["detect"], len(targets) == 0)
 
 	return &TelegramTarget{
-		botToken: botToken,
-		targets:  targets,
-		silent:   parseBoolValue(target.Query["silent"], false),
-		preview:  parseBoolValue(target.Query["preview"], false),
+		botToken:     botToken,
+		targets:      targets,
+		silent:       parseBoolValue(target.Query["silent"], false),
+		preview:      parseBoolValue(target.Query["preview"], false),
+		detect:       detect,
+		includeImage: parseBoolValue(target.Query["image"], false),
 	}, nil
 }
 
 func (t *TelegramTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
 	if len(t.targets) == 0 {
+		if t.detect {
+			return t.buildDetectSpec(), nil
+		}
 		return RequestSpec{}, fmt.Errorf("missing targets")
 	}
 
@@ -96,11 +104,23 @@ func (t *TelegramTarget) BuildRequest(body, title string, notifyType NotifyType)
 
 func (t *TelegramTarget) Send(body, title string, notifyType NotifyType) error {
 	if len(t.targets) == 0 {
-		return fmt.Errorf("missing targets")
+		if t.detect {
+			return SendRequest(t.buildDetectSpec())
+		}
+		return nil
 	}
 
 	message := formatTelegramMessage(title, body)
 	for _, recipient := range t.targets {
+		if t.includeImage {
+			spec, err := t.buildImageSpec(recipient)
+			if err != nil {
+				return err
+			}
+			if err := SendRequest(spec); err != nil {
+				return err
+			}
+		}
 		spec, err := t.buildSpec(message, recipient)
 		if err != nil {
 			return err
@@ -145,6 +165,41 @@ func (t *TelegramTarget) buildSpec(body string, recipient telegramRecipient) (Re
 			"Content-Type": "application/json",
 		},
 		Body: string(data),
+	}, nil
+}
+
+func (t *TelegramTarget) buildDetectSpec() RequestSpec {
+	return RequestSpec{
+		Method: "POST",
+		URL:    telegramAPIBase + t.botToken + "/getUpdates",
+		Headers: map[string]string{
+			"User-Agent":   "Apprise",
+			"Content-Type": "application/json",
+			"Accept":       "*/*",
+		},
+		Body: "",
+	}
+}
+
+func (t *TelegramTarget) buildImageSpec(recipient telegramRecipient) (RequestSpec, error) {
+	values := url.Values{}
+	if recipient.isNumeric {
+		values.Set("chat_id", strconv.FormatInt(recipient.chatIDInt, 10))
+	} else {
+		values.Set("chat_id", recipient.chatID)
+	}
+	if recipient.messageTopic > 0 {
+		values.Set("message_thread_id", strconv.Itoa(recipient.messageTopic))
+	}
+
+	return RequestSpec{
+		Method: "POST",
+		URL:    telegramAPIBase + t.botToken + "/SendPhoto",
+		Headers: map[string]string{
+			"User-Agent":   "Apprise",
+			"Content-Type": "application/x-www-form-urlencoded",
+		},
+		Body: values.Encode(),
 	}, nil
 }
 
@@ -239,4 +294,194 @@ func formatTelegramMessage(title, body string) string {
 		return "<b>" + escapedTitle + "</b>"
 	}
 	return "<b>" + escapedTitle + "</b>\r\n" + html.EscapeString(body)
+}
+
+func init() {
+	RegisterSchemaEntryOrdered(33, SchemaEntry{
+		"attachment_support": true,
+		"category":           "native",
+		"details": map[string]any{
+			"args": map[string]any{
+				"content": map[string]any{
+					"default":  "before",
+					"map_to":   "content",
+					"name":     "Content Placement",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"before", "after"},
+				},
+				"cto": map[string]any{
+					"default":  4,
+					"map_to":   "cto",
+					"name":     "Socket Connect Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"detect": map[string]any{
+					"default":  true,
+					"map_to":   "detect_owner",
+					"name":     "Detect Bot Owner",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"emojis": map[string]any{
+					"default":  false,
+					"map_to":   "emojis",
+					"name":     "Interpret Emojis",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"format": map[string]any{
+					"default":  "html",
+					"map_to":   "format",
+					"name":     "Notify Format",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"html", "markdown", "text"},
+				},
+				"image": map[string]any{
+					"default":  false,
+					"map_to":   "include_image",
+					"name":     "Include Image",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"mdv": map[string]any{
+					"default":  "v1",
+					"map_to":   "mdv",
+					"name":     "Markdown Version",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"v1", "v2"},
+				},
+				"overflow": map[string]any{
+					"default":  "upstream",
+					"map_to":   "overflow",
+					"name":     "Overflow Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"split", "truncate", "upstream"},
+				},
+				"preview": map[string]any{
+					"default":  false,
+					"map_to":   "preview",
+					"name":     "Web Page Preview",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"rto": map[string]any{
+					"default":  4,
+					"map_to":   "rto",
+					"name":     "Socket Read Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"silent": map[string]any{
+					"default":  false,
+					"map_to":   "silent",
+					"name":     "Silent Notification",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"store": map[string]any{
+					"default":  true,
+					"map_to":   "store",
+					"name":     "Persistent Storage",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"thread": map[string]any{
+					"alias_of": "topic",
+				},
+				"to": map[string]any{
+					"alias_of": "targets",
+					"delim":    []string{",", " "},
+				},
+				"topic": map[string]any{
+					"map_to":   "topic",
+					"name":     "Topic Thread ID",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
+				"tz": map[string]any{
+					"default":  nil,
+					"map_to":   "tz",
+					"name":     "Timezone",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"verify": map[string]any{
+					"default":  true,
+					"map_to":   "verify",
+					"name":     "Verify SSL",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+			},
+			"kwargs":    map[string]any{},
+			"templates": []string{"{schema}://{bot_token}", "{schema}://{bot_token}/{targets}"},
+			"tokens": map[string]any{
+				"bot_token": map[string]any{
+					"map_to":   "bot_token",
+					"name":     "Bot Token",
+					"private":  true,
+					"regex":    []string{"^(bot)?(?P<key>[0-9]+:[a-z0-9_-]+)$", "i"},
+					"required": true,
+					"type":     "string",
+				},
+				"schema": map[string]any{
+					"default":  "tgram",
+					"map_to":   "schema",
+					"name":     "Schema",
+					"private":  false,
+					"required": true,
+					"type":     "choice:string",
+					"values":   []string{"tgram"},
+				},
+				"target_user": map[string]any{
+					"map_to":   "targets",
+					"name":     "Target Chat ID",
+					"private":  false,
+					"regex":    []string{"^((-?[0-9]{1,32})|([a-z_-][a-z0-9_-]+))$", "i"},
+					"required": false,
+					"type":     "string",
+				},
+				"targets": map[string]any{
+					"delim":    []string{"/"},
+					"group":    []string{"target_user"},
+					"map_to":   "targets",
+					"name":     "Targets",
+					"private":  false,
+					"required": false,
+					"type":     "list:string",
+				},
+			},
+		},
+		"enabled":   true,
+		"protocols": nil,
+		"requirements": map[string]any{
+			"details":              "",
+			"packages_recommended": []any{},
+			"packages_required":    []any{},
+		},
+		"secure_protocols": []string{"tgram"},
+		"service_name":     "Telegram",
+		"service_url":      "https://telegram.org/",
+		"setup_url":        "https://appriseit.com/services/telegram/",
+	})
 }

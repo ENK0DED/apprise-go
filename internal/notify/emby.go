@@ -38,7 +38,6 @@ func NewEmbyTarget(target *ParsedURL) (*EmbyTarget, error) {
 	if user == "" {
 		return nil, fmt.Errorf("missing user")
 	}
-
 	secure := strings.EqualFold(target.Scheme, "embys")
 	port := target.Port
 	if port == 0 {
@@ -58,6 +57,9 @@ func NewEmbyTarget(target *ParsedURL) (*EmbyTarget, error) {
 }
 
 func (e *EmbyTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
+	if e.user == "" {
+		return RequestSpec{}, fmt.Errorf("missing user")
+	}
 	payload := e.loginPayload()
 	data, err := json.Marshal(payload)
 	if err != nil {
@@ -81,6 +83,9 @@ func (e *EmbyTarget) BuildRequest(body, title string, notifyType NotifyType) (Re
 }
 
 func (e *EmbyTarget) Send(body, title string, notifyType NotifyType) error {
+	if e.user == "" {
+		return fmt.Errorf("missing user")
+	}
 	if !e.isAuthenticated() {
 		if err := e.login(); err != nil {
 			return err
@@ -304,4 +309,143 @@ func md5Hash(value string) string {
 func sha1Hash(value string) string {
 	sum := sha1.Sum([]byte(value))
 	return hex.EncodeToString(sum[:])
+}
+
+func init() {
+	RegisterSchemaEntryOrdered(89, SchemaEntry{
+		"attachment_support": false,
+		"category":           "native",
+		"details": map[string]any{
+			"args": map[string]any{
+				"cto": map[string]any{
+					"default":  4,
+					"map_to":   "cto",
+					"name":     "Socket Connect Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"emojis": map[string]any{
+					"default":  false,
+					"map_to":   "emojis",
+					"name":     "Interpret Emojis",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"format": map[string]any{
+					"default":  "text",
+					"map_to":   "format",
+					"name":     "Notify Format",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"html", "markdown", "text"},
+				},
+				"modal": map[string]any{
+					"default":  false,
+					"map_to":   "modal",
+					"name":     "Modal",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"overflow": map[string]any{
+					"default":  "upstream",
+					"map_to":   "overflow",
+					"name":     "Overflow Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"split", "truncate", "upstream"},
+				},
+				"rto": map[string]any{
+					"default":  4,
+					"map_to":   "rto",
+					"name":     "Socket Read Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"store": map[string]any{
+					"default":  true,
+					"map_to":   "store",
+					"name":     "Persistent Storage",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"tz": map[string]any{
+					"default":  nil,
+					"map_to":   "tz",
+					"name":     "Timezone",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"verify": map[string]any{
+					"default":  true,
+					"map_to":   "verify",
+					"name":     "Verify SSL",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+			},
+			"kwargs":    map[string]any{},
+			"templates": []string{"{schema}://{host}", "{schema}://{host}:{port}", "{schema}://{user}:{password}@{host}", "{schema}://{user}:{password}@{host}:{port}"},
+			"tokens": map[string]any{
+				"host": map[string]any{
+					"map_to":   "host",
+					"name":     "Hostname",
+					"private":  false,
+					"required": true,
+					"type":     "string",
+				},
+				"password": map[string]any{
+					"map_to":   "password",
+					"name":     "Password",
+					"private":  true,
+					"required": false,
+					"type":     "string",
+				},
+				"port": map[string]any{
+					"default":  8096,
+					"map_to":   "port",
+					"max":      65535,
+					"min":      1,
+					"name":     "Port",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
+				"schema": map[string]any{
+					"map_to":   "schema",
+					"name":     "Schema",
+					"private":  false,
+					"required": true,
+					"type":     "choice:string",
+					"values":   []string{"emby", "embys"},
+				},
+				"user": map[string]any{
+					"map_to":   "user",
+					"name":     "Username",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+			},
+		},
+		"enabled":   true,
+		"protocols": []string{"emby"},
+		"requirements": map[string]any{
+			"details":              "",
+			"packages_recommended": []any{},
+			"packages_required":    []any{},
+		},
+		"secure_protocols": []string{"embys"},
+		"service_name":     "Emby",
+		"service_url":      "https://emby.media/",
+		"setup_url":        "https://appriseit.com/services/emby/",
+	})
 }

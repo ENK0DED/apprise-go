@@ -15,22 +15,35 @@ var mailgunAPIBase = map[string]string{
 }
 
 type MailgunTarget struct {
-	apiKey    string
-	fromAddr  string
-	fromName  string
-	host      string
-	region    string
-	targets   []emailEntry
-	cc        map[string]struct{}
-	bcc       map[string]struct{}
-	headers   map[string]string
-	tokens    map[string]string
-	batch     bool
+	apiKey   string
+	fromAddr string
+	fromName string
+	host     string
+	region   string
+	targets  []emailEntry
+	cc       map[string]struct{}
+	bcc      map[string]struct{}
+	headers  map[string]string
+	tokens   map[string]string
+	batch    bool
+	verify   bool
+	disabled bool
 }
 
 func NewMailgunTarget(target *ParsedURL) (*MailgunTarget, error) {
 	user := strings.TrimSpace(target.User)
 	host := strings.TrimSpace(target.Host)
+
+	pathEntries := splitPath(target.Path)
+	apiKey := ""
+	if len(pathEntries) > 0 {
+		apiKey = strings.TrimSpace(pathEntries[0])
+		pathEntries = pathEntries[1:]
+	}
+	if apiKey == "" {
+		return &MailgunTarget{disabled: true}, nil
+	}
+
 	if user == "" || host == "" {
 		return nil, fmt.Errorf("missing sender")
 	}
@@ -39,26 +52,18 @@ func NewMailgunTarget(target *ParsedURL) (*MailgunTarget, error) {
 		return nil, fmt.Errorf("invalid sender")
 	}
 
-	pathEntries := splitPath(target.Path)
-	if len(pathEntries) == 0 {
-		return nil, fmt.Errorf("missing apikey")
-	}
-	apiKey := strings.TrimSpace(pathEntries[0])
-	if apiKey == "" {
-		return nil, fmt.Errorf("missing apikey")
-	}
-
 	fromName := mailgunDefaultName
-	if raw := strings.TrimSpace(target.Query["from"]); raw != "" {
-		if isSimpleEmail(raw) {
-			fromAddr = raw
+	rawFrom := strings.TrimSpace(target.Query["from"])
+	if rawFrom == "" {
+		rawFrom = strings.TrimSpace(target.Query["name"])
+	}
+	if rawFrom != "" {
+		if isSimpleEmail(rawFrom) {
+			fromAddr = rawFrom
 			fromName = ""
 		} else {
-			fromName = raw
+			fromName = rawFrom
 		}
-	}
-	if name := strings.TrimSpace(target.Query["name"]); name != "" && strings.TrimSpace(target.Query["from"]) == "" {
-		fromName = name
 	}
 
 	region := strings.ToLower(strings.TrimSpace(target.Query["region"]))
@@ -70,7 +75,7 @@ func NewMailgunTarget(target *ParsedURL) (*MailgunTarget, error) {
 	}
 
 	targets := []emailEntry{}
-	for _, entry := range pathEntries[1:] {
+	for _, entry := range pathEntries {
 		if parsed, ok := parseEmailEntry(entry); ok {
 			targets = append(targets, parsed)
 		}
@@ -83,7 +88,7 @@ func NewMailgunTarget(target *ParsedURL) (*MailgunTarget, error) {
 		}
 	}
 	if len(targets) == 0 {
-		targets = []emailEntry{{name: fromName, email: fromAddr}}
+		targets = []emailEntry{{name: "", email: fromAddr}}
 	}
 
 	cc := map[string]struct{}{}
@@ -134,10 +139,14 @@ func NewMailgunTarget(target *ParsedURL) (*MailgunTarget, error) {
 		headers:  headers,
 		tokens:   tokens,
 		batch:    parseBoolWithDefault(target.Query["batch"], false),
+		verify:   parseBoolWithDefault(target.Query["verify"], true),
 	}, nil
 }
 
 func (m *MailgunTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
+	if m.disabled {
+		return RequestSpec{}, fmt.Errorf("missing apikey")
+	}
 	if len(m.targets) == 0 {
 		return RequestSpec{}, fmt.Errorf("missing targets")
 	}
@@ -169,6 +178,9 @@ func (m *MailgunTarget) BuildRequest(body, title string, notifyType NotifyType) 
 }
 
 func (m *MailgunTarget) Send(body, title string, notifyType NotifyType) error {
+	if m.disabled {
+		return nil
+	}
 	if len(m.targets) == 0 {
 		return fmt.Errorf("missing targets")
 	}
@@ -211,7 +223,11 @@ func (m *MailgunTarget) Send(body, title string, notifyType NotifyType) error {
 
 func (m *MailgunTarget) buildPayload(body, title string, recipients []emailEntry) url.Values {
 	values := url.Values{}
-	values.Set("o:skip-verification", "False")
+	if m.verify {
+		values.Set("o:skip-verification", "False")
+	} else {
+		values.Set("o:skip-verification", "True")
+	}
 	values.Set("from", formatEmail(m.fromName, m.fromAddr))
 	values.Set("subject", title)
 	values.Set("html", body)
@@ -266,4 +282,208 @@ func subtractEmailSet(source, remove map[string]struct{}, targets map[string]str
 		entries = append(entries, email)
 	}
 	return entries
+}
+
+func init() {
+	RegisterSchemaEntryOrdered(85, SchemaEntry{
+		"attachment_support": true,
+		"category":           "native",
+		"details": map[string]any{
+			"args": map[string]any{
+				"batch": map[string]any{
+					"default":  false,
+					"map_to":   "batch",
+					"name":     "Batch Mode",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"bcc": map[string]any{
+					"delim":    []string{",", " "},
+					"group":    []any{},
+					"map_to":   "bcc",
+					"name":     "Blind Carbon Copy",
+					"private":  false,
+					"required": false,
+					"type":     "list:string",
+				},
+				"cc": map[string]any{
+					"delim":    []string{",", " "},
+					"group":    []any{},
+					"map_to":   "cc",
+					"name":     "Carbon Copy",
+					"private":  false,
+					"required": false,
+					"type":     "list:string",
+				},
+				"cto": map[string]any{
+					"default":  4,
+					"map_to":   "cto",
+					"name":     "Socket Connect Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"emojis": map[string]any{
+					"default":  false,
+					"map_to":   "emojis",
+					"name":     "Interpret Emojis",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"format": map[string]any{
+					"default":  "html",
+					"map_to":   "format",
+					"name":     "Notify Format",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"html", "markdown", "text"},
+				},
+				"from": map[string]any{
+					"alias_of": "name",
+				},
+				"name": map[string]any{
+					"map_to":   "from_addr",
+					"name":     "From Name",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"overflow": map[string]any{
+					"default":  "upstream",
+					"map_to":   "overflow",
+					"name":     "Overflow Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"split", "truncate", "upstream"},
+				},
+				"region": map[string]any{
+					"default":  "us",
+					"map_to":   "region_name",
+					"name":     "Region Name",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"us", "eu"},
+				},
+				"rto": map[string]any{
+					"default":  4,
+					"map_to":   "rto",
+					"name":     "Socket Read Timeout",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
+				"store": map[string]any{
+					"default":  true,
+					"map_to":   "store",
+					"name":     "Persistent Storage",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"to": map[string]any{
+					"alias_of": "targets",
+					"delim":    []string{",", " "},
+				},
+				"tz": map[string]any{
+					"default":  nil,
+					"map_to":   "tz",
+					"name":     "Timezone",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"verify": map[string]any{
+					"default":  true,
+					"map_to":   "verify",
+					"name":     "Verify SSL",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+			},
+			"kwargs": map[string]any{
+				"headers": map[string]any{
+					"map_to":   "headers",
+					"name":     "Email Header",
+					"prefix":   "+",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"tokens": map[string]any{
+					"map_to":   "tokens",
+					"name":     "Template Tokens",
+					"prefix":   ":",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+			},
+			"templates": []string{"{schema}://{user}@{host}:{apikey}/", "{schema}://{user}@{host}:{apikey}/{targets}"},
+			"tokens": map[string]any{
+				"apikey": map[string]any{
+					"map_to":   "apikey",
+					"name":     "API Key",
+					"private":  true,
+					"required": true,
+					"type":     "string",
+				},
+				"host": map[string]any{
+					"map_to":   "host",
+					"name":     "Domain",
+					"private":  false,
+					"required": true,
+					"type":     "string",
+				},
+				"schema": map[string]any{
+					"default":  "mailgun",
+					"map_to":   "schema",
+					"name":     "Schema",
+					"private":  false,
+					"required": true,
+					"type":     "choice:string",
+					"values":   []string{"mailgun"},
+				},
+				"target_email": map[string]any{
+					"map_to":   "targets",
+					"name":     "Target Email",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"targets": map[string]any{
+					"delim":    []string{"/"},
+					"group":    []string{"target_email"},
+					"map_to":   "targets",
+					"name":     "Targets",
+					"private":  false,
+					"required": false,
+					"type":     "list:string",
+				},
+				"user": map[string]any{
+					"map_to":   "user",
+					"name":     "User Name",
+					"private":  false,
+					"required": true,
+					"type":     "string",
+				},
+			},
+		},
+		"enabled":   true,
+		"protocols": nil,
+		"requirements": map[string]any{
+			"details":              "",
+			"packages_recommended": []any{},
+			"packages_required":    []any{},
+		},
+		"secure_protocols": []string{"mailgun"},
+		"service_name":     "Mailgun",
+		"service_url":      "https://www.mailgun.com/",
+		"setup_url":        "https://appriseit.com/services/mailgun/",
+	})
 }
