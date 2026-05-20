@@ -17,6 +17,85 @@ func TestTelegramMarkdownFormatSetsMarkdownParseMode(t *testing.T) {
 	assertTelegramFormatParity(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v1", "_This is Italics Text_", "", "markdown")
 }
 
+func TestTelegramConvertsStandardMarkdownToMarkdownV1(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v1", "~~Strike~~ **Bold** _Italics_ Text", "", "markdown")
+
+	if payload["parse_mode"] != "MARKDOWN" {
+		t.Fatalf("expected MARKDOWN parse mode, got %#v", payload["parse_mode"])
+	}
+	if payload["text"] != "~Strike~ *Bold* _Italics_ Text" {
+		t.Fatalf("expected Telegram markdown body, got %#v", payload["text"])
+	}
+}
+
+func TestTelegramConvertsStandardMarkdownToMarkdownV2(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v2", "~~Strike~~ **Bold** _Italics_ Text", "", "markdown")
+
+	if payload["parse_mode"] != "MarkdownV2" {
+		t.Fatalf("expected MarkdownV2 parse mode, got %#v", payload["parse_mode"])
+	}
+	if payload["text"] != "~Strike~ *Bold* _Italics_ Text" {
+		t.Fatalf("expected Telegram markdown body, got %#v", payload["text"])
+	}
+}
+
+func TestTelegramConvertsStandardMarkdownToTelegramHTML(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=html", "~~Strike~~ **Bold** _Italics_ Text", "", "markdown")
+
+	if payload["parse_mode"] != "HTML" {
+		t.Fatalf("expected HTML parse mode, got %#v", payload["parse_mode"])
+	}
+	if payload["text"] != "<s>Strike</s> <b>Bold</b> <i>Italics</i> Text" {
+		t.Fatalf("expected Telegram HTML body, got %#v", payload["text"])
+	}
+}
+
+func TestTelegramMarkdownV2CodeEscapesOnlyBackticksAndBackslashes(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v2", "`if x > 0 { return path\\name }`", "", "markdown")
+
+	text, ok := payload["text"].(string)
+	if !ok {
+		t.Fatalf("expected text payload, got %#v", payload["text"])
+	}
+	if text != "`if x > 0 { return path\\\\name }`" {
+		t.Fatalf("expected minimally escaped code text, got %q", text)
+	}
+	for _, overescaped := range []string{`\>`, `\{`, `\}`} {
+		if strings.Contains(text, overescaped) {
+			t.Fatalf("expected code text not to contain overescaped fragment %q in %q", overescaped, text)
+		}
+	}
+}
+
+func TestTelegramMarkdownV2PreEscapesOnlyBackticksAndBackslashes(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v2", "<pre>if x > 0 { return path\\name }</pre>", "", "html")
+
+	text, ok := payload["text"].(string)
+	if !ok {
+		t.Fatalf("expected text payload, got %#v", payload["text"])
+	}
+	if text != "```if x > 0 { return path\\\\name }```" {
+		t.Fatalf("expected minimally escaped pre text, got %q", text)
+	}
+	for _, overescaped := range []string{`\>`, `\{`, `\}`} {
+		if strings.Contains(text, overescaped) {
+			t.Fatalf("expected pre text not to contain overescaped fragment %q in %q", overescaped, text)
+		}
+	}
+}
+
+func TestTelegramMarkdownV2PreservesLinks(t *testing.T) {
+	payload := captureTelegramPayload(t, "tgram://123456:abcdef/7890/?format=markdown&mdv=v2", `<a href="https://example.com/a)b\c">Docs</a>`, "", "html")
+
+	text, ok := payload["text"].(string)
+	if !ok {
+		t.Fatalf("expected text payload, got %#v", payload["text"])
+	}
+	if text != "[Docs](https://example.com/a\\)b\\\\c)" {
+		t.Fatalf("expected escaped Telegram markdown link, got %q", text)
+	}
+}
+
 func TestTelegramTextFormatUsesHTMLParseMode(t *testing.T) {
 	assertTelegramFormatParity(t, "tgram://123456:abcdef/7890/?format=text", "<b>plain</b>", "Title", "text")
 }
@@ -68,7 +147,7 @@ func assertTelegramFormatParity(t *testing.T, rawURL, body, title, bodyFormat st
 	if err != nil {
 		t.Fatalf("new telegram target: %v", err)
 	}
-	convertedBody, err := notify.ConvertMessageFormat(body, bodyFormat, parsed.Query["format"])
+	convertedBody, err := notify.ConvertMessageFormatForTarget(parsed, body, bodyFormat)
 	if err != nil {
 		t.Fatalf("convert body: %v", err)
 	}
@@ -77,6 +156,18 @@ func assertTelegramFormatParity(t *testing.T, rawURL, body, title, bodyFormat st
 	})
 
 	testutil.AssertRequestSpecSequenceMatches(t, pythonSpecs, goSpecs)
+}
+
+func captureTelegramPayload(t *testing.T, rawURL, body, title, bodyFormat string) map[string]any {
+	t.Helper()
+
+	specs := testutil.CaptureGoRequests(t, func() error {
+		return notify.SendTargetURL(rawURL, body, title, bodyFormat, notify.NotifyInfo)
+	})
+	if len(specs) != 1 {
+		t.Fatalf("expected one request, got %d", len(specs))
+	}
+	return decodeTelegramPayload(t, specs[0].Body)
 }
 
 func mustTelegramTarget(t *testing.T, raw string) *notify.TelegramTarget {
