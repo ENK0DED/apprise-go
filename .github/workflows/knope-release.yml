@@ -34,4 +34,4 @@ jobs:
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
-        run: knope release
+        run: knope publish-release
