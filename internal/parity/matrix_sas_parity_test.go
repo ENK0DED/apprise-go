@@ -41,7 +41,7 @@ func TestMatrixSASIndependentPeer(t *testing.T) {
 			start := map[string]any{"transaction_id": "sas-transaction", "from_device": "PEER", "method": "m.sas.v1", "key_agreement_protocols": []string{"curve25519-hkdf-sha256"}, "hashes": []string{"sha256"}, "message_authentication_codes": []string{"hkdf-hmac-sha256.v2"}, "short_authentication_string": []string{"decimal"}}
 			var mu sync.Mutex
 			var uploaded, accept, ownKey, ownMAC map[string]any
-			polls, messages, cancels := 0, 0, 0
+			polls, messages, cancels, logins, uploads := 0, 0, 0, 0, 0
 			event := func(kind string, content map[string]any) map[string]any {
 				return map[string]any{"sender": user, "type": "m.key.verification." + kind, "content": content}
 			}
@@ -61,9 +61,13 @@ func TestMatrixSASIndependentPeer(t *testing.T) {
 					}
 				}
 				switch {
+				case strings.HasSuffix(r.URL.Path, "/login"):
+					logins++
+					respond(map[string]any{"access_token": "token", "user_id": user, "device_id": "SENDER"})
 				case strings.HasSuffix(r.URL.Path, "/account/whoami"):
 					respond(map[string]any{"user_id": user, "device_id": "SENDER"})
 				case strings.HasSuffix(r.URL.Path, "/keys/upload"):
+					uploads++
 					uploaded = payload["device_keys"].(map[string]any)
 					respond(map[string]any{})
 				case strings.HasSuffix(r.URL.Path, "/keys/query"):
@@ -119,7 +123,7 @@ func TestMatrixSASIndependentPeer(t *testing.T) {
 			previous := http.DefaultClient
 			http.DefaultClient = server.Client()
 			defer func() { http.DefaultClient = previous }()
-			parsed, err := notify.ParseURL("matrixs://token@" + strings.TrimPrefix(server.URL, "https://") + "/!room?autoverify=yes&discovery=no&image=no")
+			parsed, err := notify.ParseURL("matrixs://user:pass@" + strings.TrimPrefix(server.URL, "https://") + "/!room?autoverify=yes&discovery=no&image=no")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -134,13 +138,17 @@ func TestMatrixSASIndependentPeer(t *testing.T) {
 			if trusted == tamper {
 				t.Fatalf("trusted=%t tamper=%t", trusted, tamper)
 			}
+			target, err = notify.NewMatrixTarget(parsed)
+			if err != nil {
+				t.Fatal(err)
+			}
 			if err = notify.DispatchSendWithInput(target, parsed, "next", "title", "", notify.NotifyInfo, nil); err != nil {
 				t.Fatal(err)
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if polls != 4 || messages != 2 || cancels != map[bool]int{false: 0, true: 1}[tamper] {
-				t.Fatalf("polls%d messages%d cancels%d", polls, messages, cancels)
+			if logins != 1 || uploads != 1 || polls != 4 || messages != 2 || cancels != map[bool]int{false: 0, true: 1}[tamper] {
+				t.Fatalf("logins%d uploads%d polls%d messages%d cancels%d", logins, uploads, polls, messages, cancels)
 			}
 		})
 	}

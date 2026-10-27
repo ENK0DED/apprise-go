@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -65,5 +66,32 @@ func TestMatrixSASPollUsesVerificationTimeout(t *testing.T) {
 	response, ok := verifier.fetch("/sync", nil, nil, http.MethodGet, false)
 	if !ok || response["next_batch"] != "next" {
 		t.Fatal("ordinary read timeout cut off the bounded verification poll")
+	}
+}
+
+func TestMatrixLoginDoesNotRedirectCredentials(t *testing.T) {
+	var leaked atomic.Bool
+	destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked.Store(true)
+		fmt.Fprint(w, `{"access_token":"leaked"}`)
+	}))
+	defer destination.Close()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, destination.URL, http.StatusTemporaryRedirect)
+	}))
+	defer server.Close()
+	parsed, err := ParseURL("matrix://user:private-password@" + strings.TrimPrefix(server.URL, "http://") + "/!room?discovery=no&e2ee=no")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := NewMatrixTarget(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if target.login() {
+		t.Fatal("redirected credential exchange reported success")
+	}
+	if leaked.Load() {
+		t.Fatal("Matrix login password followed a redirect")
 	}
 }

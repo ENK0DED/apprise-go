@@ -157,6 +157,15 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		}(),
 	}
 
+	if mode != matrixModeT2Bot {
+		storeGetJSON(matrixTarget.store, "access_token", &matrixTarget.accessToken)
+		storeGetJSON(matrixTarget.store, "user_id", &matrixTarget.userID)
+		storeGetJSON(matrixTarget.store, "home_server", &matrixTarget.homeServer)
+		storeGetJSON(matrixTarget.store, "device_id", &matrixTarget.deviceID)
+		if matrixTarget.homeServer == "" {
+			_, matrixTarget.homeServer, _ = strings.Cut(matrixTarget.userID, ":")
+		}
+	}
 	// A transaction id the server has already seen is ignored as a
 	// duplicate, so the counter has to survive the process.
 	var storedTransaction int
@@ -275,6 +284,8 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 			m.homeServer = m.host
 		}
 	}
+
+	m.persistIdentity(false)
 
 	rooms := m.rooms
 	if len(rooms) == 0 {
@@ -717,6 +728,10 @@ func (m *MatrixTarget) login() bool {
 		}
 	}
 
+	if m.deviceID != "" {
+		delete(payload, "initial_device_display_name")
+		payload["device_id"] = m.deviceID
+	}
 	ok, response, _ := m.fetch("/login", payload, nil, http.MethodPost, "")
 	if !ok {
 		return false
@@ -730,6 +745,7 @@ func (m *MatrixTarget) login() bool {
 	// The device the homeserver assigned; e2ee keys are bound to it.
 	m.deviceID, _ = response["device_id"].(string)
 	m.userID, _ = response["user_id"].(string)
+	m.persistIdentity(true)
 	return true
 }
 
@@ -748,6 +764,10 @@ func (m *MatrixTarget) register() bool {
 		payload["password"] = m.password
 	}
 
+	if m.deviceID != "" {
+		delete(payload, "initial_device_display_name")
+		payload["device_id"] = m.deviceID
+	}
 	params := url.Values{}
 	params.Set("kind", "user")
 	ok, response, _ := m.fetch("/register", payload, params, http.MethodPost, "")
@@ -763,6 +783,7 @@ func (m *MatrixTarget) register() bool {
 	// The device the homeserver assigned; e2ee keys are bound to it.
 	m.deviceID, _ = response["device_id"].(string)
 	m.userID, _ = response["user_id"].(string)
+	m.persistIdentity(true)
 	return true
 }
 
@@ -967,7 +988,17 @@ func (m *MatrixTarget) fetch(path string, payload map[string]any, params url.Val
 		Body:    body,
 	}
 
-	status, response, err := matrixSend(spec)
+	client := httpClient()
+	bound := int64(0)
+	if path == "/login" {
+		currentHTTPOptionsMu.RLock()
+		options := currentHTTPOptions
+		currentHTTPOptionsMu.RUnlock()
+		options.followRedirect = false
+		client = httpClientForOptions(options)
+		bound = 1024 * 1024
+	}
+	status, response, err := matrixSendWithClient(spec, client, bound)
 	if err != nil {
 		return false, map[string]any{}, http.StatusInternalServerError
 	}
@@ -1072,18 +1103,28 @@ func (m *MatrixTarget) portSuffix() string {
 }
 
 func matrixSend(spec RequestSpec) (int, map[string]any, error) {
+	return matrixSendWithClient(spec, httpClient(), 0)
+}
+func matrixSendWithClient(spec RequestSpec, client *http.Client, bound int64) (int, map[string]any, error) {
 	req, err := spec.HTTPRequest()
 	if err != nil {
 		return http.StatusInternalServerError, map[string]any{}, err
 	}
 
-	resp, err := httpClient().Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return http.StatusInternalServerError, map[string]any{}, err
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	var reader io.Reader = resp.Body
+	if bound > 0 {
+		reader = io.LimitReader(resp.Body, bound+1)
+	}
+	data, err := io.ReadAll(reader)
+	if bound > 0 && int64(len(data)) > bound {
+		return resp.StatusCode, map[string]any{}, fmt.Errorf("matrix response exceeds limit")
+	}
 	if err != nil {
 		return resp.StatusCode, map[string]any{}, err
 	}
@@ -1508,4 +1549,21 @@ func init() {
 		"service_url":      "https://matrix.org/",
 		"setup_url":        "https://appriseit.com/services/matrix/",
 	})
+}
+
+// Retain the server-assigned identity so another process reuses SAS trust.
+// Raw token URLs keep generating a fresh transaction UUID on construction.
+func (m *MatrixTarget) persistIdentity(storeToken bool) {
+	if m.homeServer == "" {
+		_, m.homeServer, _ = strings.Cut(m.userID, ":")
+	}
+	entries := map[string]string{"user_id": m.userID, "device_id": m.deviceID, "home_server": m.homeServer}
+	if storeToken {
+		entries["access_token"] = m.accessToken
+	}
+	for key, value := range entries {
+		if value != "" {
+			_ = m.store.Set(key, value, matrixE2EECacheTTL)
+		}
+	}
 }
