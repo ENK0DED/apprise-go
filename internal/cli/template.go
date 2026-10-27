@@ -2,9 +2,11 @@ package cli
 
 import (
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -25,8 +27,26 @@ func templateValue(name string, value any) (string, error) {
 		} else {
 			text = "no"
 		}
-	case int, int64, uint64, float64:
+	case int, int64, uint64:
 		text = fmt.Sprint(v)
+	case float64:
+		switch {
+		case math.IsNaN(v):
+			text = "nan"
+		case math.IsInf(v, 1):
+			text = "inf"
+		case math.IsInf(v, -1):
+			text = "-inf"
+		default:
+			format := byte('g')
+			if v == 0 || math.Abs(v) >= 1e-4 && math.Abs(v) < 1e16 {
+				format = 'f'
+			}
+			text = strconv.FormatFloat(v, format, -1, 64)
+			if !strings.ContainsAny(text, ".e") {
+				text += ".0"
+			}
+		}
 	default:
 		return "", fmt.Errorf("template variable '%s' must be text", name)
 	}
@@ -255,5 +275,9 @@ func substituteTemplateText(value string, tag bool, defaults map[string]any, res
 		previous = end
 	}
 	out.WriteString(value[previous:])
-	return out.String(), nil
+	resolved := out.String()
+	if separator >= 0 && utf8.RuneCountInString(resolved) > 8192 {
+		return "", fmt.Errorf("resolved template URL exceeds 8192 characters")
+	}
+	return resolved, nil
 }

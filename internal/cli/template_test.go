@@ -78,3 +78,19 @@ func TestTemplateYAMLSettingNamesStayLiteral(t *testing.T) {
 		t.Fatalf("URLs%+v err%v", got, opts.templateErr)
 	}
 }
+
+func TestTemplateValueAndResolvedURLLimits(t *testing.T) {
+	for _, tc := range []struct {
+		value any
+		want  string
+	}{{1, "1"}, {1.0, "1.0"}, {1000000.0, "1000000.0"}, {1e16, "1e+16"}, {true, "yes"}} {
+		got, err := templateValue("token", tc.value)
+		if err != nil || got != tc.want {
+			t.Errorf("%v got%q want%q error%v", tc.value, got, tc.want, err)
+		}
+	}
+	_, err := substituteTemplateText("json://example.com/"+strings.Repeat("${token}", 9), false, map[string]any{"token": nil}, func(string) (string, error) { return strings.Repeat("a", 1024), nil })
+	if err == nil {
+		t.Fatal("accepted resolved URL exceeding upstream's 8192-character limit")
+	}
+}
