@@ -16,7 +16,7 @@ import (
 // That corpus is the boundary of what is known to match; HTML outside it may
 // still differ, so grow the corpus when a gap appears rather than guessing.
 func htmlToMarkdown(content string) string {
-	doc, err := html.Parse(strings.NewReader(content))
+	doc, err := parseHTMLPreservingPreWhitespace(content)
 	if err != nil {
 		// Losing the markup is better than losing the message.
 		return htmlToText(content)
@@ -46,6 +46,9 @@ func walkHTMLNode(node *html.Node, state *markdownState) {
 		text := node.Data
 		if !state.inPre {
 			text = collapseHTMLWhitespace(text)
+			if strings.TrimSpace(text) == "" && (state.out.Len() == 0 || strings.HasSuffix(state.out.String(), "\n")) {
+				return
+			}
 			if text == "" {
 				return
 			}
@@ -113,9 +116,10 @@ func writeHTMLElement(node *html.Node, state *markdownState) {
 
 	case "h1", "h2", "h3", "h4", "h5", "h6":
 		level := int(node.Data[1] - '0')
-		// Trim back to a single newline so consecutive headings stay on
-		// adjacent lines rather than gaining a blank line between them.
-		trimTrailingNewlines(state.out, 1)
+		// A heading starts a line without erasing a paragraph's blank line.
+		if state.out.Len() > 0 && !strings.HasSuffix(state.out.String(), "\n") {
+			state.out.WriteByte('\n')
+		}
 		state.out.WriteString(strings.Repeat("#", level) + " ")
 		children(state)
 		state.out.WriteString("\n")
@@ -128,11 +132,26 @@ func writeHTMLElement(node *html.Node, state *markdownState) {
 		state.out.WriteString("\n\n")
 
 	case "pre":
+		var literal bytes.Buffer
 		nested := *state
 		nested.inPre = true
-		state.out.WriteString("\n\n```\n")
+		nested.out = &literal
 		children(&nested)
-		state.out.WriteString("\n```\n\n")
+		content := strings.TrimRight(literal.String(), "\r\n")
+		longest, run := 0, 0
+		for _, char := range content {
+			if char == '`' {
+				run++
+				longest = max(longest, run)
+			} else {
+				run = 0
+			}
+		}
+		fence := strings.Repeat("`", max(3, longest+1))
+		if state.out.Len() > 0 && !strings.HasSuffix(state.out.String(), "\n") {
+			state.out.WriteByte('\n')
+		}
+		state.out.WriteString(fence + "\n" + content + "\n" + fence + "\n")
 
 	case "ul", "ol":
 		nested := *state
@@ -207,8 +226,27 @@ func collapseBlankRuns(text string) string {
 	lines := strings.Split(text, "\n")
 	out := make([]string, 0, len(lines))
 	blanks := 0
+	fenceWidth := 0
 
 	for _, line := range lines {
+		fence := strings.TrimSpace(line)
+		if len(fence) >= 3 && strings.Trim(fence, "`") == "" {
+			if fenceWidth == 0 {
+				if blanks > 0 && len(out) > 0 {
+					out = append(out, "")
+				}
+				blanks = 0
+				fenceWidth = len(fence)
+			} else if len(fence) == fenceWidth {
+				fenceWidth = 0
+			}
+			out = append(out, line)
+			continue
+		}
+		if fenceWidth > 0 {
+			out = append(out, line)
+			continue
+		}
 		trimmed := strings.TrimRight(line, " \t")
 		// A line of only spaces is blank, but a hard break's two trailing
 		// spaces belong to the line before it.
@@ -226,15 +264,42 @@ func collapseBlankRuns(text string) string {
 	return strings.Join(out, "\n")
 }
 
-// trimTrailingNewlines leaves the buffer ending in exactly keep newlines,
-// unless it is empty.
-func trimTrailingNewlines(buf *bytes.Buffer, keep int) {
-	trimmed := bytes.TrimRight(buf.Bytes(), "\n")
-	if len(trimmed) == 0 {
-		buf.Reset()
-		return
+// The HTML5 tree builder discards the first newline after <pre>, while
+// upstream's streaming HTML parser preserves it. A source-unique marker keeps
+// that newline through tree construction and is removed before conversion.
+func parseHTMLPreservingPreWhitespace(content string) (*html.Node, error) {
+	marker := "\ue000apprise-pre\ue001"
+	for strings.Contains(content, marker) {
+		marker += "\ue001"
 	}
-
-	buf.Truncate(len(trimmed))
-	buf.WriteString(strings.Repeat("\n", keep))
+	tokenizer := html.NewTokenizer(strings.NewReader(content))
+	var protected strings.Builder
+	for {
+		kind := tokenizer.Next()
+		if kind == html.ErrorToken {
+			break
+		}
+		protected.Write(tokenizer.Raw())
+		if kind == html.StartTagToken {
+			name, _ := tokenizer.TagName()
+			if strings.EqualFold(string(name), "pre") {
+				protected.WriteString(marker)
+			}
+		}
+	}
+	doc, err := html.Parse(strings.NewReader(protected.String()))
+	if err != nil {
+		return nil, err
+	}
+	var remove func(*html.Node)
+	remove = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			node.Data = strings.ReplaceAll(node.Data, marker, "")
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			remove(child)
+		}
+	}
+	remove(doc)
+	return doc, nil
 }

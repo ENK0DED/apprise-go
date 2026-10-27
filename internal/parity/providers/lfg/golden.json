@@ -1,0 +1,30 @@
+[
+  {
+    "name": "ring",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.lfg.gm/horn/0123456789abcdef0123456789abcdef"
+      }
+    ]
+  },
+  {
+    "name": "long-content-rings-once",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.lfg.gm/horn/0123456789abcdef0123456789abcdef"
+      }
+    ]
+  }
+]

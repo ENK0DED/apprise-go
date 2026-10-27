@@ -10,6 +10,7 @@ const resendURL = "https://api.resend.com/emails"
 const resendDefaultSubject = "<no subject>"
 
 type ResendTarget struct {
+	deliveryTracker
 	apiKey    string
 	fromEmail string
 	fromName  string
@@ -156,7 +157,7 @@ func (r *ResendTarget) SendWithAttachments(body, title string, notifyType Notify
 		return fmt.Errorf("missing targets")
 	}
 
-	for _, target := range r.targets {
+	for deliveryIndex0, target := range r.targets {
 		payload := r.buildPayload(body, title, target, attachments)
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -177,7 +178,7 @@ func (r *ResendTarget) SendWithAttachments(body, title string, notifyType Notify
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(r.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -244,7 +245,7 @@ func init() {
 					"type":     "string",
 				},
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -253,7 +254,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -262,7 +263,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -278,13 +279,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"map_to":   "from_addr",
@@ -300,6 +302,14 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -307,10 +317,18 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"reply": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "reply_to",
 					"name":     "Reply To",
@@ -318,8 +336,18 @@ func init() {
 					"required": false,
 					"type":     "list:string",
 				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -336,7 +364,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -354,15 +382,25 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}:{from_addr}", "{schema}://{apikey}:{from_addr}/{targets}"},
+			"templates": []any{"{schema}://{apikey}:{from_addr}", "{schema}://{apikey}:{from_addr}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^[A-Z0-9._-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9._-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -371,7 +409,7 @@ func init() {
 					"name":     "Source Email",
 					"private":  false,
 					"required": true,
-					"type":     "string",
+					"type":     "email",
 				},
 				"schema": map[string]any{
 					"default":  "resend",
@@ -380,18 +418,18 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"resend"},
+					"values":   []any{"resend"},
 				},
 				"target_email": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

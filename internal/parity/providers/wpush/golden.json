@@ -1,61 +1,168 @@
 [
   {
-    "name": "default",
+    "name": "direct",
     "requests": [
       {
-        "method": "POST",
-        "url": "https://api.wpush.cn/api/v1/send",
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\"}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json",
-          "user-agent": "Apprise"
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
         },
-        "body": "{\"apikey\":\"WPUSHabc123def456\",\"title\":\"apprise parity\",\"content\":\"hello from parity\",\"channel\":\"wechat\"}"
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
       }
     ]
   },
   {
-    "name": "title-fallback",
+    "name": "unicode",
     "requests": [
       {
-        "method": "POST",
-        "url": "https://api.wpush.cn/api/v1/send",
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"\u4f60\u597d\", \"content\": \"\u4e2d\u6587 \ud83e\udd84\", \"channel\": \"wechat\"}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json",
-          "user-agent": "Apprise"
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
         },
-        "body": "{\"apikey\":\"WPUSHabc123def456\",\"title\":\"hello\",\"content\":\"hello\",\"channel\":\"wechat\"}"
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
       }
     ]
   },
   {
-    "name": "channel-topic",
+    "name": "body-title",
     "requests": [
       {
-        "method": "POST",
-        "url": "https://api.wpush.cn/api/v1/send",
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Body only\", \"content\": \"Body only\", \"channel\": \"wechat\"}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json",
-          "user-agent": "Apprise"
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
         },
-        "body": "{\"apikey\":\"WPUSHabc123def456\",\"title\":\"topic title\",\"content\":\"topic body\",\"channel\":\"feishu\",\"topic_code\":\"demo\"}"
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
       }
     ]
   },
   {
-    "name": "query-apikey",
+    "name": "topics",
     "requests": [
       {
-        "method": "POST",
-        "url": "https://api.wpush.cn/api/v1/send",
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"topic_code\": \"alpha\"}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json",
-          "user-agent": "Apprise"
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
         },
-        "body": "{\"apikey\":\"WPUSHabc123def456\",\"title\":\"query key\",\"content\":\"query key body\",\"channel\":\"app\"}"
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      },
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"topic_code\": \"beta\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      },
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"topic_code\": \"delta\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      },
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"topic_code\": \"gamma\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      },
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"topic_code\": \"zeta\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      }
+    ]
+  },
+  {
+    "name": "channels",
+    "requests": [
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"app,feishu,qqbot\", \"url\": \"https://example.com\", \"option\": \"group1\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      }
+    ]
+  },
+  {
+    "name": "option",
+    "requests": [
+      {
+        "body": "{\"apikey\": \"WPUSH0123456789abcdefghijklmnopq\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\", \"option\": \"bound-instance\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSH0123456789abcdefghijklmnopq",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
+      }
+    ]
+  },
+  {
+    "name": "query-key",
+    "requests": [
+      {
+        "body": "{\"apikey\": \"WPUSHabcdefghijklmnopqrstuvwxyz0\", \"title\": \"Title\", \"content\": \"Body\", \"channel\": \"wechat\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-api-key": "WPUSHabcdefghijklmnopqrstuvwxyz0",
+          "x-idempotency-key": "00000000-0000-4000-8000-000000000000"
+        },
+        "method": "POST",
+        "url": "https://api.wpush.cn/api/v1/send"
       }
     ]
   }

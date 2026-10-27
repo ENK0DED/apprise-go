@@ -40,5 +40,13 @@
       "%7Brepo%7D/internal/parity/fixtures/pixel.png",
       "%7Brepo%7D/internal/parity/fixtures/notes.txt"
     ]
+  },
+  {
+    "name": "single-format-url-override",
+    "url": "ntfy://topic?format=markdown&image=no",
+    "body": "**bold**",
+    "body_format": "markdown",
+    "title": "Title",
+    "type": "info"
   }
 ]

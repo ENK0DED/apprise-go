@@ -9,6 +9,21 @@ type requestSender interface {
 type buildTargetFunc func(parsed *notify.ParsedURL) (requestSender, error)
 
 var providerBuilders = map[string]buildTargetFunc{
+	"cliq":          func(p *notify.ParsedURL) (requestSender, error) { return notify.NewCliqTarget(p) },
+	"github":        func(p *notify.ParsedURL) (requestSender, error) { return notify.NewGitHubTarget(p) },
+	"mobilemessage": func(p *notify.ParsedURL) (requestSender, error) { return notify.NewMobileMessageTarget(p) },
+	"lfg":           func(p *notify.ParsedURL) (requestSender, error) { return notify.NewLFGAlarmTarget(p) },
+	"youlmk":        func(p *notify.ParsedURL) (requestSender, error) { return notify.NewYouLMKTarget(p) },
+	"zalo":          func(p *notify.ParsedURL) (requestSender, error) { return notify.NewZaloTarget(p) },
+	"onebot":        func(p *notify.ParsedURL) (requestSender, error) { return notify.NewOneBotTarget(p) },
+	"telnyx":        func(p *notify.ParsedURL) (requestSender, error) { return notify.NewTelnyxTarget(p) },
+	"betterstack":   func(p *notify.ParsedURL) (requestSender, error) { return notify.NewBetterStackTarget(p) },
+	"goalert":       func(p *notify.ParsedURL) (requestSender, error) { return notify.NewGoAlertTarget(p) },
+	"gorush":        func(p *notify.ParsedURL) (requestSender, error) { return notify.NewGorushTarget(p) },
+	"wpush":         func(p *notify.ParsedURL) (requestSender, error) { return notify.NewWPushTarget(p) },
+	"ilert":         func(p *notify.ParsedURL) (requestSender, error) { return notify.NewIncidentServiceTarget(p) },
+	"incidentio":    func(p *notify.ParsedURL) (requestSender, error) { return notify.NewIncidentServiceTarget(p) },
+	"squadcast":     func(p *notify.ParsedURL) (requestSender, error) { return notify.NewIncidentServiceTarget(p) },
 	"apprise": func(parsed *notify.ParsedURL) (requestSender, error) {
 		return notify.NewAppriseTarget(parsed)
 	},
@@ -186,9 +201,6 @@ var providerBuilders = map[string]buildTargetFunc{
 	"viber": func(parsed *notify.ParsedURL) (requestSender, error) {
 		return notify.NewViberTarget(parsed)
 	},
-	"chime": func(parsed *notify.ParsedURL) (requestSender, error) {
-		return notify.NewChimeTarget(parsed)
-	},
 	"flowtriq": func(parsed *notify.ParsedURL) (requestSender, error) {
 		return notify.NewFlowtriqTarget(parsed)
 	},
@@ -326,9 +338,6 @@ var providerBuilders = map[string]buildTargetFunc{
 	},
 	"pushplus": func(parsed *notify.ParsedURL) (requestSender, error) {
 		return notify.NewPushplusTarget(parsed)
-	},
-	"wpush": func(parsed *notify.ParsedURL) (requestSender, error) {
-		return notify.NewWPushTarget(parsed)
 	},
 	"smtp2go": func(parsed *notify.ParsedURL) (requestSender, error) {
 		return notify.NewSMTP2GoTarget(parsed)

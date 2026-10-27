@@ -10,8 +10,23 @@ if [[ -z "${GOCACHE_DIR}" ]]; then
   export GOCACHE="${GOCACHE_DIR}"
 fi
 
+# Keep standalone Markdown vectors tied to the same pinned Python reference.
+.venv/bin/python internal/testutil/scripts/generate_markdown_vectors.py --check
+.venv/bin/python internal/testutil/scripts/generate_sas_vectors.py --check
+.venv/bin/python internal/testutil/scripts/generate_format_conversion_vectors.py --check
+
 go run ./internal/tools/parity_report \
   -out reports/parity_report.md \
   -json reports/parity_report.json
 
-go test ./internal/notify -run TestAttachmentRequestParity -count=1 -v
+# Compare runtime-dependent schema capabilities as well as request payloads;
+# generated metadata can otherwise advertise macOS notification support on Linux.
+parity_asset_root="$(.venv/bin/python -c 'from pathlib import Path; import apprise; print(Path(apprise.__file__).parent / "assets")')"
+APPRISE_ASSET_ROOT="${APPRISE_ASSET_ROOT:-${parity_asset_root}}" \
+  go test ./internal/notify ./internal/cli -run '^(TestSchemaMatchesPython|TestSchemaDetailsParity)$' -count=1
+
+go test ./internal/notify -run '^(TestAttachmentRequestParity|TestTelegramReportedSpacingParity)$' -count=1 -v
+
+# Exercise every HTTP schema option as well as the curated provider cases.
+go test ./internal/parity -tags=e2e -run '^TestE2E' -count=1 \
+  -timeout="${APPRISE_PARITY_TIMEOUT:-30m}"

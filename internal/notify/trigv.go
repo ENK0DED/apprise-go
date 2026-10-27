@@ -37,6 +37,7 @@ func trigvLevel(notifyType NotifyType) string {
 }
 
 type TrigvTarget struct {
+	deliveryTracker
 	apiKey          string
 	targets         []string
 	supplementalURL string
@@ -201,12 +202,12 @@ func (t *TrigvTarget) BuildRequest(body, title string, notifyType NotifyType) (R
 func (t *TrigvTarget) Send(body, title string, notifyType NotifyType) error {
 	// Upstream keeps going after a failed channel; see sendOutcome.
 	var outcome sendOutcome
-	for _, channel := range t.targets {
+	for deliveryIndex0, channel := range t.targets {
 		spec, err := t.buildRequestFor(body, title, notifyType, channel)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(t.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 	return outcome.err()
 }
@@ -218,7 +219,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -241,13 +242,14 @@ func init() {
 					"type":     "string",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"image_url": map[string]any{
 					"map_to":   "image_url",
@@ -271,7 +273,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"priority": map[string]any{
 					"map_to":   "priority",
@@ -299,7 +301,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -316,7 +318,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -333,7 +335,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"standard", "time_sensitive"},
+					"values":   []any{"standard", "time_sensitive"},
 				},
 				"url": map[string]any{
 					"map_to":   "supplemental_url",
@@ -351,10 +353,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -362,13 +364,13 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{api_key}", "{schema}://{api_key}/{targets}", "{schema}://{api_key}@{host}/{targets}", "{schema}://{api_key}@{host}:{port}/{targets}", "{schema}://{api_key}@{host}"},
+			"templates": []any{"{schema}://{api_key}", "{schema}://{api_key}/{targets}", "{schema}://{api_key}@{host}/{targets}", "{schema}://{api_key}@{host}:{port}/{targets}", "{schema}://{api_key}@{host}"},
 			"tokens": map[string]any{
 				"api_key": map[string]any{
 					"map_to":   "api_key",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^trgv_[a-zA-Z0-9]{8}_[a-zA-Z0-9]{32}$", "i"},
+					"regex":    []any{"^trgv_[a-zA-Z0-9]{8}_[a-zA-Z0-9]{32}$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -394,7 +396,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"trigv", "trigvs"},
+					"values":   []any{"trigv", "trigvs"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -404,8 +406,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

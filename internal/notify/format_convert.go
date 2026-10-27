@@ -1,11 +1,14 @@
 package notify
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"regexp"
 	"strings"
 
 	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/ast"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
 	nethtml "golang.org/x/net/html"
@@ -61,12 +64,16 @@ func markdownToHTML(content string) string {
 		return ""
 	}
 
-	extensions := parser.CommonExtensions | parser.HardLineBreak
+	// Match Python-Markdown notification defaults: tables and hard breaks.
+	// Fenced blocks and typographic punctuation are not enabled upstream.
+	extensions := parser.NoIntraEmphasis | parser.Tables | parser.HardLineBreak
 	mdParser := parser.NewWithExtensions(extensions)
+	mdParser.RegisterInline('`', notificationCodeSpan)
 	renderer := html.NewRenderer(html.RendererOptions{
-		Flags: html.CommonFlags,
+		Flags:          html.UseXHTML,
+		RenderNodeHook: notificationHTMLBlockSpacing,
 	})
-	return strings.TrimSuffix(string(markdown.ToHTML([]byte(content), mdParser, renderer)), "\n")
+	return strings.TrimSuffix(string(markdown.ToHTML([]byte(expandMarkdownTabs(content)), mdParser, renderer)), "\n")
 }
 
 func ConvertMessageFormat(content, inputFormat, outputFormat string) (string, error) {
@@ -104,6 +111,9 @@ func ConvertMessageFormat(content, inputFormat, outputFormat string) (string, er
 			return htmlToText(content), nil
 		}
 	case "text":
+		if output == "markdown" {
+			return commonmarkTextEscapes.ReplaceAllStringFunc(content, func(match string) string { return "\\" + match }), nil
+		}
 		if output == "html" {
 			return textToHTML(content), nil
 		}
@@ -111,6 +121,8 @@ func ConvertMessageFormat(content, inputFormat, outputFormat string) (string, er
 
 	return content, nil
 }
+
+var commonmarkTextEscapes = regexp.MustCompile("[\\\\_*\\[\\]()~`>#+=|{}.!-]|&(?:#?[0-9A-Za-z]{1,32};)")
 
 func isSupportedNotifyFormat(format string) bool {
 	switch format {
@@ -249,4 +261,66 @@ func (c *htmlTextConverter) finalize() string {
 	}
 
 	return strings.TrimSpace(out.String())
+}
+
+// Python-Markdown expands tabs to the next four-column stop before parsing.
+func expandMarkdownTabs(content string) string {
+	var out strings.Builder
+	column := 0
+	for _, r := range content {
+		switch r {
+		case '\t':
+			n := 4 - column%4
+			out.WriteString(strings.Repeat(" ", n))
+			column += n
+		case '\n', '\r':
+			out.WriteRune(r)
+			column = 0
+		default:
+			out.WriteRune(r)
+			column++
+		}
+	}
+	return out.String()
+}
+
+// The Markdown library treats three backticks as a fenced block even when
+// that extension is disabled. Python-Markdown handles them as an inline span.
+func notificationCodeSpan(_ *parser.Parser, data []byte, offset int) (int, ast.Node) {
+	data = data[offset:]
+	width := 0
+	for width < len(data) && data[width] == '`' {
+		width++
+	}
+	for i := width; i < len(data); {
+		if data[i] != '`' {
+			i++
+			continue
+		}
+		end := i
+		for end < len(data) && data[end] == '`' {
+			end++
+		}
+		if end-i == width {
+			return end, &ast.Code{Leaf: ast.Leaf{Literal: []byte(strings.Trim(string(data[width:i]), " \r\n"))}}
+		}
+		i = end
+	}
+	return 0, nil
+}
+
+// Python-Markdown separates generated root blocks with one source newline.
+// Keep literal whitespace inside code and user-provided HTML untouched.
+func notificationHTMLBlockSpacing(w io.Writer, node ast.Node, entering bool) (ast.WalkStatus, bool) {
+	if entering {
+		if _, root := node.GetParent().(*ast.Document); root {
+			switch node.(type) {
+			case *ast.Paragraph, *ast.Heading, *ast.List, *ast.BlockQuote, *ast.CodeBlock, *ast.HorizontalRule:
+				if buffer, ok := w.(*bytes.Buffer); ok {
+					buffer.Truncate(len(bytes.TrimRight(buffer.Bytes(), "\n")))
+				}
+			}
+		}
+	}
+	return ast.GoToNext, false
 }

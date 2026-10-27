@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/unraid/apprise-go/internal/notify"
+	"github.com/unraid/apprise-go/internal/testutil"
 )
 
 var headerDrop = map[string]struct{}{
@@ -20,11 +21,13 @@ var headerDrop = map[string]struct{}{
 }
 
 var headerKeep = map[string]struct{}{
-	"user-agent":    {},
-	"content-type":  {},
-	"accept":        {},
-	"accepts":       {},
-	"authorization": {},
+	"api-token":       {},
+	"idempotency-key": {},
+	"user-agent":      {},
+	"content-type":    {},
+	"accept":          {},
+	"accepts":         {},
+	"authorization":   {},
 }
 
 const (
@@ -122,6 +125,8 @@ func assertRequestSpecSequenceMatches(t *testing.T, pythonSpecs, goSpecs []notif
 
 func assertRequestSpecSequenceMatchesExcept(t *testing.T, pythonSpecs, goSpecs []notify.RequestSpec, volatile []string) {
 	t.Helper()
+	pythonSpecs = testutil.NormalizeMatrixReceipts(t, pythonSpecs)
+	goSpecs = testutil.NormalizeMatrixReceipts(t, goSpecs)
 
 	if len(pythonSpecs) != len(goSpecs) {
 		t.Fatalf("request count mismatch: python=%d go=%d", len(pythonSpecs), len(goSpecs))

@@ -6,6 +6,13 @@
     "form",
     "json"
    ]
+  },
+  "version": {
+   "aliases": [],
+   "values": [
+    "1",
+    "2"
+   ]
   }
  },
  "apprises": {
@@ -14,6 +21,13 @@
    "values": [
     "form",
     "json"
+   ]
+  },
+  "version": {
+   "aliases": [],
+   "values": [
+    "1",
+    "2"
    ]
   }
  },
@@ -45,6 +59,22 @@
     "nz",
     "gb",
     "us"
+   ]
+  }
+ },
+ "cliq": {
+  "region": {
+   "aliases": [],
+   "values": [
+    "us",
+    "eu",
+    "in",
+    "au",
+    "cn",
+    "jp",
+    "sa",
+    "uk",
+    "ca"
    ]
   }
  },
@@ -139,6 +169,116 @@
     "PATCH",
     "UPDATE",
     "OPTIONS"
+   ]
+  }
+ },
+ "goalert": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "map",
+    "trigger",
+    "close"
+   ]
+  }
+ },
+ "goalerts": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "map",
+    "trigger",
+    "close"
+   ]
+  }
+ },
+ "gorush": {
+  "platform": {
+   "aliases": [
+    "1",
+    "2",
+    "3",
+    "android",
+    "apns",
+    "fcm",
+    "hms",
+    "huawei",
+    "ios"
+   ],
+   "values": [
+    "ios",
+    "android",
+    "huawei"
+   ]
+  },
+  "priority": {
+   "aliases": [
+    "+",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "normal",
+    "high"
+   ]
+  }
+ },
+ "gorushs": {
+  "platform": {
+   "aliases": [
+    "1",
+    "2",
+    "3",
+    "android",
+    "apns",
+    "fcm",
+    "hms",
+    "huawei",
+    "ios"
+   ],
+   "values": [
+    "ios",
+    "android",
+    "huawei"
+   ]
+  },
+  "priority": {
+   "aliases": [
+    "+",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "normal",
+    "high"
+   ]
+  }
+ },
+ "ilert": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "map",
+    "trigger",
+    "acknowledge",
+    "resolve"
+   ]
+  },
+  "priority": {
+   "aliases": [],
+   "values": [
+    "high",
+    "low"
+   ]
+  }
+ },
+ "incidentio": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "map",
+    "trigger",
+    "resolve"
    ]
   }
  },
@@ -431,6 +571,14 @@
   }
  },
  "pagerduty": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "trigger",
+    "map",
+    "resolve"
+   ]
+  },
   "region": {
    "aliases": [],
    "values": [
@@ -594,7 +742,11 @@
    ]
   },
   "vibration": {
-   "aliases": [],
+   "aliases": [
+    "android",
+    "huawei",
+    "ios"
+   ],
    "values": [
     "1",
     "2",
@@ -711,7 +863,11 @@
    ]
   },
   "vibration": {
-   "aliases": [],
+   "aliases": [
+    "android",
+    "huawei",
+    "ios"
+   ],
    "values": [
     "1",
     "2",
@@ -835,6 +991,52 @@
    ]
   }
  },
+ "signl4": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "trigger",
+    "map",
+    "acknowledge",
+    "resolve"
+   ]
+  }
+ },
+ "simplepush": {
+  "priority": {
+   "aliases": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "android",
+    "c",
+    "d",
+    "e",
+    "h",
+    "huawei",
+    "ios",
+    "l",
+    "m",
+    "ma",
+    "mi",
+    "n",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5"
+   ],
+   "values": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+   ]
+  }
+ },
  "slack": {
   "mode": {
    "aliases": [],
@@ -932,6 +1134,68 @@
     "recovery",
     "resolve",
     "critical"
+   ]
+  }
+ },
+ "spush": {
+  "priority": {
+   "aliases": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "android",
+    "c",
+    "d",
+    "e",
+    "h",
+    "huawei",
+    "ios",
+    "l",
+    "m",
+    "ma",
+    "mi",
+    "n",
+    "p1",
+    "p2",
+    "p3",
+    "p4",
+    "p5"
+   ],
+   "values": [
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+   ]
+  }
+ },
+ "squadcast": {
+  "action": {
+   "aliases": [],
+   "values": [
+    "map",
+    "trigger",
+    "resolve"
+   ]
+  },
+  "priority": {
+   "aliases": [],
+   "values": [
+    "P1",
+    "P2",
+    "P3",
+    "P4",
+    "P5"
+   ]
+  },
+  "region": {
+   "aliases": [],
+   "values": [
+    "us",
+    "eu"
    ]
   }
  },
@@ -1125,6 +1389,120 @@
     "PATCH",
     "UPDATE",
     "OPTIONS"
+   ]
+  }
+ },
+ "youlmk": {
+  "failure": {
+   "aliases": [
+    "+",
+    "0",
+    "1",
+    "2",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "low",
+    "normal",
+    "high",
+    "critical"
+   ]
+  },
+  "info": {
+   "aliases": [
+    "+",
+    "0",
+    "1",
+    "2",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "low",
+    "normal",
+    "high",
+    "critical"
+   ]
+  },
+  "priority": {
+   "aliases": [
+    "+",
+    "0",
+    "1",
+    "2",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "low",
+    "normal",
+    "high",
+    "critical"
+   ]
+  },
+  "success": {
+   "aliases": [
+    "+",
+    "0",
+    "1",
+    "2",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "low",
+    "normal",
+    "high",
+    "critical"
+   ]
+  },
+  "warning": {
+   "aliases": [
+    "+",
+    "0",
+    "1",
+    "2",
+    "high",
+    "normal"
+   ],
+   "values": [
+    "low",
+    "normal",
+    "high",
+    "critical"
+   ]
+  }
+ },
+ "zcliq": {
+  "region": {
+   "aliases": [],
+   "values": [
+    "us",
+    "eu",
+    "in",
+    "au",
+    "cn",
+    "jp",
+    "sa",
+    "uk",
+    "ca"
+   ]
+  }
+ },
+ "zohocliq": {
+  "region": {
+   "aliases": [],
+   "values": [
+    "us",
+    "eu",
+    "in",
+    "au",
+    "cn",
+    "jp",
+    "sa",
+    "uk",
+    "ca"
    ]
   }
  },

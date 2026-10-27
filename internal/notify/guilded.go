@@ -11,6 +11,7 @@ import (
 const guildedWebhookBase = "https://media.guilded.gg/webhooks"
 
 type GuildedTarget struct {
+	deliveryTracker
 	webhookID      string
 	webhookToken   string
 	username       string
@@ -44,7 +45,7 @@ func NewGuildedTarget(target *ParsedURL) (*GuildedTarget, error) {
 	}
 
 	threadID := strings.TrimSpace(target.Query["thread"])
-	format := normalizeDiscordFormat(target.Query["format"])
+	format := normalizeDiscordFormat(targetNotifyFormat(target))
 	if format == "" {
 		if threadID != "" {
 			format = "markdown"
@@ -113,6 +114,9 @@ func (g *GuildedTarget) buildPayload(body, title string, notifyType NotifyType) 
 	if g.templatePath != "" {
 		rendered, err := renderNotifyTemplate(g.templatePath, g.templateTokens, body, title, notifyType, "256x256")
 		if err != nil {
+			return nil, err
+		}
+		if err := validateWebhookTemplate(rendered); err != nil {
 			return nil, err
 		}
 		for key, value := range rendered {
@@ -210,7 +214,7 @@ func (g *GuildedTarget) SendWithAttachments(body, title string, notifyType Notif
 	if err != nil {
 		return err
 	}
-	outcome.record(SendRequest(spec))
+	outcome.record(g.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments))
 
 	if len(attachments) == 0 {
 		return outcome.err()
@@ -241,7 +245,7 @@ func (g *GuildedTarget) SendWithAttachments(body, title string, notifyType Notif
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(g.sendTrackedRequestFor(spec, "SendWithAttachments:1", body, title, notifyType, attachments))
 	}
 
 	return outcome.err()
@@ -268,8 +272,16 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"batch": map[string]any{
+					"default":  true,
+					"map_to":   "batch",
+					"name":     "Batch Attachments",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -317,28 +329,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
-				},
-				"batch": map[string]any{
-					"default":  true,
-					"map_to":   "batch",
-					"name":     "Batch Attachments",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
-				},
-				"template": map[string]any{
-					"map_to":   "template",
-					"name":     "Template Path",
-					"private":  true,
-					"required": false,
-					"type":     "string",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text", "markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"href": map[string]any{
 					"map_to":   "href",
@@ -355,6 +353,14 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -362,10 +368,10 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"ping": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "ping",
 					"name":     "Ping Users/Roles",
@@ -373,8 +379,26 @@ func init() {
 					"required": false,
 					"type":     "list:string",
 				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -388,6 +412,13 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "bool",
+				},
+				"template": map[string]any{
+					"map_to":   "template",
+					"name":     "Template Path",
+					"private":  true,
+					"required": false,
+					"type":     "string",
 				},
 				"thread": map[string]any{
 					"map_to":   "thread",
@@ -423,6 +454,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"tokens": map[string]any{
@@ -434,7 +475,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{webhook_id}/{webhook_token}", "{schema}://{botname}@{webhook_id}/{webhook_token}"},
+			"templates": []any{"{schema}://{webhook_id}/{webhook_token}", "{schema}://{botname}@{webhook_id}/{webhook_token}"},
 			"tokens": map[string]any{
 				"botname": map[string]any{
 					"map_to":   "user",
@@ -450,7 +491,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"guilded"},
+					"values":   []any{"guilded"},
 				},
 				"webhook_id": map[string]any{
 					"map_to":   "webhook_id",

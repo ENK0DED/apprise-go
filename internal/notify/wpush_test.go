@@ -1,290 +1,130 @@
 package notify
 
 import (
-	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
 )
 
-func TestNewWPushTarget(t *testing.T) {
-	t.Parallel()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123?channel=feishu&topic_code=topic1")
-	if err != nil {
-		t.Fatalf("parse url: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("new target: %v", err)
-	}
-	if target.apiKey != "WPUSHabc123" {
-		t.Fatalf("apikey=%q", target.apiKey)
-	}
-	if target.channel != "feishu" {
-		t.Fatalf("channel=%q", target.channel)
-	}
-	if target.topicCode != "topic1" {
-		t.Fatalf("topic=%q", target.topicCode)
-	}
+type wpushResponseTransport struct {
+	status int
+	body   string
 }
 
-func TestNewWPushTargetQueryAPIKey(t *testing.T) {
-	t.Parallel()
-
-	parsed, err := ParseURL("wpush://?apikey=WPUSHxyz99&channel=wechat")
-	if err != nil {
-		t.Fatalf("parse url: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("new target: %v", err)
-	}
-	if target.apiKey != "WPUSHxyz99" {
-		t.Fatalf("apikey=%q", target.apiKey)
-	}
+func (r wpushResponseTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{StatusCode: r.status, Body: io.NopCloser(strings.NewReader(r.body)), Header: make(http.Header), Request: req}, nil
 }
 
-func TestNewWPushTargetRejectsBadKey(t *testing.T) {
-	t.Parallel()
-
-	parsed, err := ParseURL("wpush://notavalidkey")
-	if err != nil {
-		t.Fatalf("parse url: %v", err)
-	}
-	if _, err := NewWPushTarget(parsed); err == nil {
-		t.Fatal("expected invalid apikey error")
-	}
-}
-
-func TestWPushBuildRequest(t *testing.T) {
-	t.Parallel()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123?channel=app&to=mytopic")
-	if err != nil {
-		t.Fatalf("parse url: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("new target: %v", err)
-	}
-	spec, err := target.BuildRequest("body text", "", NotifyInfo)
-	if err != nil {
-		t.Fatalf("build: %v", err)
-	}
-	if spec.URL != wpushURL {
-		t.Fatalf("url=%q", spec.URL)
-	}
-	if spec.Method != "POST" {
-		t.Fatalf("method=%q", spec.Method)
-	}
-	if got := spec.Headers["Content-Type"]; got != "application/json" {
-		t.Fatalf("content-type=%q", got)
-	}
-
-	var payload map[string]any
-	if err := json.Unmarshal([]byte(spec.Body), &payload); err != nil {
-		t.Fatalf("json: %v body=%s", err, spec.Body)
-	}
-	if payload["apikey"] != "WPUSHabc123" {
-		t.Fatalf("apikey=%v", payload["apikey"])
-	}
-	if payload["title"] != "body text" {
-		t.Fatalf("title fallback=%v", payload["title"])
-	}
-	if payload["content"] != "body text" {
-		t.Fatalf("content=%v", payload["content"])
-	}
-	if payload["channel"] != "app" {
-		t.Fatalf("channel=%v", payload["channel"])
-	}
-	if payload["topic_code"] != "mytopic" {
-		t.Fatalf("topic_code=%v", payload["topic_code"])
-	}
-	if !strings.Contains(spec.Body, `"apikey"`) {
-		t.Fatalf("body missing apikey: %s", spec.Body)
-	}
-}
-
-func withMockTransport(t *testing.T, roundTrip func(*http.Request) (*http.Response, error)) func() {
-	t.Helper()
+func TestWPushResponseContract(t *testing.T) {
 	previous := http.DefaultTransport
-	http.DefaultTransport = roundTripFunc(roundTrip)
-	return func() { http.DefaultTransport = previous }
-}
-
-type roundTripFunc func(*http.Request) (*http.Response, error)
-
-func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
-
-func TestWPushSendCode0DespiteNon2xx(t *testing.T) {
-	restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: http.StatusCreated,
-			Status:     "201 Created",
-			Body:       io.NopCloser(strings.NewReader(`{"code":0,"message":"ok"}`)),
-			Header:     make(http.Header),
-			Request:    req,
-		}, nil
-	})
-	defer restore()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123")
+	t.Cleanup(func() { http.DefaultTransport = previous })
+	parsed, err := ParseURL("wpush://WPUSH0123456789abcdefghijklmnopq")
 	if err != nil {
-		t.Fatalf("parse: %v", err)
+		t.Fatal(err)
 	}
 	target, err := NewWPushTarget(parsed)
 	if err != nil {
-		t.Fatalf("target: %v", err)
+		t.Fatal(err)
 	}
-	if err := target.Send("body", "title", NotifyInfo); err != nil {
-		t.Fatalf("expected success on non-2xx with code 0: %v", err)
-	}
-}
-
-func TestWPushSendRejectsBooleanCode(t *testing.T) {
-	// Regression: Python treats False == 0; Go must still fail on {"code":false}.
-	restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Status:     "200 OK",
-			Body:       io.NopCloser(strings.NewReader(`{"code":false,"message":"nope"}`)),
-			Header:     make(http.Header),
-			Request:    req,
-		}, nil
-	})
-	defer restore()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123")
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("target: %v", err)
-	}
-	if err := target.Send("body", "title", NotifyInfo); err == nil {
-		t.Fatal("expected failure for boolean code")
-	}
-}
-
-func TestWPushSendAcceptsExplicitCode0(t *testing.T) {
-	restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Status:     "200 OK",
-			Body:       io.NopCloser(strings.NewReader(`{"code":0,"message":"ok"}`)),
-			Header:     make(http.Header),
-			Request:    req,
-		}, nil
-	})
-	defer restore()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123")
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("target: %v", err)
-	}
-	if err := target.Send("body", "title", NotifyInfo); err != nil {
-		t.Fatalf("expected success for explicit code 0: %v", err)
-	}
-}
-
-func TestWPushSendRejectsMissingCode(t *testing.T) {
-	for _, body := range []string{
-		`{}`,
-		`{"message":"rejected"}`,
-		`{"code":null,"message":"null code"}`,
-		`null`,
+	for _, tc := range []struct {
+		name, body string
+		status     int
+		success    bool
+	}{
+		{"zero", `{"code":0}`, 200, true},
+		{"float-zero", `{"code":0.0}`, 200, true},
+		{"boolean", `{"code":false}`, 200, false},
+		{"string", `{"code":"0"}`, 200, false},
+		{"missing", `{}`, 200, false},
+		{"error", `{"code":1}`, 200, false},
+		{"malformed", `ok`, 200, false},
+		{"http-error", `{"code":0}`, 500, false},
+		{"other-success", `{"code":0}`, 201, false},
 	} {
-		body := body
-		t.Run(body, func(t *testing.T) {
-			restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-				return &http.Response{
-					StatusCode: http.StatusOK,
-					Status:     "200 OK",
-					Body:       io.NopCloser(strings.NewReader(body)),
-					Header:     make(http.Header),
-					Request:    req,
-				}, nil
-			})
-			defer restore()
-
-			parsed, err := ParseURL("wpush://WPUSHabc123")
-			if err != nil {
-				t.Fatalf("parse: %v", err)
-			}
-			target, err := NewWPushTarget(parsed)
-			if err != nil {
-				t.Fatalf("target: %v", err)
-			}
-			if err := target.Send("body", "title", NotifyInfo); err == nil {
-				t.Fatalf("expected failure for body %s", body)
+		t.Run(tc.name, func(t *testing.T) {
+			http.DefaultTransport = wpushResponseTransport{tc.status, tc.body}
+			if err := target.Send("body", "title", NotifyInfo); (err == nil) != tc.success {
+				t.Fatalf("success=%v, error=%v", tc.success, err)
 			}
 		})
 	}
 }
 
-func TestWPushSendRejectsNonZeroCode(t *testing.T) {
-	restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-		return &http.Response{
-			StatusCode: http.StatusOK,
-			Status:     "200 OK",
-			Body:       io.NopCloser(strings.NewReader(`{"code":401,"message":"bad key"}`)),
-			Header:     make(http.Header),
-			Request:    req,
-		}, nil
-	})
-	defer restore()
-
-	parsed, err := ParseURL("wpush://WPUSHabc123")
-	if err != nil {
-		t.Fatalf("parse: %v", err)
-	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("target: %v", err)
-	}
-	if err := target.Send("body", "title", NotifyInfo); err == nil {
-		t.Fatal("expected failure for nonzero code")
+func TestWPushRejectsInvalidConfiguration(t *testing.T) {
+	for _, raw := range []string{
+		"wpush://WPUSHshort",
+		"wpush://WPUSH0123456789abcdefghijklmnopq?channel=unknown",
+		"wpush://WPUSH0123456789abcdefghijklmnopq/topic?group=group",
+	} {
+		parsed, err := ParseURL(raw)
+		if err != nil {
+			continue
+		}
+		if _, err := NewWPushTarget(parsed); err == nil {
+			t.Errorf("accepted %s", raw)
+		}
 	}
 }
 
-func TestWPushSendDoesNotFollowRedirects(t *testing.T) {
-	var hits atomic.Int32
-	restore := withMockTransport(t, func(req *http.Request) (*http.Response, error) {
-		hits.Add(1)
-		if hits.Load() > 1 {
-			t.Fatal("client followed redirect and re-sent request")
-		}
-		header := make(http.Header)
-		header.Set("Location", "https://evil.example/steal")
-		return &http.Response{
-			StatusCode: http.StatusTemporaryRedirect,
-			Status:     "307 Temporary Redirect",
-			Body:       io.NopCloser(strings.NewReader(`{"code":0,"message":"redirect"}`)),
-			Header:     header,
-			Request:    req,
-		}, nil
-	})
-	defer restore()
+// wpushRedirectTransport routes only the initial service request to a local
+// server. Redirects use their actual destination, so forwarding is observable.
+type wpushRedirectTransport struct {
+	initial *url.URL
+	base    *http.Transport
+}
 
-	parsed, err := ParseURL("wpush://WPUSHabc123")
-	if err != nil {
-		t.Fatalf("parse: %v", err)
+func (r wpushRedirectTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Host == "api.wpush.cn" {
+		req = req.Clone(req.Context())
+		copyURL := *req.URL
+		copyURL.Scheme, copyURL.Host = r.initial.Scheme, r.initial.Host
+		req.URL = &copyURL
 	}
-	target, err := NewWPushTarget(parsed)
-	if err != nil {
-		t.Fatalf("target: %v", err)
-	}
-	// Even if body claims code 0, we must not have followed; one hit is enough.
-	_ = target.Send("body", "title", NotifyInfo)
-	if hits.Load() != 1 {
-		t.Fatalf("hits=%d want 1", hits.Load())
+	return r.base.RoundTrip(req)
+}
+
+func TestWPushDoesNotForwardCredentialsOnRedirect(t *testing.T) {
+	previous := http.DefaultClient
+	t.Cleanup(func() { http.DefaultClient = previous })
+	for _, status := range []int{301, 302, 303, 307, 308} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			var forwarded atomic.Int32
+			destination := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				forwarded.Add(1)
+				_, _ = io.WriteString(w, `{"code":0}`)
+			}))
+			defer destination.Close()
+			initial := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Location", destination.URL)
+				w.WriteHeader(status)
+			}))
+			defer initial.Close()
+			initialURL, err := url.Parse(initial.URL)
+			if err != nil {
+				t.Fatal(err)
+			}
+			transport := &http.Transport{}
+			defer transport.CloseIdleConnections()
+			http.DefaultClient = &http.Client{Transport: wpushRedirectTransport{initialURL, transport}}
+			parsed, err := ParseURL("wpush://WPUSH0123456789abcdefghijklmnopq")
+			if err != nil {
+				t.Fatal(err)
+			}
+			target, err := NewWPushTarget(parsed)
+			if err != nil {
+				t.Fatal(err)
+			}
+			err = target.Send("private body", "private title", NotifyInfo)
+			if forwarded.Load() != 0 {
+				t.Fatalf("forwarded credentials to redirect destination %d times", forwarded.Load())
+			}
+			if err == nil {
+				t.Fatal("accepted redirect as a successful notification")
+			}
+		})
 	}
 }

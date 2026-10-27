@@ -23,7 +23,7 @@ func TestTelegramConvertsStandardMarkdownToMarkdownV1(t *testing.T) {
 	if payload["parse_mode"] != "MARKDOWN" {
 		t.Fatalf("expected MARKDOWN parse mode, got %#v", payload["parse_mode"])
 	}
-	if payload["text"] != "Strike *Bold* _Italics_ Text" {
+	if payload["text"] != "~~Strike~~ *Bold* _Italics_ Text" {
 		t.Fatalf("expected Telegram markdown body, got %#v", payload["text"])
 	}
 }
@@ -34,7 +34,7 @@ func TestTelegramConvertsStandardMarkdownToMarkdownV2(t *testing.T) {
 	if payload["parse_mode"] != "MarkdownV2" {
 		t.Fatalf("expected MarkdownV2 parse mode, got %#v", payload["parse_mode"])
 	}
-	if payload["text"] != "~Strike~ *Bold* _Italics_ Text" {
+	if payload["text"] != `\~\~Strike\~\~ *Bold* _Italics_ Text` {
 		t.Fatalf("expected Telegram markdown body, got %#v", payload["text"])
 	}
 }
@@ -45,7 +45,7 @@ func TestTelegramConvertsStandardMarkdownToTelegramHTML(t *testing.T) {
 	if payload["parse_mode"] != "HTML" {
 		t.Fatalf("expected HTML parse mode, got %#v", payload["parse_mode"])
 	}
-	if payload["text"] != "<s>Strike</s> <b>Bold</b> <i>Italics</i> Text" {
+	if payload["text"] != "~~Strike~~ <b>Bold</b> <i>Italics</i> Text" {
 		t.Fatalf("expected Telegram HTML body, got %#v", payload["text"])
 	}
 }
@@ -96,11 +96,8 @@ func TestTelegramConvertsMarkdownFencedCodeToMarkdownV1Pre(t *testing.T) {
 	if strings.Contains(text, "````") {
 		t.Fatalf("expected fenced code not to be double wrapped, got %q", text)
 	}
-	if !strings.Contains(text, "```\nif x > 0 { return `tick` }\\path\n```") {
-		t.Fatalf("expected Telegram markdown pre block, got %q", text)
-	}
-	if strings.Contains(text, "\\`") || strings.Contains(text, "\\\\path") {
-		t.Fatalf("expected Markdown v1 pre text not to show escape backslashes, got %q", text)
+	if text != "*Bold*\n_Italics_\n```go\nif x > 0 { return \\`tick\\` }\\\\path\n```" {
+		t.Fatalf("expected upstream code escaping, got %q", text)
 	}
 }
 
@@ -132,7 +129,7 @@ func TestTelegramConvertsMarkdownFencedCodeToTelegramHTML(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected text payload, got %#v", payload["text"])
 	}
-	for _, expected := range []string{"<b>Bold</b>", "<i>Italics</i>", "<pre><code>code\n</code></pre>"} {
+	for _, expected := range []string{"<b>Bold</b>", "<i>Italics</i>", "<code>code</code>"} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("expected %q in Telegram HTML body, got %q", expected, text)
 		}
@@ -163,7 +160,7 @@ func TestTelegramMarkdownV2PreEscapesOnlyBackticksAndBackslashes(t *testing.T) {
 	if !ok {
 		t.Fatalf("expected text payload, got %#v", payload["text"])
 	}
-	if text != "```\nif x > 0 { return path\\\\name }```" {
+	if text != "```\nif x > 0 { return path\\\\name }\n```" {
 		t.Fatalf("expected minimally escaped pre text, got %q", text)
 	}
 	for _, overescaped := range []string{`\>`, `\{`, `\}`} {

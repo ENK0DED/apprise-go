@@ -10,5 +10,19 @@
     "url": "strmlabs://0123456789abcdef0123456789abcdef01234567?call=donations&amount=5&currency=CAD&name=Tester&identifier=apprise",
     "body": "hello from python",
     "title": "apprise parity"
+  },
+  {
+    "name": "alert-body-only",
+    "url": "strmlabs://0123456789abcdef0123456789abcdef01234567",
+    "body": "Only body",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "donation-unicode-limit",
+    "url": "strmlabs://0123456789abcdef0123456789abcdef01234567?call=donations&amount=5&name=Tester",
+    "body": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+    "title": "Notice",
+    "type": "info"
   }
 ]

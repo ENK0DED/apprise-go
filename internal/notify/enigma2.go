@@ -139,7 +139,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -155,13 +155,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -170,10 +179,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -213,6 +240,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"headers": map[string]any{
@@ -224,7 +261,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{host}", "{schema}://{host}:{port}", "{schema}://{user}@{host}", "{schema}://{user}@{host}:{port}", "{schema}://{user}:{password}@{host}", "{schema}://{user}:{password}@{host}:{port}", "{schema}://{host}/{fullpath}", "{schema}://{host}:{port}/{fullpath}", "{schema}://{user}@{host}/{fullpath}", "{schema}://{user}@{host}:{port}/{fullpath}", "{schema}://{user}:{password}@{host}/{fullpath}", "{schema}://{user}:{password}@{host}:{port}/{fullpath}"},
+			"templates": []any{"{schema}://{host}", "{schema}://{host}:{port}", "{schema}://{user}@{host}", "{schema}://{user}@{host}:{port}", "{schema}://{user}:{password}@{host}", "{schema}://{user}:{password}@{host}:{port}", "{schema}://{host}/{fullpath}", "{schema}://{host}:{port}/{fullpath}", "{schema}://{user}@{host}/{fullpath}", "{schema}://{user}@{host}:{port}/{fullpath}", "{schema}://{user}:{password}@{host}/{fullpath}", "{schema}://{user}:{password}@{host}:{port}/{fullpath}"},
 			"tokens": map[string]any{
 				"fullpath": map[string]any{
 					"map_to":   "fullpath",
@@ -262,7 +299,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"enigma2", "enigma2s"},
+					"values":   []any{"enigma2", "enigma2s"},
 				},
 				"user": map[string]any{
 					"map_to":   "user",

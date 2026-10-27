@@ -67,10 +67,6 @@ func NewDotTarget(target *ParsedURL) (*DotTarget, error) {
 	ditherType := strings.TrimSpace(target.Query["dither_type"])
 	ditherKernel := strings.TrimSpace(target.Query["dither_kernel"])
 
-	if mode == dotModeText && imageData != "" {
-		imageData = ""
-	}
-
 	// Not refused here: upstream builds the object and reports this when the
 	// send is attempted. See the note in bark.go.
 	return &DotTarget{
@@ -254,7 +250,7 @@ func init() {
 					"type":     "int",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -268,7 +264,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"THRESHOLD", "ATKINSON", "BURKES", "FLOYD_STEINBERG", "SIERRA2", "STUCKI", "JARVIS_JUDICE_NINKE", "DIFFUSION_ROW", "DIFFUSION_COLUMN", "DIFFUSION_2D"},
+					"values":   []any{"THRESHOLD", "ATKINSON", "BURKES", "FLOYD_STEINBERG", "SIERRA2", "STUCKI", "JARVIS_JUDICE_NINKE", "DIFFUSION_ROW", "DIFFUSION_COLUMN", "DIFFUSION_2D"},
 				},
 				"dither_type": map[string]any{
 					"default":  "DIFFUSION",
@@ -277,7 +273,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"DIFFUSION", "ORDERED", "NONE"},
+					"values":   []any{"DIFFUSION", "ORDERED", "NONE"},
 				},
 				"emojis": map[string]any{
 					"default":  false,
@@ -288,13 +284,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"icon": map[string]any{
 					"map_to":   "icon",
@@ -324,14 +321,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"text", "image"},
+					"values":   []any{"text", "image"},
 				},
-				"task_key": map[string]any{
-					"map_to":   "task_key",
-					"name":     "Task Key",
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -340,7 +338,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"refresh": map[string]any{
 					"default":  true,
@@ -350,8 +356,18 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -373,6 +389,13 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"task_key": map[string]any{
+					"map_to":   "task_key",
+					"name":     "Task Key",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
 				"tz": map[string]any{
 					"default":  nil,
 					"map_to":   "tz",
@@ -389,9 +412,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}@{device_id}/"},
+			"templates": []any{"{schema}://{apikey}@{device_id}/"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -414,7 +447,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"dot"},
+					"values":   []any{"dot"},
 				},
 			},
 		},

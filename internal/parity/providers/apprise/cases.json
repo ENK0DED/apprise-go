@@ -39,5 +39,34 @@
     "attachments": [
       "%7Brepo%7D/internal/parity/fixtures/pixel.png"
     ]
+  },
+  {
+    "name": "legacy-api",
+    "url": "apprises://example.com/prefix/ABC123?version=1&method=json",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "query-config",
+    "url": "apprise://example.com/prefix?token=ABC123&method=json",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "relay-source-format",
+    "url": "apprise://example.com/ABC123?method=json&format=html",
+    "body": "**bold**",
+    "body_format": "markdown",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "passthrough-format",
+    "url": "apprise://example.com/ABC123?method=json&format=html",
+    "body": "<b>unchanged</b>",
+    "title": "Title",
+    "type": "info"
   }
 ]

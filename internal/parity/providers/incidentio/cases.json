@@ -1,0 +1,51 @@
+[
+  {
+    "name": "map-info",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "info"
+  },
+  {
+    "name": "map-success",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "success"
+  },
+  {
+    "name": "map-warning",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "warning"
+  },
+  {
+    "name": "map-failure",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "failure"
+  },
+  {
+    "name": "body-summary",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123",
+    "body": "Disk space is low",
+    "title": "",
+    "type": "failure"
+  },
+  {
+    "name": "resolve-with-metadata",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123?action=res&dedup=disk&+severity=high&click=https://example.com",
+    "body": "Recovered",
+    "title": "Storage",
+    "type": "info"
+  },
+  {
+    "name": "trigger-key",
+    "url": "incidentio://01GW2G3V0S59R238FAHPDS1R66/token123?action=trigger",
+    "body": "Details",
+    "title": "New incident",
+    "type": "failure"
+  }
+]

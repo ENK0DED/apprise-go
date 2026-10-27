@@ -13,12 +13,7 @@ else
   python -m pip install "apprise[all-plugins]"
 fi
 
-# Forward-port plugins not yet released in tagged Apprise (kept in
-# internal/parity/upstream_plugins/). Drop once the matching upstream
-# Apprise release includes them.
-plugin_src="internal/parity/upstream_plugins/wpush.py"
-if [[ -f "${plugin_src}" ]]; then
-  plugin_dst="$(python -c 'import apprise, pathlib; print(pathlib.Path(apprise.__file__).resolve().parent / "plugins")')"
-  cp "${plugin_src}" "${plugin_dst}/wpush.py"
-  echo "Installed forward-port plugin: ${plugin_dst}/wpush.py"
-fi
+# AMQP 1.0 is intentionally excluded from upstream's all-plugins extra.
+# Its real broker parity cases require the source-built Proton adapter.
+python -m pip install "python-qpid-proton==0.40.0"
+python -c 'import pika, proton'

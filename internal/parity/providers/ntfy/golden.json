@@ -82,5 +82,21 @@
         "url": "https://ntfy.sh/topic?filename=notes.txt"
       }
     ]
+  },
+  {
+    "name": "single-format-url-override",
+    "requests": [
+      {
+        "body": "{\"topic\": \"topic\", \"title\": \"Title\", \"message\": \"**bold**\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-markdown": "yes"
+        },
+        "method": "POST",
+        "url": "https://ntfy.sh/"
+      }
+    ]
   }
 ]

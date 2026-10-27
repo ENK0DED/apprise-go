@@ -3,6 +3,7 @@ package notify
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ecdh"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -24,13 +25,8 @@ import (
 // on every notification and recipients see an endless parade of unverified
 // devices, while anything sent under a previous identity stays unreadable.
 
-// Keys live for a day short of upstream's expiry so a refresh happens before
-// a server would consider them stale.
-const matrixE2EECacheTTL = 7 * 24 * time.Hour
-
-// matrixOneTimeKeyCount is how many one-time keys are published per upload;
-// each is consumed by one recipient device starting a session with us.
-const matrixOneTimeKeyCount = 50
+// Keep identity and trust records for upstream's twenty-day cache lifetime.
+const matrixE2EECacheTTL = 20 * 24 * time.Hour
 
 type matrixDeviceKeys struct {
 	Curve25519 string
@@ -40,15 +36,11 @@ type matrixDeviceKeys struct {
 // e2eeAccount loads the stored Olm account or creates one, uploading its keys
 // when the server has not seen them for this device identity.
 func (m *MatrixTarget) e2eeAccount() (*matrixolm.Account, error) {
-	if m.olmAccount != nil {
-		return m.olmAccount, nil
-	}
-
 	var stored struct {
 		Identity []byte `json:"identity"`
 		Signing  []byte `json:"signing"`
 	}
-	if storeGetJSON(m.store, "e2ee_account", &stored) && len(stored.Identity) > 0 {
+	if m.olmAccount == nil && storeGetJSON(m.store, "e2ee_account", &stored) && len(stored.Identity) > 0 {
 		if account, err := matrixolm.NewAccountFromKeys(stored.Identity, stored.Signing); err == nil {
 			m.olmAccount = account
 		}
@@ -72,8 +64,7 @@ func (m *MatrixTarget) e2eeAccount() (*matrixolm.Account, error) {
 
 	// The upload is only valid for the identity that made it. A different
 	// device id from the server, or a regenerated account, invalidates it.
-	binding := fmt.Sprintf("%s|%s|%s|%s",
-		m.userID, m.deviceID, m.olmAccount.IdentityKey(), m.olmAccount.SigningKey())
+	binding := m.e2eeBinding()
 
 	var storedBinding string
 	if !storeGetJSON(m.store, "e2ee_device_binding", &storedBinding) || storedBinding != binding {
@@ -94,14 +85,14 @@ func (m *MatrixTarget) uploadDeviceKeys(binding string) error {
 	if err != nil {
 		return err
 	}
-	oneTimeKeys, err := m.olmAccount.GenerateOneTimeKeys(m.userID, m.deviceID, matrixOneTimeKeyCount)
+	fallbackKeys, err := m.fallbackKeys()
 	if err != nil {
 		return err
 	}
 
 	ok, _, _ := m.fetch("/keys/upload", map[string]any{
 		"device_keys":   deviceKeys,
-		"one_time_keys": oneTimeKeys,
+		"fallback_keys": fallbackKeys,
 	}, nil, http.MethodPost, "")
 	if !ok {
 		return fmt.Errorf("matrix e2ee: device key upload failed")
@@ -110,25 +101,58 @@ func (m *MatrixTarget) uploadDeviceKeys(binding string) error {
 	return m.store.Set("e2ee_device_binding", binding, matrixE2EECacheTTL)
 }
 
-// roomEncrypted reports whether the server says the room is encrypted. The
-// answer is cached, since it changes rarely and costs a request.
-func (m *MatrixTarget) roomEncrypted(roomID string) bool {
-	key := "e2ee_room_enc_" + roomID
+func (m *MatrixTarget) fallbackKeys() (map[string]any, error) {
+	var saved struct {
+		Identity string `json:"identity"`
+		Private  []byte `json:"private"`
+	}
+	var key *ecdh.PrivateKey
+	if storeGetJSON(m.store, "e2ee_fallback_key", &saved) && saved.Identity == m.olmAccount.IdentityKey() {
+		key, _ = ecdh.X25519().NewPrivateKey(saved.Private)
+	}
+	if key == nil {
+		var err error
+		key, err = ecdh.X25519().GenerateKey(rand.Reader)
+		if err != nil {
+			return nil, err
+		}
+		saved.Identity, saved.Private = m.olmAccount.IdentityKey(), key.Bytes()
+		if err := m.store.Set("e2ee_fallback_key", saved, matrixE2EECacheTTL); err != nil {
+			return nil, err
+		}
+	}
+	object := map[string]any{"key": matrixolm.EncodeBase64(key.PublicKey().Bytes()), "fallback": true}
+	canonical, err := matrixolm.CanonicalJSON(object)
+	if err != nil {
+		return nil, err
+	}
+	object["signatures"] = map[string]any{m.userID: map[string]any{"ed25519:" + m.deviceID: m.olmAccount.Sign(canonical)}}
+	id := sha256.Sum256(key.PublicKey().Bytes())
+	return map[string]any{fmt.Sprintf("signed_curve25519:%x", id[:5]): object}, nil
+}
 
-	var cached bool
-	if storeGetJSON(m.store, key, &cached) {
-		return cached
+// roomEncrypted caches only confirmed state. Lookup failures must not authorize
+// plaintext, and the new namespace excludes failure-derived legacy entries.
+func (m *MatrixTarget) roomEncrypted(roomID string) (bool, error) {
+	key := "e2ee_room_enc_v2_" + roomID
+
+	var cached *bool
+	if storeGetJSON(m.store, key, &cached) && cached != nil {
+		return *cached, nil
 	}
 
-	// A 404 here means the room simply has no encryption state event.
-	ok, response, _ := m.fetch(
+	// A 404 confirms that the room has no encryption state event. Other
+	// errors and empty successful responses leave the state unknown.
+	ok, response, status := m.fetch(
 		fmt.Sprintf("/rooms/%s/state/m.room.encryption", url.PathEscape(roomID)),
 		nil, nil, http.MethodGet, "")
-	encrypted := ok && len(response) > 0
-
+	if status != http.StatusNotFound && (!ok || len(response) == 0) {
+		return false, fmt.Errorf("matrix e2ee: encryption state lookup failed (status %d)", status)
+	}
+	encrypted := status != http.StatusNotFound
 	_ = m.store.Set(key, encrypted, matrixE2EECacheTTL)
 
-	return encrypted
+	return encrypted, nil
 }
 
 // roomMemberDevices returns every device of every joined member, keyed by user
@@ -290,13 +314,14 @@ func (m *MatrixTarget) shareRoomKey(roomID string, session *matrixolm.MegolmSess
 		return nil
 	}
 
+	if m.accessToken != m.password {
+		m.advanceTransaction()
+	}
 	path := fmt.Sprintf("/sendToDevice/m.room.encrypted/%s", url.PathEscape(m.transactionValue()))
 	ok, _, _ = m.fetch(path, map[string]any{"messages": messages}, nil, http.MethodPut, "")
 	if !ok {
 		return fmt.Errorf("matrix e2ee: could not deliver room key")
 	}
-	m.advanceTransaction()
-
 	return nil
 }
 
@@ -496,10 +521,12 @@ func encryptMatrixAttachment(data []byte) ([]byte, map[string]any, error) {
 		return nil, nil, err
 	}
 
-	iv := make([]byte, 16)
-	if _, err := rand.Read(iv[:8]); err != nil {
+	iv := make([]byte, aes.BlockSize)
+	if _, err := rand.Read(iv); err != nil {
 		return nil, nil, err
 	}
+	// Matrix uses the final eight bytes as an initially zero CTR counter.
+	clear(iv[8:])
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -594,6 +621,9 @@ func matrixClaimedOneTimeKey(claimed map[string]any, userID, deviceID, ed25519Ke
 
 // matrixVerifyDeviceKeys checks that a device signed its own key bundle.
 func matrixVerifyDeviceKeys(info map[string]any, userID, deviceID string) bool {
+	if info["user_id"] != userID || info["device_id"] != deviceID {
+		return false
+	}
 	keys, _ := info["keys"].(map[string]any)
 	ed, _ := keys[fmt.Sprintf("ed25519:%s", deviceID)].(string)
 	if ed == "" {
@@ -650,4 +680,8 @@ func (m *MatrixTarget) advanceTransaction() {
 
 	m.transactionID++
 	_ = m.store.Set("transaction_id", m.transactionID, matrixE2EECacheTTL)
+}
+
+func (m *MatrixTarget) e2eeBinding() string {
+	return fmt.Sprintf("%s|%s|%s|%s", m.userID, m.deviceID, m.olmAccount.IdentityKey(), m.olmAccount.SigningKey())
 }

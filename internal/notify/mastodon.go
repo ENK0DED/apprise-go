@@ -63,7 +63,8 @@ func NewMastodonTarget(target *ParsedURL) (*MastodonTarget, error) {
 	targets := []string{}
 	hashtags := []string{}
 	hashtagSeen := map[string]struct{}{}
-	for _, entry := range sortedUniqueTargets(splitPath(target.Path)) {
+	entries := append(splitPath(target.Path), parseDelimitedList(target.Query["to"])...)
+	for _, entry := range sortedUniqueTargets(entries) {
 		if normalized, ok := normalizeMastodonTarget(entry); ok {
 			targets = append(targets, normalized)
 			continue
@@ -110,7 +111,7 @@ func NewMastodonTarget(target *ParsedURL) (*MastodonTarget, error) {
 	// A URL with no path posts to the timeline, which is valid. One that names
 	// path entries and yields nothing usable from any of them is not: upstream
 	// reports it has no targets rather than posting to the timeline instead.
-	if len(splitPath(target.Path)) > 0 && len(targets) == 0 && len(hashtags) == 0 {
+	if len(entries) > 0 && len(targets) == 0 && len(hashtags) == 0 {
 		return nil, fmt.Errorf("no mastodon targets to notify")
 	}
 
@@ -128,7 +129,7 @@ func NewMastodonTarget(target *ParsedURL) (*MastodonTarget, error) {
 		spoiler:           strings.TrimSpace(target.Query["spoiler"]),
 		language:          strings.TrimSpace(target.Query["language"]),
 		idempotencyKey:    strings.TrimSpace(target.Query["key"]),
-		format:            normalizeNotifyFormat(target.Query["format"]),
+		format:            normalizeNotifyFormat(targetNotifyFormat(target)),
 	}, nil
 }
 
@@ -363,7 +364,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -379,13 +380,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"key": map[string]any{
 					"map_to":   "key",
@@ -401,6 +403,14 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -408,10 +418,37 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"ping": map[string]any{
+					"delim":    []any{",", " "},
+					"group":    []any{},
+					"map_to":   "ping",
+					"name":     "Ping Users/Tags",
+					"private":  false,
+					"required": false,
+					"type":     "list:string",
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -443,7 +480,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -464,15 +501,6 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
-				"ping": map[string]any{
-					"delim":    []string{",", " "},
-					"group":    []any{},
-					"map_to":   "ping",
-					"name":     "Ping Users/Tags",
-					"private":  false,
-					"required": false,
-					"type":     "list:string",
-				},
 				"visibility": map[string]any{
 					"default":  "default",
 					"map_to":   "visibility",
@@ -480,11 +508,21 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"default", "direct", "private", "unlisted", "public"},
+					"values":   []any{"default", "direct", "private", "unlisted", "public"},
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}@{host}", "{schema}://{token}@{host}:{port}", "{schema}://{token}@{host}/{targets}", "{schema}://{token}@{host}:{port}/{targets}"},
+			"templates": []any{"{schema}://{token}@{host}", "{schema}://{token}@{host}:{port}", "{schema}://{token}@{host}/{targets}", "{schema}://{token}@{host}:{port}/{targets}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -508,7 +546,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"mastodon", "mastodons", "toot", "toots"},
+					"values":   []any{"mastodon", "mastodons", "toot", "toots"},
 				},
 				"target_user": map[string]any{
 					"map_to":   "targets",
@@ -519,8 +557,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

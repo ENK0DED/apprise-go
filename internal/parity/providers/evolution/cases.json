@@ -27,5 +27,12 @@
     "title": "over",
     "type": "info",
     "body_format": "html"
+  },
+  {
+    "name": "declared-commonmark-links",
+    "url": "evolution://apikey@example.com/instance/14051231234",
+    "body": "# Heading\n**Bold** [link](https://example.com/a_(x)) & `code`",
+    "title": "Title",
+    "body_format": "markdown"
   }
 ]

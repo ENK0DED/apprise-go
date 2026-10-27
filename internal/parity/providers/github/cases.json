@@ -1,0 +1,52 @@
+[
+  {
+    "name": "issue",
+    "url": "github://token123@owner/project?labels=bug,storage&assignees=user1,user2",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "fallback-title",
+    "url": "github://token123@owner/project",
+    "title": "",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "issue-comment",
+    "url": "github://token123@owner/project/issues/17",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "pull-comment",
+    "url": "github://token123@owner/project/pull/17/files",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "discussion",
+    "url": "github://token123@owner/project/discussions/new?category=ideas",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "discussion-comment",
+    "url": "github://token123@owner/project/discussion/17",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "markdown-comment",
+    "url": "github://token123@owner/project/issues/17",
+    "title": "Title",
+    "body": "**Body**",
+    "type": "info",
+    "body_format": "markdown"
+  }
+]

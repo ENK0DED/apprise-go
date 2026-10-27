@@ -10,6 +10,7 @@ const brevoURL = "https://api.brevo.com/v3/smtp/email"
 const brevoDefaultSubject = "<no subject>"
 
 type BrevoTarget struct {
+	deliveryTracker
 	apiKey    string
 	fromEmail string
 	targets   []string
@@ -77,8 +78,12 @@ func NewBrevoTarget(target *ParsedURL) (*BrevoTarget, error) {
 	// it, so a typo here fails the URL instead of silently sending mail nobody
 	// can reply to.
 	replyTo := strings.TrimSpace(target.Query["reply"])
-	if replyTo != "" && !isEmailAddress(replyTo) {
-		return nil, fmt.Errorf("invalid reply-to address: %q", replyTo)
+	if replyTo != "" {
+		entry, ok := parseReplyEmailEntry(replyTo)
+		if !ok {
+			return nil, fmt.Errorf("invalid reply-to address: %q", replyTo)
+		}
+		replyTo = entry.email
 	}
 
 	return &BrevoTarget{
@@ -128,7 +133,7 @@ func (b *BrevoTarget) SendWithAttachments(body, title string, notifyType NotifyT
 		return fmt.Errorf("missing targets")
 	}
 
-	for _, target := range b.targets {
+	for deliveryIndex0, target := range b.targets {
 		payload := b.buildPayload(body, title, target, attachments)
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -146,7 +151,7 @@ func (b *BrevoTarget) SendWithAttachments(body, title string, notifyType NotifyT
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(b.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -184,7 +189,7 @@ func (b *BrevoTarget) buildPayload(body, title, target string, attachments []Att
 		payload["bcc"] = toEmailObjects(bcc)
 	}
 
-	if b.replyTo != "" && isSimpleEmail(b.replyTo) {
+	if b.replyTo != "" {
 		payload["replyTo"] = map[string]string{
 			"email": b.replyTo,
 		}
@@ -204,7 +209,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -213,7 +218,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -222,7 +227,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -238,13 +243,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html", "text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -253,7 +267,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"reply": map[string]any{
 					"map_to":   "reply_to",
@@ -262,8 +284,18 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -280,7 +312,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -298,15 +330,25 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}:{from_email}", "{schema}://{apikey}:{from_email}/{targets}"},
+			"templates": []any{"{schema}://{apikey}:{from_email}", "{schema}://{apikey}:{from_email}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^[a-zA-Z0-9._-]+$", "i"},
+					"regex":    []any{"^[a-zA-Z0-9._-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -315,7 +357,7 @@ func init() {
 					"name":     "Source Email",
 					"private":  false,
 					"required": true,
-					"type":     "string",
+					"type":     "email",
 				},
 				"schema": map[string]any{
 					"default":  "brevo",
@@ -324,18 +366,18 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"brevo"},
+					"values":   []any{"brevo"},
 				},
 				"target_email": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

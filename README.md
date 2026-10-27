@@ -32,6 +32,16 @@ apprise-go is a Go port of [Apprise](https://github.com/caronc/apprise) by Chris
 - **Storage Support**: Persistent notification configurations
 - **Schema Details**: Full service configuration information
 
+## Upstream compatibility
+
+This port targets Apprise **2.1.0**. The Go package has its own release version.
+The parity workflow compares schemas, URL validation, complete request sequences,
+formatting and retry behavior against that pinned Python reference.
+
+AMQP supports both 0.9.1 and 1.0. Email and DeltaChat support PGP/MIME with local
+keys or Web Key Directory discovery. The USB `blink1` provider remains outside
+the pure Go build; see [the development runbook](PROCESS.md) for validation scope.
+
 ## Installation
 
 ### Pre-built Binaries

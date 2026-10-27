@@ -59,7 +59,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "json://example.com/notify?format=html",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<em>Italics</em>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<em>Italics</em>", "<code>go\n")
 			},
 		},
 		{
@@ -79,11 +79,11 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "workflow://example.com/WORKFLOWID/SIGNATURE?format=html&image=no",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<code>go\n")
 			},
 			assertSpec: func(t *testing.T, spec notify.RequestSpec) {
 				t.Helper()
-				assertContainsAll(t, workflowTextBlock(t, spec, "body"), "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, workflowTextBlock(t, spec, "body"), "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<code>go\n")
 			},
 		},
 		{
@@ -118,8 +118,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "tgram://123456:abcdef/7890/?format=markdown&mdv=v1",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "*Deploy Summary*", "*Bold*", "_Italics_", "Strike", "[Docs](https://example.com/docs)", "```\nif x > 0 { return `tick` }\\path\n```", "- first", "- second")
-				assertNotContains(t, converted, "~Strike~")
+				assertContainsAll(t, converted, "*Deploy Summary*", "*Bold*", "_Italics_", "~~Strike~~", "[Docs](https://example.com/docs)", "```go\nif x > 0 { return \\`tick\\` }\\\\path\n```", "- first", "- second")
 				assertNotContains(t, converted, "````")
 			},
 		},
@@ -128,7 +127,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "tgram://123456:abcdef/7890/?format=markdown&mdv=v2",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "*Deploy Summary*", "*Bold*", "_Italics_", "[Docs](https://example.com/docs)", "```\nif x > 0 { return \\`tick\\` }\\\\path\n```", "\\- first", "\\- second")
+				assertContainsAll(t, converted, "*Deploy Summary*", "*Bold*", "_Italics_", "[Docs](https://example.com/docs)", "```go\nif x > 0 { return \\`tick\\` }\\\\path\n```", "\\- first", "\\- second")
 				assertNotContains(t, converted, "````")
 			},
 		},
@@ -137,7 +136,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "tgram://123456:abcdef/7890/?format=html",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<b>Deploy Summary</b>", "<b>Bold</b>", "<i>Italics</i>", `<a href="https://example.com/docs">Docs</a>`, "<pre><code>if x &gt; 0 { return `tick` }\\path\n</code></pre>", "- first", "- second")
+				assertContainsAll(t, converted, "<b>Deploy Summary</b>", "<b>Bold</b>", "<i>Italics</i>", `<a href="https://example.com/docs">Docs</a>`, `<code>go`+"\n"+`if x &gt; 0 { return `+"`tick`"+` }\path</code>`, "- first", "- second")
 			},
 		},
 	}
@@ -152,13 +151,20 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			if err != nil {
 				t.Fatalf("convert target body: %v", err)
 			}
-			tc.assertBody(t, converted)
+			if !strings.HasPrefix(tc.rawURL, "tgram://") {
+				tc.assertBody(t, converted)
+			} else if strings.Contains(tc.rawURL, "format=markdown") && converted != body {
+				t.Fatal("service dialect applied before overflow")
+			}
 
 			specs := testutil.CaptureGoRequests(t, func() error {
 				return notify.SendTargetURL(tc.rawURL, body, "generalized parser", "markdown", notify.NotifyInfo)
 			})
 			if len(specs) != 1 {
 				t.Fatalf("expected one request, got %d", len(specs))
+			}
+			if strings.HasPrefix(tc.rawURL, "tgram://") {
+				tc.assertBody(t, jsonStringField(t, specs[0].Body, "text"))
 			}
 			if tc.assertSpec != nil {
 				tc.assertSpec(t, specs[0])

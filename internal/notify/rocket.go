@@ -15,6 +15,7 @@ const (
 )
 
 type RocketChatTarget struct {
+	deliveryTracker
 	mode      string
 	webhook   string
 	host      string
@@ -181,12 +182,12 @@ func (r *RocketChatTarget) sendWebhook(body, title string, notifyType NotifyType
 		return SendRequest(spec)
 	}
 
-	for _, target := range targets {
+	for deliveryIndex0, target := range targets {
 		spec, err := r.buildWebhookRequest(body, title, notifyType, target)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(r.sendTrackedRequestFor(spec, "sendWebhook:0", body, title, notifyType, deliveryIndex0))
 	}
 	return outcome.err()
 }
@@ -205,34 +206,34 @@ func (r *RocketChatTarget) sendAuthenticated(body, title string, notifyType Noti
 	headers := r.authHeaders()
 	urlStr := r.apiURL("/api/v1/chat.postMessage")
 
-	for _, user := range r.users {
+	for deliveryIndex1, user := range r.users {
 		payload["channel"] = "@" + user
 		delete(payload, "roomId")
 		spec, err := rocketRequest(urlStr, payload, headers)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(r.sendTrackedRequestFor(spec, "sendAuthenticated:0", body, title, notifyType, deliveryIndex1))
 	}
 
-	for _, channel := range r.channels {
+	for deliveryIndex2, channel := range r.channels {
 		payload["channel"] = "#" + channel
 		delete(payload, "roomId")
 		spec, err := rocketRequest(urlStr, payload, headers)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(r.sendTrackedRequestFor(spec, "sendAuthenticated:1", body, title, notifyType, deliveryIndex2))
 	}
 
-	for _, room := range r.rooms {
+	for deliveryIndex3, room := range r.rooms {
 		payload["roomId"] = room
 		delete(payload, "channel")
 		spec, err := rocketRequest(urlStr, payload, headers)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(r.sendTrackedRequestFor(spec, "sendAuthenticated:2", body, title, notifyType, deliveryIndex3))
 	}
 
 	return outcome.err()
@@ -430,7 +431,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -446,13 +447,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"mode": map[string]any{
 					"map_to":   "mode",
@@ -460,7 +462,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"webhook", "token", "basic"},
+					"values":   []any{"webhook", "token", "basic"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -469,10 +479,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -489,7 +517,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -507,12 +535,22 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 				"webhook": map[string]any{
 					"alias_of": "webhook",
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user}:{password}@{host}:{port}/{targets}", "{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{token}@{host}:{port}/{targets}", "{schema}://{user}:{token}@{host}/{targets}", "{schema}://{webhook}@{host}", "{schema}://{webhook}@{host}:{port}", "{schema}://{webhook}@{host}/{targets}", "{schema}://{webhook}@{host}:{port}/{targets}"},
+			"templates": []any{"{schema}://{user}:{password}@{host}:{port}/{targets}", "{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{token}@{host}:{port}/{targets}", "{schema}://{user}:{token}@{host}/{targets}", "{schema}://{webhook}@{host}", "{schema}://{webhook}@{host}:{port}", "{schema}://{webhook}@{host}/{targets}", "{schema}://{webhook}@{host}:{port}/{targets}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -543,7 +581,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"rocket", "rockets"},
+					"values":   []any{"rocket", "rockets"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -569,8 +607,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel", "target_room", "target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel", "target_room", "target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

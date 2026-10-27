@@ -36,5 +36,12 @@
     "attachments": [
       "%7Brepo%7D/internal/parity/fixtures/report.pdf"
     ]
+  },
+  {
+    "name": "upstream210-options-0",
+    "url": "guilded://1234567890/abcdefghijklmnopqrstuvwxyz?thread=token",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
   }
 ]

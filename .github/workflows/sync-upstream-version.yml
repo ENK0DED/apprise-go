@@ -23,7 +23,9 @@ jobs:
       DISCORD_CONFIGURED: ${{ secrets.DISCORD_WEBHOOK != '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Fetch latest upstream release
         id: upstream
@@ -38,9 +40,11 @@ jobs:
           version="${tag#v}"
           pinned="$(sed -n 's/^var UpstreamVersion = "\([^"]*\)"/\1/p' internal/version/version.go)"
 
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "pinned=$pinned" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "pinned=$pinned"
+          } >> "$GITHUB_OUTPUT"
           if [ "$version" = "$pinned" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Already pinned to $pinned." >> "$GITHUB_STEP_SUMMARY"
@@ -82,15 +86,21 @@ jobs:
 
       - name: Set up Go
         if: steps.upstream.outputs.changed == 'true'
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
 
       - name: Set up Python
         if: steps.upstream.outputs.changed == 'true'
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v7.1.0
         with:
-          python-version: "3.14"
+          python-version: "3.15.2"
+
+      - name: Install native Python build dependencies
+        if: steps.upstream.outputs.changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes pkg-config libusb-1.0-0-dev libudev-dev
 
       - name: Install parity dependencies
         if: steps.upstream.outputs.changed == 'true'
@@ -126,7 +136,7 @@ jobs:
       - name: Create pull request
         id: pr
         if: steps.upstream.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v8
+        uses: peter-evans/create-pull-request@v8.1.1
         with:
           branch: chore/sync-upstream-version
           delete-branch: true

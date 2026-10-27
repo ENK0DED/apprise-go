@@ -7,6 +7,8 @@ import (
 )
 
 type EvolutionTarget struct {
+	deliveryTracker
+	parsed   *ParsedURL
 	apikey   string
 	host     string
 	port     int
@@ -48,7 +50,7 @@ func NewEvolutionTarget(target *ParsedURL) (*EvolutionTarget, error) {
 	}
 
 	return &EvolutionTarget{
-		apikey:   apikey,
+		apikey: apikey, parsed: target,
 		host:     host,
 		port:     target.Port,
 		secure:   strings.EqualFold(target.Scheme, "evolutions"),
@@ -74,8 +76,8 @@ func (e *EvolutionTarget) Send(body, title string, notifyType NotifyType) error 
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(e.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -109,12 +111,16 @@ func (e *EvolutionTarget) buildRequests(body, title string, notifyType NotifyTyp
 		"apikey":       e.apikey,
 	}
 
+	message := mergeTitleBody(title, body)
+	if !e.parsed.dialectApplied && e.parsed.sourceNotifyFormat != "" && targetNotifyFormat(e.parsed) == "markdown" {
+		message = commonMarkToWhatsApp(message)
+	}
 	specs := make([]RequestSpec, 0, len(e.phones))
 	for _, number := range e.phones {
 		data, err := json.Marshal(map[string]any{
 			"number": number,
 			// WhatsApp has its own markdown dialect, not CommonMark.
-			"text": commonMarkToWhatsApp(mergeTitleBody(title, body)),
+			"text": message,
 		})
 		if err != nil {
 			return nil, err
@@ -138,7 +144,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -154,13 +160,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -177,7 +184,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -198,7 +205,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -215,7 +222,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -234,10 +241,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -245,7 +252,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}@{host}/{instance}/{targets}", "{schema}://{apikey}@{host}:{port}/{instance}/{targets}"},
+			"templates": []any{"{schema}://{apikey}@{host}/{instance}/{targets}", "{schema}://{apikey}@{host}:{port}/{instance}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -283,20 +290,20 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"evolution", "evolutions"},
+					"values":   []any{"evolution", "evolutions"},
 				},
 				"target_phone": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Phone No",
 					"prefix":   "+",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

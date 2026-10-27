@@ -1,0 +1,145 @@
+[
+  {
+    "name": "issue",
+    "requests": [
+      {
+        "body": "{\"title\": \"Title\", \"body\": \"Body\", \"labels\": [\"bug\", \"storage\"], \"assignees\": [\"user1\", \"user2\"]}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/repos/owner/project/issues"
+      }
+    ]
+  },
+  {
+    "name": "fallback-title",
+    "requests": [
+      {
+        "body": "{\"title\": \"Apprise Notifications\", \"body\": \"Body\"}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/repos/owner/project/issues"
+      }
+    ]
+  },
+  {
+    "name": "issue-comment",
+    "requests": [
+      {
+        "body": "{\"body\": \"Title\\r\\nBody\"}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/repos/owner/project/issues/17/comments"
+      }
+    ]
+  },
+  {
+    "name": "pull-comment",
+    "requests": [
+      {
+        "body": "{\"body\": \"Title\\r\\nBody\"}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/repos/owner/project/issues/17/comments"
+      }
+    ]
+  },
+  {
+    "name": "discussion",
+    "requests": [
+      {
+        "body": "{\"query\": \"query($owner: String!, $repo: String!) { repository(owner: $owner, name: $repo) { id discussionCategories(first: 100) { nodes { id name slug } } } }\", \"variables\": {\"owner\": \"owner\", \"repo\": \"project\"}}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/graphql"
+      },
+      {
+        "body": "{\"query\": \"mutation($repo: ID!, $category: ID!, $title: String!, $body: String!) { createDiscussion(input: {repositoryId: $repo, categoryId: $category, title: $title, body: $body}) { discussion { number } } }\", \"variables\": {\"repo\": \"repo-id\", \"category\": \"ideas-id\", \"title\": \"Title\", \"body\": \"Body\"}}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/graphql"
+      }
+    ]
+  },
+  {
+    "name": "discussion-comment",
+    "requests": [
+      {
+        "body": "{\"query\": \"query($owner: String!, $repo: String!, $number: Int!) { repository(owner: $owner, name: $repo) { discussion(number: $number) { id } } }\", \"variables\": {\"owner\": \"owner\", \"repo\": \"project\", \"number\": 17}}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/graphql"
+      },
+      {
+        "body": "{\"query\": \"mutation($id: ID!, $body: String!) { addDiscussionComment(input: {discussionId: $id, body: $body}) { comment { id } } }\", \"variables\": {\"id\": \"discussion-id\", \"body\": \"Title\\r\\nBody\"}}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/graphql"
+      }
+    ]
+  },
+  {
+    "name": "markdown-comment",
+    "requests": [
+      {
+        "body": "{\"body\": \"# Title\\n**Body**\"}",
+        "headers": {
+          "accept": "application/vnd.github+json",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-github-api-version": "2022-11-28"
+        },
+        "method": "POST",
+        "url": "https://api.github.com/repos/owner/project/issues/17/comments"
+      }
+    ]
+  }
+]

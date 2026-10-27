@@ -1,5 +1,7 @@
 package notify
 
+import "runtime"
+
 func init() {
 	RegisterSchemaEntryOrdered(65, SchemaEntry{
 		"attachment_support": false,
@@ -14,7 +16,7 @@ func init() {
 					"type":     "string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -30,18 +32,27 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"image": map[string]any{
 					"default":  true,
 					"map_to":   "include_image",
 					"name":     "Include Image",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
 					"type":     "bool",
@@ -53,15 +64,40 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
 					"required": false,
 					"type":     "float",
+				},
+				"sender": map[string]any{
+					"map_to":   "sender",
+					"name":     "Sender",
+					"private":  false,
+					"required": false,
+					"type":     "string",
 				},
 				"sound": map[string]any{
 					"map_to":   "sound",
@@ -94,9 +130,27 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"version": map[string]any{
+					"map_to":   "version",
+					"name":     "Terminal-Notifier Version",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"2", "3"},
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://"},
+			"templates": []any{"{schema}://"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "macosx",
@@ -105,11 +159,13 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"macosx"},
+					"values":   []any{"macosx"},
 				},
 			},
 		},
-		"enabled":   true,
+		// The notifier is available only on macOS, matching the constructor
+		// and upstream's platform-dependent capability flag.
+		"enabled":   runtime.GOOS == "darwin",
 		"protocols": []string{"macosx"},
 		"requirements": map[string]any{
 			"details":              "Only works with Mac OS X 10.8 and higher. Additionally  requires that /usr/local/bin/terminal-notifier is locally accessible.",

@@ -64,7 +64,7 @@
     "name": "override-html-input",
     "requests": [
       {
-        "body": "{\"disable_notification\": false, \"disable_web_page_preview\": true, \"parse_mode\": \"HTML\", \"text\": \"<b>over</b>\\r\\n<b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>. <b>bold</b> and <a href='https://example.com'>link</a> plus <code>code</code>.\", \"chat_id\": 12345}",
+        "body": "{\"disable_notification\": false, \"disable_web_page_preview\": true, \"parse_mode\": \"HTML\", \"text\": \"<b>over</b>\\r\\n<b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>. <b>bold</b> and <a href=\\\"https://example.com\\\">link</a> plus <code>code</code>.\", \"chat_id\": 12345}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json",
@@ -87,6 +87,36 @@
         },
         "method": "POST",
         "url": "https://api.telegram.org/bot123456789:abcdefg_hijklmnop/sendRichMessage"
+      }
+    ]
+  },
+  {
+    "name": "declared-commonmark-v2",
+    "requests": [
+      {
+        "body": "{\"disable_notification\": false, \"disable_web_page_preview\": true, \"parse_mode\": \"MarkdownV2\", \"text\": \"*Title*\\n*Heading*\\n*Bold* \\\\~\\\\~literal\\\\~\\\\~ [link](https://example.com/a_\\\\(x\\\\))\", \"chat_id\": 7890}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.telegram.org/bot123456:abcdef/sendMessage"
+      }
+    ]
+  },
+  {
+    "name": "declared-html-table",
+    "requests": [
+      {
+        "body": "{\"disable_notification\": false, \"disable_web_page_preview\": true, \"parse_mode\": \"HTML\", \"text\": \"<b><i>Title</i></b>\\r\\nA | B\\r\\nx | y\", \"chat_id\": 7890}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.telegram.org/bot123456:abcdef/sendMessage"
       }
     ]
   }

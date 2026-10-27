@@ -1,12 +1,18 @@
 package parity
 
 import (
+	"bytes"
 	"encoding/base64"
+	"encoding/hex"
 	"net/url"
 	"os"
 	"strings"
 	"testing"
 	"unicode/utf8"
+
+	"golang.org/x/crypto/chacha20poly1305"
+
+	"github.com/unraid/apprise-go/internal/notify"
 )
 
 // loadAttachmentBytes reads each attachment a case names.
@@ -66,7 +72,7 @@ func TestAttachmentGoldensCarryTheirFiles(t *testing.T) {
 
 			checked++
 			for path, data := range attachments {
-				if !goldenCarries(entry, data) {
+				if !goldenCarries(entry, data) && !simplePushGoldenCarries(t, name, c.URL, entry, data) {
 					t.Errorf("%s/%s: upstream never transmitted %s; "+
 						"the capture is not exercising the attachment path "+
 						"(a mocked response is probably missing something "+
@@ -145,4 +151,38 @@ func nestedBodies(body string) []string {
 	}
 
 	return nested
+}
+
+// Encrypted uploads must decrypt to the original fixture bytes exactly.
+func simplePushGoldenCarries(t *testing.T, provider, rawURL string, entry goldenCase, data []byte) bool {
+	if provider != "spush" {
+		return false
+	}
+	parsed, err := notify.ParseURL(rawURL)
+	if err != nil || parsed.User != "password" || strings.Trim(parsed.Path, "/") != "topic" {
+		return false
+	}
+	// Generated independently by upstream for this public fixture credential.
+	key, err := hex.DecodeString("b98a05d7d99567a68d20164107433f445e8d87c22135471f135f936f176e9a5a")
+	if err != nil {
+		t.Fatal(err)
+	}
+	aead, err := chacha20poly1305.NewX(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, request := range entry.Requests {
+		if request.Method != "PUT" || !strings.HasPrefix(request.URL, "https://upload.simplepu.sh/") {
+			continue
+		}
+		blob, err := base64.StdEncoding.DecodeString(request.BodyBase64)
+		if err != nil || len(blob) < aead.NonceSize()+aead.Overhead() {
+			continue
+		}
+		plain, err := aead.Open(nil, blob[:aead.NonceSize()], blob[aead.NonceSize():], nil)
+		if err == nil && bytes.Equal(plain, data) {
+			return true
+		}
+	}
+	return false
 }

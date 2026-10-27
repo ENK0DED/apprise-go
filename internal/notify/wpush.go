@@ -3,326 +3,133 @@ package notify
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
 )
 
-const wpushURL = "https://api.wpush.cn/api/v1/send"
-
-const (
-	wpushChannelWeChat     = "wechat"
-	wpushChannelApp        = "app"
-	wpushChannelSMS        = "sms"
-	wpushChannelMail       = "mail"
-	wpushChannelWebhook    = "webhook"
-	wpushChannelDingTalk   = "dingtalk"
-	wpushChannelFeishu     = "feishu"
-	wpushChannelWeChatWork = "wechat_work"
-	wpushChannelClawBot    = "clawbot"
-	wpushChannelQQBot      = "qqbot"
-
-	wpushDefaultChannel = wpushChannelWeChat
-)
-
-var wpushChannels = map[string]struct{}{
-	wpushChannelWeChat:     {},
-	wpushChannelApp:        {},
-	wpushChannelSMS:        {},
-	wpushChannelMail:       {},
-	wpushChannelWebhook:    {},
-	wpushChannelDingTalk:   {},
-	wpushChannelFeishu:     {},
-	wpushChannelWeChatWork: {},
-	wpushChannelClawBot:    {},
-	wpushChannelQQBot:      {},
-}
-
-// wpushAPIKeyRe mirrors upstream Apprise: keys start with WPUSH.
-var wpushAPIKeyRe = regexp.MustCompile(`(?i)^WPUSH[a-z0-9]+$`)
-
 type WPushTarget struct {
-	apiKey    string
-	channel   string
-	topicCode string
+	deliveryTracker
+	apiKey, channel, group, clickURL string
+	topics                           []string
 }
 
-func NewWPushTarget(target *ParsedURL) (*WPushTarget, error) {
-	apiKey := strings.TrimSpace(target.Host)
-	if raw, ok := target.Query["apikey"]; ok && strings.TrimSpace(raw) != "" {
-		apiKey = strings.TrimSpace(raw)
-	}
-	if apiKey == "" {
-		return nil, fmt.Errorf("missing apikey")
-	}
-	if !wpushAPIKeyRe.MatchString(apiKey) {
-		return nil, fmt.Errorf("invalid wpush apikey")
-	}
+var wpushKeyPattern = regexp.MustCompile(`(?i)^WPUSH[a-z0-9]{27}$`)
 
-	channel := wpushDefaultChannel
-	if raw := strings.TrimSpace(target.Query["channel"]); raw != "" {
-		candidate := strings.ToLower(raw)
-		if _, ok := wpushChannels[candidate]; !ok {
-			return nil, fmt.Errorf("invalid wpush channel: %q", raw)
+func NewWPushTarget(p *ParsedURL) (*WPushTarget, error) {
+	t := &WPushTarget{apiKey: p.Host, group: p.Query["option"], clickURL: p.Query["url"]}
+	if p.Query["apikey"] != "" {
+		t.apiKey = p.Query["apikey"]
+	}
+	if !wpushKeyPattern.MatchString(t.apiKey) {
+		return nil, fmt.Errorf("invalid WPUSH API key")
+	}
+	channels := parseDelimitedList(strings.ToLower(p.Query["channel"]))
+	if len(channels) == 0 {
+		channels = []string{"wechat"}
+	}
+	allowed := map[string]bool{"wechat": true, "app": true, "sms": true, "mail": true, "webhook": true, "dingtalk": true, "feishu": true, "wechat_work": true, "clawbot": true, "qqbot": true}
+	for _, channel := range channels {
+		if !allowed[channel] {
+			return nil, fmt.Errorf("invalid WPUSH channel: %s", channel)
 		}
-		channel = candidate
 	}
-
-	topicCode := strings.TrimSpace(target.Query["topic_code"])
-	if topicCode == "" {
-		topicCode = strings.TrimSpace(target.Query["to"])
+	t.channel = strings.Join(sortedUniqueTargets(channels), ",")
+	t.topics = splitPath(p.Path)
+	for _, key := range []string{"to", "topic_code", "topic"} {
+		t.topics = append(t.topics, parseDelimitedList(p.Query[key])...)
 	}
-
-	return &WPushTarget{
-		apiKey:    apiKey,
-		channel:   channel,
-		topicCode: topicCode,
-	}, nil
+	t.topics = sortedUniqueTargets(t.topics)
+	if p.Query["group"] != "" {
+		t.group = p.Query["group"]
+	}
+	if strings.TrimSpace(t.group) == "" {
+		t.group = ""
+	}
+	if t.group != "" && len(t.topics) > 0 {
+		return nil, fmt.Errorf("WPUSH group cannot be combined with topics")
+	}
+	return t, nil
 }
 
-type wpushPayload struct {
-	APIKey    string `json:"apikey"`
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	Channel   string `json:"channel"`
-	TopicCode string `json:"topic_code,omitempty"`
-}
-
-func (w *WPushTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
-	_ = notifyType
-
-	resolvedTitle := title
-	if resolvedTitle == "" {
-		resolvedTitle = body
+func (t *WPushTarget) requestForTopic(body, title, topic string) (RequestSpec, error) {
+	if title == "" {
+		title = body
 	}
-
-	payload := wpushPayload{
-		APIKey:  w.apiKey,
-		Title:   resolvedTitle,
-		Content: body,
-		Channel: w.channel,
+	payload := map[string]string{"apikey": t.apiKey, "title": title, "content": body, "channel": t.channel}
+	if topic != "" {
+		payload["topic_code"] = topic
+	} else if t.group != "" {
+		payload["option"] = t.group
 	}
-	if w.topicCode != "" {
-		payload.TopicCode = w.topicCode
+	if strings.TrimSpace(t.clickURL) != "" {
+		payload["url"] = t.clickURL
 	}
-
 	data, err := json.Marshal(payload)
-	if err != nil {
-		return RequestSpec{}, err
-	}
-
-	return RequestSpec{
-		Method: "POST",
-		URL:    wpushURL,
-		Headers: map[string]string{
-			"User-Agent":   "Apprise",
-			"Accept":       "*/*",
-			"Content-Type": "application/json",
-		},
-		Body: string(data),
-	}, nil
+	return RequestSpec{Method: http.MethodPost, URL: "https://api.wpush.cn/api/v1/send", Headers: map[string]string{
+		"User-Agent": "Apprise", "Content-Type": "application/json", "X-API-Key": t.apiKey, "X-Idempotency-Key": newUUIDv4(),
+	}, Body: string(data)}, err
 }
 
-func (w *WPushTarget) Send(body, title string, notifyType NotifyType) error {
-	// Credential-bearing JSON body must not follow redirects: a 307/308 can
-	// resend apikey to another host. Keep the DispatchSend timeouts, only
-	// force followRedirect off for this request.
-	currentHTTPOptionsMu.RLock()
-	options := currentHTTPOptions
-	currentHTTPOptionsMu.RUnlock()
-	options.followRedirect = false
-	defer withHTTPOptions(options)()
+func (t *WPushTarget) BuildRequest(body, title string, _ NotifyType) (RequestSpec, error) {
+	topic := ""
+	if len(t.topics) > 0 {
+		topic = t.topics[0]
+	}
+	return t.requestForTopic(body, title, topic)
+}
 
-	spec, err := w.BuildRequest(body, title, notifyType)
+func (t *WPushTarget) Send(body, title string, _ NotifyType) error {
+	topics := t.topics
+	if len(topics) == 0 {
+		topics = []string{""}
+	}
+	var outcome sendOutcome
+	for _, topic := range topics {
+		if t.isDelivered(topic) {
+			continue
+		}
+		err := t.sendTopic(body, title, topic)
+		outcome.record(err)
+		if err == nil {
+			t.markDelivered(topic)
+		}
+	}
+	return outcome.err()
+}
+
+func (t *WPushTarget) sendTopic(body, title, topic string) error {
+	spec, err := t.requestForTopic(body, title, topic)
 	if err != nil {
 		return err
 	}
-
 	req, err := spec.HTTPRequest()
 	if err != nil {
 		return err
 	}
-
-	resp, err := httpClient().Do(req)
+	// WPUSH sends the API key in both its headers and JSON body. A redirect
+	// must not forward either credential to another endpoint. Use a local
+	// client option so this protection does not alter other providers.
+	currentHTTPOptionsMu.RLock()
+	options := currentHTTPOptions
+	currentHTTPOptionsMu.RUnlock()
+	options.followRedirect = false
+	response, err := httpClientForOptions(options).Do(req)
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
-
-	raw, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return &HTTPStatusError{StatusCode: response.StatusCode}
 	}
-
-	// WPUSH defines success as an explicit JSON code === 0. Decode first so a
-	// non-2xx response that still carries code:0 is not rejected by the
-	// generic HTTP-status helper. Code must be a pointer so missing/null
-	// fields are not confused with numeric zero.
-	var response struct {
-		Code    *int   `json:"code"`
-		Message string `json:"message"`
+	var result struct {
+		Code *float64 `json:"code"`
 	}
-	if err := json.Unmarshal(raw, &response); err != nil {
-		if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-			return &HTTPStatusError{StatusCode: resp.StatusCode}
-		}
-		return fmt.Errorf("wpush invalid json response: %w", err)
+	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+		return fmt.Errorf("invalid WPUSH response: %w", err)
 	}
-	if response.Code == nil || *response.Code != 0 {
-		msg := response.Message
-		if msg == "" {
-			msg = "Unknown error"
-		}
-		if response.Code == nil {
-			return fmt.Errorf("wpush api code missing: %s", msg)
-		}
-		return fmt.Errorf("wpush api code=%d: %s", *response.Code, msg)
+	if result.Code == nil || *result.Code != 0 {
+		return fmt.Errorf("WPUSH rejected notification")
 	}
-
 	return nil
-}
-
-func init() {
-	RegisterSchemaEntryOrdered(169, SchemaEntry{
-		"attachment_support": false,
-		"category":           "native",
-		"details": map[string]any{
-			"args": map[string]any{
-				"apikey": map[string]any{
-					"alias_of": "apikey",
-				},
-				"channel": map[string]any{
-					"default":  wpushDefaultChannel,
-					"map_to":   "channel",
-					"name":     "Channel",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values": []string{
-						wpushChannelWeChat,
-						wpushChannelApp,
-						wpushChannelSMS,
-						wpushChannelMail,
-						wpushChannelWebhook,
-						wpushChannelDingTalk,
-						wpushChannelFeishu,
-						wpushChannelWeChatWork,
-						wpushChannelClawBot,
-						wpushChannelQQBot,
-					},
-				},
-				"cto": map[string]any{
-					"default":  4.0,
-					"map_to":   "cto",
-					"name":     "Socket Connect Timeout",
-					"private":  false,
-					"required": false,
-					"type":     "float",
-				},
-				"emojis": map[string]any{
-					"default":  false,
-					"map_to":   "emojis",
-					"name":     "Interpret Emojis",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
-				},
-				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
-				},
-				"overflow": map[string]any{
-					"default":  "upstream",
-					"map_to":   "overflow",
-					"name":     "Overflow Mode",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
-				},
-				"rto": map[string]any{
-					"default":  4.0,
-					"map_to":   "rto",
-					"name":     "Socket Read Timeout",
-					"private":  false,
-					"required": false,
-					"type":     "float",
-				},
-				"store": map[string]any{
-					"default":  true,
-					"map_to":   "store",
-					"name":     "Persistent Storage",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
-				},
-				"to": map[string]any{
-					"alias_of": "topic_code",
-				},
-				"topic_code": map[string]any{
-					"map_to":   "topic_code",
-					"name":     "Topic Code",
-					"private":  false,
-					"required": false,
-					"type":     "string",
-				},
-				"tz": map[string]any{
-					"default":  nil,
-					"map_to":   "tz",
-					"name":     "Timezone",
-					"private":  false,
-					"required": false,
-					"type":     "string",
-				},
-				"verify": map[string]any{
-					"default":  true,
-					"map_to":   "verify",
-					"name":     "Verify SSL",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
-				},
-			},
-			"kwargs": map[string]any{},
-			"templates": []string{
-				"{schema}://{apikey}",
-			},
-			"tokens": map[string]any{
-				"apikey": map[string]any{
-					"map_to":   "apikey",
-					"name":     "API Key",
-					"private":  true,
-					"regex":    []string{"^WPUSH[a-z0-9]+$", "i"},
-					"required": true,
-					"type":     "string",
-				},
-				"schema": map[string]any{
-					"default":  "wpush",
-					"map_to":   "schema",
-					"name":     "Schema",
-					"private":  false,
-					"required": true,
-					"type":     "choice:string",
-					"values":   []string{"wpush"},
-				},
-			},
-		},
-		"enabled":   true,
-		"protocols": []string(nil),
-		"requirements": map[string]any{
-			"details":              "",
-			"packages_recommended": []string{},
-			"packages_required":    []string{},
-		},
-		"secure_protocols": []string{"wpush"},
-		"service_name":     "WPUSH",
-		"service_url":      "https://wpush.cn/",
-		"setup_url":        "https://wpush.cn/docs",
-	})
 }

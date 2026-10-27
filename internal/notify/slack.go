@@ -3,6 +3,7 @@ package notify
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -29,6 +30,8 @@ var slackListDelims = regexp.MustCompile(`[ \t\r\n,#\\/]+`)
 var slackChannelRegex = regexp.MustCompile(`(?i)^([+#@]?[A-Z0-9_-]{1,32})(?::([0-9.]+))?$`)
 
 type SlackTarget struct {
+	deliveryTracker
+	target           *ParsedURL
 	tokenA           string
 	tokenB           string
 	tokenC           string
@@ -66,7 +69,7 @@ func NewSlackTarget(target *ParsedURL) (*SlackTarget, error) {
 	// both have been read, not here.
 	token := strings.TrimSpace(target.Host)
 
-	notifyFormat := strings.ToLower(strings.TrimSpace(target.Query["format"]))
+	notifyFormat := normalizeNotifyFormat(targetNotifyFormat(target))
 	if notifyFormat == "" {
 		// Slack is markdown-native upstream.
 		notifyFormat = "markdown"
@@ -104,6 +107,7 @@ func NewSlackTarget(target *ParsedURL) (*SlackTarget, error) {
 		}
 
 		return &SlackTarget{
+			target:         target,
 			notifyFormat:   notifyFormat,
 			mode:           mode,
 			username:       strings.TrimSpace(target.User),
@@ -162,7 +166,7 @@ func NewSlackTarget(target *ParsedURL) (*SlackTarget, error) {
 	includeImage := parseBool(target.Query["image"], true)
 	includeFooter := parseBool(target.Query["footer"], true)
 	includeTimestamp := parseBool(target.Query["timestamp"], true)
-	useBlocks := parseBool(target.Query["blocks"], false)
+	useBlocks := parseBool(target.Query["blocks"], false) || strings.TrimSpace(target.Query["template"]) != ""
 
 	if accessToken != "" && mode == "" {
 		mode = slackModeBot
@@ -195,6 +199,7 @@ func NewSlackTarget(target *ParsedURL) (*SlackTarget, error) {
 	}
 
 	return &SlackTarget{
+		target:           target,
 		notifyFormat:     notifyFormat,
 		tokenA:           tokenA,
 		tokenB:           tokenB,
@@ -228,6 +233,9 @@ func (s *SlackTarget) workflowSpec(body, title string, notifyType NotifyType) (R
 	if s.templatePath != "" {
 		rendered, err := renderNotifyTemplate(s.templatePath, s.templateTokens, body, title, notifyType, "72x72")
 		if err != nil {
+			return RequestSpec{}, err
+		}
+		if err := validateBlockKitTemplate(rendered); err != nil {
 			return RequestSpec{}, err
 		}
 		payload = rendered
@@ -270,23 +278,27 @@ func (s *SlackTarget) SendWithAttachments(body, title string, notifyType NotifyT
 	// posts report back, not from what was configured: Slack answers with the
 	// resolved channel id, and the upload has to name that.
 	channels, err := s.sendMessagesCollectingChannels(body, title, notifyType)
-	if err != nil {
-		return err
-	}
+	var outcome sendOutcome
+	outcome.record(err)
 
 	// Only a bot token can upload, and there is nowhere to put a file until
 	// a message has told us which channel it landed in.
 	if len(attachments) == 0 || s.mode != slackModeBot || len(channels) == 0 {
-		return nil
+		return outcome.err()
 	}
 
 	for index, attachment := range attachments {
-		if err := s.uploadAttachment(attachment, index, channels); err != nil {
-			return err
+		key := fmt.Sprintf("attachment:%d", index)
+		if s.isDelivered(key) {
+			continue
+		}
+		err := s.uploadAttachment(attachment, index, channels)
+		outcome.record(err)
+		if err == nil {
+			s.markDelivered(key)
 		}
 	}
-
-	return nil
+	return outcome.err()
 }
 
 // uploadAttachment runs the three step external upload for one file.
@@ -330,7 +342,7 @@ func (s *SlackTarget) uploadAttachment(attachment Attachment, index int, channel
 		return err
 	}
 
-	if err := SendRequest(RequestSpec{
+	if err := sendSlackUpload(RequestSpec{
 		Method: "POST",
 		URL:    upload.UploadURL,
 		Headers: map[string]string{
@@ -375,6 +387,33 @@ func (s *SlackTarget) uploadAttachment(attachment Attachment, index int, channel
 	return nil
 }
 
+func sendSlackUpload(spec RequestSpec) error {
+	req, err := spec.HTTPRequest()
+	if err != nil {
+		return err
+	}
+	response, err := httpClient().Do(req)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	data, err := io.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode != http.StatusOK {
+		return &HTTPStatusError{StatusCode: response.StatusCode}
+	}
+	var result map[string]any
+	if json.Unmarshal(data, &result) == nil && result["ok"] == true {
+		return nil
+	}
+	if strings.Contains(string(data), "OK") {
+		return nil
+	}
+	return fmt.Errorf("slack did not accept the file upload")
+}
+
 func (s *SlackTarget) sendMessagesCollectingChannels(body, title string, notifyType NotifyType) ([]string, error) {
 	if s.isWorkflow() {
 		spec, err := s.workflowSpec(body, title, notifyType)
@@ -386,6 +425,7 @@ func (s *SlackTarget) sendMessagesCollectingChannels(body, title string, notifyT
 	}
 
 	posted := []string{}
+	var outcome sendOutcome
 
 	channels := s.targets
 	if len(channels) == 0 {
@@ -393,6 +433,13 @@ func (s *SlackTarget) sendMessagesCollectingChannels(body, title string, notifyT
 	}
 
 	for _, rawChannel := range channels {
+		deliveryKey := "channel:" + rawChannel
+		if s.isDelivered(deliveryKey) {
+			if channel := s.recall(deliveryKey); channel != "" {
+				posted = append(posted, channel)
+			}
+			continue
+		}
 		payload, err := s.buildPayload(body, title, notifyType)
 		if err != nil {
 			return nil, err
@@ -432,7 +479,9 @@ func (s *SlackTarget) sendMessagesCollectingChannels(body, title string, notifyT
 		// literal text "ok", which is not decodable and carries no channel.
 		if s.mode != slackModeBot {
 			if err := SendRequest(spec); err != nil {
-				return nil, err
+				outcome.record(err)
+			} else {
+				s.markDelivered(deliveryKey)
 			}
 			continue
 		}
@@ -441,14 +490,17 @@ func (s *SlackTarget) sendMessagesCollectingChannels(body, title string, notifyT
 			Channel string `json:"channel"`
 		}
 		if err := doJSONRequest(spec, &response); err != nil {
-			return nil, err
+			outcome.record(err)
+			continue
 		}
+		s.markDelivered(deliveryKey)
+		s.remember(deliveryKey, response.Channel)
 		if response.Channel != "" {
 			posted = append(posted, response.Channel)
 		}
 	}
 
-	return posted, nil
+	return posted, outcome.err()
 }
 
 func (s *SlackTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
@@ -482,6 +534,16 @@ func (s *SlackTarget) BuildRequest(body, title string, notifyType NotifyType) (R
 }
 
 func (s *SlackTarget) buildPayload(body, title string, notifyType NotifyType) (map[string]any, error) {
+	text := body
+	if !s.target.dialectApplied && s.target.sourceNotifyFormat != "" {
+		if s.notifyFormat == "markdown" {
+			text = commonMarkToSlack(body)
+		} else {
+			text = escapeSlackText(body)
+		}
+	} else if !s.target.dialectApplied && !s.useBlocks && s.notifyFormat == "markdown" {
+		text = slackPassthroughText(body)
+	}
 	// Upstream only names the poster when the URL supplies a user.
 	payload := map[string]any{}
 	if s.username != "" {
@@ -493,12 +555,21 @@ func (s *SlackTarget) buildPayload(body, title string, notifyType NotifyType) (m
 		imageURL = appriseImageURL(notifyType, "72x72")
 	}
 
-	if s.useBlocks {
+	if s.templatePath != "" {
+		rendered, err := renderNotifyTemplateWithImageURL(s.templatePath, s.templateTokens, body, title, notifyType, imageURL)
+		if err != nil {
+			return nil, err
+		}
+		if err := validateBlockKitTemplate(rendered); err != nil {
+			return nil, err
+		}
+		payload["attachments"] = []any{rendered}
+	} else if s.useBlocks {
 		blockText := map[string]any{
 			"type": "section",
 			"text": map[string]any{
-				"type": "mrkdwn",
-				"text": commonMarkToSlack(body),
+				"type": map[bool]string{true: "mrkdwn", false: "plain_text"}[s.notifyFormat == "markdown"],
+				"text": text,
 			},
 		}
 		blocks := []any{blockText}
@@ -549,8 +620,8 @@ func (s *SlackTarget) buildPayload(body, title string, notifyType NotifyType) (m
 		// renders the text differently as a result.
 		payload["mrkdwn"] = s.notifyFormat == "markdown"
 		attachment := map[string]any{
-			"title": title,
-			"text":  commonMarkToSlack(body),
+			"title": escapeSlackText(title),
+			"text":  text,
 			"color": appriseColor(notifyType),
 		}
 		if imageURL != "" {
@@ -569,6 +640,27 @@ func (s *SlackTarget) buildPayload(body, title string, notifyType NotifyType) (m
 	}
 
 	return payload, nil
+}
+
+func escapeSlackText(text string) string {
+	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;").Replace(text)
+}
+
+var slackPassthroughAnchors = regexp.MustCompile(`(?i)(?:<|&lt;)?[ \t]*([!@][^| \n]+|(?:https?|mailto)://[^| \n]+)(?:[ \t]*\|[ \t]*([^\n]+?)[ \t]*)?(?:>|&gt;)`)
+
+func slackPassthroughText(text string) string {
+	text = escapeSlackText(text)
+	return slackPassthroughAnchors.ReplaceAllStringFunc(text, func(match string) string {
+		parts := slackPassthroughAnchors.FindStringSubmatch(match)
+		key := strings.TrimSpace(parts[1])
+		if strings.HasPrefix(key, "http") || strings.HasPrefix(key, "mailto") {
+			key = strings.ReplaceAll(key, "&amp;", "&")
+		}
+		if description := strings.TrimSpace(parts[2]); description != "" {
+			return "<" + key + "|" + description + ">"
+		}
+		return "<" + key + ">"
+	})
 }
 
 func (s *SlackTarget) buildRequestSpec(payload map[string]any) (RequestSpec, error) {
@@ -666,6 +758,9 @@ func splitSlackList(raw string) []string {
 }
 
 func (s *SlackTarget) lookupUserID(email string) string {
+	if user := s.recall("user:" + email); user != "" {
+		return user
+	}
 	if s.accessToken == "" {
 		return ""
 	}
@@ -683,7 +778,7 @@ func (s *SlackTarget) lookupUserID(email string) string {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Authorization", "Bearer "+s.accessToken)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return ""
 	}
@@ -704,6 +799,7 @@ func (s *SlackTarget) lookupUserID(email string) string {
 	if !payload.OK {
 		return ""
 	}
+	s.remember("user:"+email, payload.User.ID)
 	return payload.User.ID
 }
 

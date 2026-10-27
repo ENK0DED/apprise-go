@@ -12,7 +12,21 @@ const smtp2goBatchSize = 100
 
 var smtp2goEmailRegex = regexp.MustCompile(`^[^@\s]+@[^@\s]+\.[^@\s]+$`)
 
+// Match the name and full-email captures in Apprise 1.13.1's GET_EMAIL_RE,
+// including Python's Unicode whitespace and case-insensitive ASCII ranges.
+// Reply fields use that parser; recipient normalization remains independent.
+const replyEmailWhitespace = "\\x09-\\x0d\\x1c-\\x20\\x{85}\\p{Z}"
+
+var replyEmailRegex = regexp.MustCompile(
+	"(?i)^(([" + replyEmailWhitespace + "\"']+)?(?P<name>[^:<'\"]+)?[:<" + replyEmailWhitespace + "'\"]+)?" +
+		"(?P<address>(([^+]+)\\+)?" +
+		"([a-zİı0-9_!#$%&*/=?%`{|}~^-]+(?:\\.[a-zİı0-9_!#$%&'*/=?%`{|}~^-]+)*)@" +
+		"((?:[a-zİı0-9](?:[a-zİı0-9_-]*[a-zİı0-9])?\\.)+" +
+		"[a-zİı0-9](?:[a-zİı0-9_-]*[a-zİı0-9])|[a-zİı0-9][a-zİı0-9_-]{5,}))[" + replyEmailWhitespace + "]*>?",
+)
+
 type SMTP2GoTarget struct {
+	deliveryTracker
 	apiKey   string
 	fromAddr string
 	fromName string
@@ -178,7 +192,7 @@ func (s *SMTP2GoTarget) SendWithAttachments(body, title string, notifyType Notif
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(s.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments))
 	}
 
 	_ = notifyType
@@ -273,15 +287,65 @@ func isSimpleEmail(value string) bool {
 	return smtp2goEmailRegex.MatchString(value)
 }
 
-// isEmailAddress reports whether the value is an address upstream's is_email
-// accepts, including the "Display Name <addr@host>" form that appears in
-// reply-to and from arguments.
-func isEmailAddress(value string) bool {
+// Reply addresses use the pinned upstream parser's name and full-email
+// captures. Reject header line breaks before retaining either field.
+func parseReplyEmailEntry(value string) (emailEntry, bool) {
+	value = strings.TrimSpace(value)
+	if strings.ContainsAny(value, "\r\n") {
+		return emailEntry{}, false
+	}
+	matches := replyEmailRegex.FindStringSubmatch(value)
+	if matches == nil {
+		return emailEntry{}, false
+	}
+	name := strings.TrimRight(matches[replyEmailRegex.SubexpIndex("name")], " \t\r\n\v\f+")
+	address := matches[replyEmailRegex.SubexpIndex("address")]
+	return emailEntry{name: name, email: address}, true
+}
+
+// normalizedEmailAddress returns the addr@host portion accepted by the
+// existing validator, so APIs expecting an email field never receive brackets.
+func normalizedEmailAddress(value string) (string, bool) {
 	value = strings.TrimSpace(value)
 	if open := strings.LastIndex(value, "<"); open != -1 && strings.HasSuffix(value, ">") {
 		value = strings.TrimSpace(value[open+1 : len(value)-1])
+	} else if colon := strings.Index(value, ":"); colon != -1 {
+		value = strings.TrimSpace(value[colon+1:])
 	}
-	return isSimpleEmail(value)
+	return value, isSimpleEmail(value)
+}
+
+// Copy recipients are optional: upstream drops malformed addresses instead of
+// sending them to the provider or rejecting the whole notification.
+func validEmailRecipients(raw string) []string {
+	var recipients []string
+	seen := map[string]struct{}{}
+	for _, entry := range parseDelimitedList(raw) {
+		if address, ok := normalizedEmailAddress(entry); ok {
+			if _, duplicate := seen[address]; duplicate {
+				continue
+			}
+			seen[address] = struct{}{}
+			recipients = append(recipients, address)
+		}
+	}
+	return recipients
+}
+
+// filterExactEmailList preserves the case-sensitive sets used by Postmark.
+// Source addresses are already normalized and deduplicated by validEmailRecipients.
+func filterExactEmailList(source, remove []string, target string) []string {
+	excluded := map[string]struct{}{target: {}}
+	for _, address := range remove {
+		excluded[address] = struct{}{}
+	}
+	var result []string
+	for _, address := range source {
+		if _, skip := excluded[address]; !skip {
+			result = append(result, address)
+		}
+	}
+	return result
 }
 
 func init() {
@@ -299,7 +363,7 @@ func init() {
 					"type":     "bool",
 				},
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -308,7 +372,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -317,7 +381,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -333,13 +397,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"name": map[string]any{
 					"map_to":   "from_name",
@@ -348,6 +413,14 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -355,10 +428,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -375,7 +466,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -393,6 +484,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"headers": map[string]any{
@@ -404,7 +505,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{user}@{host}/{apikey}/", "{schema}://{user}@{host}/{apikey}/{targets}"},
+			"templates": []any{"{schema}://{user}@{host}/{apikey}/", "{schema}://{user}@{host}/{apikey}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -427,10 +528,10 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"smtp2go"},
+					"values":   []any{"smtp2go"},
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Target Emails",

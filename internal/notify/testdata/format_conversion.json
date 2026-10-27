@@ -1,0 +1,163 @@
+[
+  {
+    "name": "markdown/punctuation",
+    "source": "markdown",
+    "target": "html",
+    "input": "Don't change 'quoted' text or -- dashes...",
+    "expected": "<p>Don't change 'quoted' text or -- dashes...</p>"
+  },
+  {
+    "name": "markdown/tab_stops",
+    "source": "markdown",
+    "target": "html",
+    "input": "Q:\tQuestion\nA:\tAnswer",
+    "expected": "<p>Q:  Question<br />\nA:  Answer</p>"
+  },
+  {
+    "name": "markdown/paragraphs",
+    "source": "markdown",
+    "target": "html",
+    "input": "first\nline\n\nsecond",
+    "expected": "<p>first<br />\nline</p>\n<p>second</p>"
+  },
+  {
+    "name": "markdown/code",
+    "source": "markdown",
+    "target": "html",
+    "input": "`inline`",
+    "expected": "<p><code>inline</code></p>"
+  },
+  {
+    "name": "markdown/code_newlines",
+    "source": "markdown",
+    "target": "html",
+    "input": "```\nfirst\nsecond\n```",
+    "expected": "<p><code>first\nsecond</code></p>"
+  },
+  {
+    "name": "markdown/code_language",
+    "source": "markdown",
+    "target": "html",
+    "input": "```go\nif x > 0 { return x }\n```",
+    "expected": "<p><code>go\nif x &gt; 0 { return x }</code></p>"
+  },
+  {
+    "name": "markdown/code_long_run",
+    "source": "markdown",
+    "target": "html",
+    "input": "````a ``` b````",
+    "expected": "<p><code>a ``` b</code></p>"
+  },
+  {
+    "name": "markdown/code_unclosed",
+    "source": "markdown",
+    "target": "html",
+    "input": "```\nopen",
+    "expected": "<p>```<br />\nopen</p>"
+  },
+  {
+    "name": "markdown/code_space",
+    "source": "markdown",
+    "target": "html",
+    "input": "` a `",
+    "expected": "<p><code>a</code></p>"
+  },
+  {
+    "name": "markdown/strike",
+    "source": "markdown",
+    "target": "html",
+    "input": "~~strike~~ **bold** _emphasis_",
+    "expected": "<p>~~strike~~ <strong>bold</strong> <em>emphasis</em></p>"
+  },
+  {
+    "name": "markdown/headings",
+    "source": "markdown",
+    "target": "html",
+    "input": "### heading\n\nbody\n\n### next",
+    "expected": "<h3>heading</h3>\n<p>body</p>\n<h3>next</h3>"
+  },
+  {
+    "name": "markdown/html",
+    "source": "markdown",
+    "target": "html",
+    "input": "<b>bold</b>\nnext",
+    "expected": "<p><b>bold</b><br />\nnext</p>"
+  },
+  {
+    "name": "html/headings",
+    "source": "html",
+    "target": "markdown",
+    "input": "<h1>first</h1><h2>second</h2>",
+    "expected": "# first\n## second"
+  },
+  {
+    "name": "html/paragraph_heading",
+    "source": "html",
+    "target": "markdown",
+    "input": "<p>paragraph</p>\n\n<h3>heading</h3>",
+    "expected": "paragraph\n\n### heading"
+  },
+  {
+    "name": "html/heading_pre",
+    "source": "html",
+    "target": "markdown",
+    "input": "<h3>heading</h3>\n\n<pre>\nfirst\nsecond\n</pre>",
+    "expected": "### heading\n```\n\nfirst\nsecond\n```"
+  },
+  {
+    "name": "html/paragraph_pre",
+    "source": "html",
+    "target": "markdown",
+    "input": "<p>paragraph</p>\n<pre>code</pre><p>after</p>",
+    "expected": "paragraph\n\n```\ncode\n```\n\nafter"
+  },
+  {
+    "name": "html/pre_blank_lines",
+    "source": "html",
+    "target": "markdown",
+    "input": "<pre>\nfirst\n\nsecond\n</pre>",
+    "expected": "```\n\nfirst\n\nsecond\n```"
+  },
+  {
+    "name": "html/pre_nested_code",
+    "source": "html",
+    "target": "markdown",
+    "input": "<pre><code>\nfirst\nsecond\n</code></pre>",
+    "expected": "```\n\nfirst\nsecond\n```"
+  },
+  {
+    "name": "html/pre_backticks",
+    "source": "html",
+    "target": "markdown",
+    "input": "<pre>a ``` b\nnext</pre>",
+    "expected": "````\na ``` b\nnext\n````"
+  },
+  {
+    "name": "html/pre_attributes",
+    "source": "html",
+    "target": "markdown",
+    "input": "<PRE class=\"x > y\">\ncode\n</PRE>",
+    "expected": "```\n\ncode\n```"
+  },
+  {
+    "name": "html/pre_multiple",
+    "source": "html",
+    "target": "markdown",
+    "input": "<pre>\none</pre><pre>\ntwo</pre>",
+    "expected": "```\n\none\n```\n```\n\ntwo\n```"
+  },
+  {
+    "name": "html/pre_marker_collision",
+    "source": "html",
+    "target": "markdown",
+    "input": "<p>apprise-pre</p><pre>\ncode</pre>",
+    "expected": "apprise-pre\n\n```\n\ncode\n```"
+  },
+  {
+    "name": "html/inline_spaces",
+    "source": "html",
+    "target": "markdown",
+    "input": "<b>one</b> <i>two</i>",
+    "expected": "**one** *two*"
+  }
+]

@@ -48,7 +48,7 @@
     "name": "override-html-input",
     "requests": [
       {
-        "body": "{\"text\": \"# over\\n*bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`.\"}",
+        "body": "{\"text\": \"*over*\\n*bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`. *bold* and <https://example.com|link> plus `code`.\"}",
         "headers": {
           "accept": "*/*",
           "content-type": "application/json; charset=utf-8",
@@ -56,6 +56,36 @@
         },
         "method": "POST",
         "url": "https://chat.googleapis.com/v1/spaces/workspace123/messages?token=token789&key=key456"
+      }
+    ]
+  },
+  {
+    "name": "declared-markdown",
+    "requests": [
+      {
+        "body": "{\"text\": \"*Title*\\n*Heading*\\n*Bold* <https://example.com?a=1&amp;b=2|link>\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces/workspace/messages?token=token&key=key"
+      }
+    ]
+  },
+  {
+    "name": "declared-html-title",
+    "requests": [
+      {
+        "body": "{\"text\": \"_*Title*_\\nBody &amp; text\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces/workspace/messages?token=token&key=key"
       }
     ]
   }

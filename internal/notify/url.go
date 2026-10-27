@@ -6,25 +6,31 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const telegramAuthorityHost = "tgram.local"
 
 type ParsedURL struct {
-	Raw          string
-	Scheme       string
-	Host         string
-	Port         int
-	HasPort      bool
-	User         string
-	HasUser      bool
-	Password     string
-	HasPassword  bool
-	Path         string
-	Query        map[string]string
-	QueryAdd     map[string]string
-	QueryDel     map[string]string
-	QueryPayload map[string]string
+	resolvedNotifyFormat string
+	sourceNotifyFormat   string
+	dialectApplied       bool
+	notificationDeadline time.Time
+	deadlineConfigured   bool
+	Raw                  string
+	Scheme               string
+	Host                 string
+	Port                 int
+	HasPort              bool
+	User                 string
+	HasUser              bool
+	Password             string
+	HasPassword          bool
+	Path                 string
+	Query                map[string]string
+	QueryAdd             map[string]string
+	QueryDel             map[string]string
+	QueryPayload         map[string]string
 
 	// The prefixed query maps carry no order, but the URL they came from
 	// did, and upstream emits these fields in the order they were written.
@@ -49,6 +55,10 @@ func ParseURL(raw string) (*ParsedURL, error) {
 	}
 
 	sanitized := sanitizeFragment(raw)
+	if strings.EqualFold(schemeCandidate, "zalo") {
+		// Zalo encodes its bot ID and secret across the authority and path.
+		sanitized = zaloAuthorityPrefix.ReplaceAllString(sanitized, "${1}${2}/")
+	}
 	if strings.EqualFold(schemeCandidate, "tgram") {
 		sanitized = sanitizeTelegramAuthority(sanitized)
 	}
@@ -67,6 +77,11 @@ func ParseURL(raw string) (*ParsedURL, error) {
 
 	u, err := url.Parse(sanitized)
 	if err != nil {
+		if strings.EqualFold(schemeCandidate, "mobilemessage") && strings.Contains(err.Error(), "invalid character") {
+			if parsed, parseErr := parseLenientURL(sanitized, schemeCandidate, useFirstAt); parseErr == nil {
+				return parsed, nil
+			}
+		}
 		// Go's parser rejects a malformed percent-escape outright; Python's
 		// urlsplit does not decode at all, so upstream carries the raw bytes
 		// through and unquotes later with errors ignored. A URL like

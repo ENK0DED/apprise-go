@@ -12,5 +12,33 @@
     "body": "hello",
     "title": "",
     "type": "warning"
+  },
+  {
+    "name": "upstream210-options-0",
+    "url": "signl4://secret?action=map",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
+  },
+  {
+    "name": "upstream210-options-1",
+    "url": "signl4://secret?action=resolve",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "failure"
+  },
+  {
+    "name": "upstream210-options-2",
+    "url": "signl4://secret?action=acknowledge",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
+  },
+  {
+    "name": "upstream210-options-3",
+    "url": "signl4://secret?action=map&dedup=explicit",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "failure"
   }
 ]

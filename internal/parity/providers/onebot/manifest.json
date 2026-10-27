@@ -1,0 +1,7 @@
+{
+  "name": "onebot",
+  "schemas": [
+    "onebot",
+    "onebots"
+  ]
+}

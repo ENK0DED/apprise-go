@@ -58,5 +58,20 @@
     "title": "over",
     "type": "info",
     "body_format": "html"
+  },
+  {
+    "name": "input-selects-format",
+    "url": "slack://T1JJ3T3L2/A1BRTD4JD/TIAJKDNL0AZKC0XRIDEVI7?image=no&footer=no&timestamp=no",
+    "body": "*literal*",
+    "body_format": "text",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "declared-commonmark-controls",
+    "url": "slack://T1/B2/token",
+    "body": "# Heading\n**Bold** [link](https://example.com?a=1&b=2) & `code <b>`",
+    "title": "Title",
+    "body_format": "markdown"
   }
 ]

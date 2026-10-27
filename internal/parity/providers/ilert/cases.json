@@ -1,0 +1,58 @@
+[
+  {
+    "name": "map-info",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "info"
+  },
+  {
+    "name": "map-success",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "success"
+  },
+  {
+    "name": "map-warning",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "warning"
+  },
+  {
+    "name": "map-failure",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "failure"
+  },
+  {
+    "name": "body-summary",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef",
+    "body": "Disk space is low",
+    "title": "",
+    "type": "failure"
+  },
+  {
+    "name": "resolve-with-metadata",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef?action=res&dedup=disk&+severity=high&click=https://example.com",
+    "body": "Recovered",
+    "title": "Storage",
+    "type": "info"
+  },
+  {
+    "name": "trigger-key",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef?action=trigger",
+    "body": "Details",
+    "title": "New incident",
+    "type": "failure"
+  },
+  {
+    "name": "accept-priority-route",
+    "url": "ilert://il1api0123456789abcdef0123456789abcdef?action=ack&priority=h&route=route1&image=no",
+    "body": "Assigned",
+    "title": "Storage",
+    "type": "info"
+  }
+]

@@ -11,6 +11,7 @@ import (
 const sfrURL = "https://www.dmc.sfr-sh.fr/DmcWS/1.5.8/JsonService/MessagesUnitairesWS/addSingleCall"
 
 type SFRTarget struct {
+	deliveryTracker
 	user     string
 	password string
 	spaceID  string
@@ -144,7 +145,7 @@ func (s *SFRTarget) Send(body, title string, notifyType NotifyType) error {
 	}
 
 	message := mergeTitleBody(title, body)
-	for _, target := range s.targets {
+	for deliveryIndex0, target := range s.targets {
 		payload, err := s.buildPayload(target, message)
 		if err != nil {
 			return err
@@ -163,7 +164,7 @@ func (s *SFRTarget) Send(body, title string, notifyType NotifyType) error {
 			},
 		}
 
-		outcome.record(SendRequest(spec))
+		outcome.record(s.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -251,7 +252,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -267,13 +268,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"alias_of": "sender",
@@ -293,7 +295,15 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "string",
-					"values":   []string{"SMS", "SMSLong", "SMSUnicode", "SMSUnicodeLong"},
+					"values":   []any{"SMS", "SMSLong", "SMSUnicode", "SMSUnicodeLong"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -302,10 +312,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -338,7 +366,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -363,11 +391,21 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "string",
-					"values":   []string{"claire08s", "laura8k"},
+					"values":   []any{"claire08s", "laura8k"},
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user}:{password}@{space_id}/{targets}"},
+			"templates": []any{"{schema}://{user}:{password}@{space_id}/{targets}"},
 			"tokens": map[string]any{
 				"password": map[string]any{
 					"map_to":   "password",
@@ -383,7 +421,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"sfr"},
+					"values":   []any{"sfr"},
 				},
 				"space_id": map[string]any{
 					"map_to":   "space_id",
@@ -396,13 +434,13 @@ func init() {
 					"map_to":   "targets",
 					"name":     "Recipient Phone Number",
 					"private":  false,
-					"regex":    []string{"^\\+?[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^\\+?[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target"},
+					"delim":    []any{"/"},
+					"group":    []any{"target"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

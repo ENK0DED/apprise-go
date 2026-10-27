@@ -296,5 +296,139 @@
         "url": "https://matrix.example.com/_matrix/client/v3/rooms/%21room%3Amatrix.example.com/send/m.room.message/1"
       }
     ]
+  },
+  {
+    "name": "autoverify-best-effort",
+    "requests": [
+      {
+        "body": "null",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://matrix.example.com/.well-known/matrix/client"
+      },
+      {
+        "body": "null",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://matrix.example.com/_matrix/client/versions"
+      },
+      {
+        "body": "{\"type\": \"m.login.password\", \"identifier\": {\"type\": \"m.id.user\", \"user\": \"user\"}, \"password\": \"pass\", \"initial_device_display_name\": \"Apprise\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://matrix.example.com/_matrix/client/v3/login"
+      },
+      {
+        "body": "{\"device_keys\": {\"algorithms\": [\"m.olm.v1.curve25519-aes-sha2\", \"m.megolm.v1.aes-sha2\"], \"device_id\": \"APPRISEDEVICE\", \"keys\": {\"curve25519:APPRISEDEVICE\": \"0PkHPLX3M7MphiWpP9Siew7FYI4hgI580xQCdftrcEI\", \"ed25519:APPRISEDEVICE\": \"YCAy7ukG1hZvUo7w1qO+iJ96vw+nUyswlpmf1q/+HHI\"}, \"user_id\": \"@user:matrix.example.com\", \"signatures\": {\"@user:matrix.example.com\": {\"ed25519:APPRISEDEVICE\": \"mg2wBnWUNPgWf4WMsjTw+eV0R0P8YliXSZ1jeN6dpAel9LN1QcG2wLSXskthgox8TAUIFmmEQX7bfbZmPeThBw\"}}}, \"fallback_keys\": {\"signed_curve25519:e35169edb7\": {\"key\": \"teTHnTB+PxN42vxLRZZqPbu7tTswPoJc2zuFV7UkLkc\", \"signatures\": {\"@user:matrix.example.com\": {\"ed25519:APPRISEDEVICE\": \"PKJ9GcPOr4frXCi8IqU7cCkia3pQDfSskB1juS8t/IHrpKsmWaIiZl4JoIkYMFqjxNNp2KqyVaBnncTGdRJABQ\"}}}}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://matrix.example.com/_matrix/client/v3/keys/upload"
+      },
+      {
+        "body": "null",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://matrix.example.com/_matrix/client/v3/sync?timeout=2000&filter=%7B%22presence%22%3A+%7B%22types%22%3A+%5B%5D%7D%2C+%22account_data%22%3A+%7B%22types%22%3A+%5B%5D%7D%2C+%22room%22%3A+%7B%22rooms%22%3A+%5B%5D%7D%7D&set_presence=offline"
+      },
+      {
+        "body": "{}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://matrix.example.com/_matrix/client/v3/join/%23room%3Aexample.com"
+      },
+      {
+        "body": "null",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://matrix.example.com/_matrix/client/v3/rooms/%21room%3Amatrix.example.com/state/m.room.encryption"
+      },
+      {
+        "body": "null",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://matrix.example.com/_matrix/client/v3/rooms/%21room%3Amatrix.example.com/joined_members"
+      },
+      {
+        "body": "{\"device_keys\": {\"@target:example.com\": []}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://matrix.example.com/_matrix/client/v3/keys/query"
+      },
+      {
+        "body": "{\"one_time_keys\": {\"@target:example.com\": {\"TARGETDEVICE\": \"signed_curve25519\"}}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://matrix.example.com/_matrix/client/v3/keys/claim"
+      },
+      {
+        "body": "{\"messages\": {\"@target:example.com\": {\"TARGETDEVICE\": {\"algorithm\": \"m.olm.v1.curve25519-aes-sha2\", \"ciphertext\": {\"ja/P7q6QRe6aeNeKmfzzLneB5EHrBzCWw0K44tzDthI\": {\"type\": 0, \"body\": \"Awog4Fsa4yICSDgJX/3v2GVGjdt3sUst0nUXXqCrQpT6bXoSINWR8CUpPrRZLQlN2HhHCwPC0sDeKYaLPveT+gnY4mMNGiDQ+Qc8tfczsymGJak/1KJ7DsVgjiGAjnzTFAJ1+2twQiKABgMKINWR8CUpPrRZLQlN2HhHCwPC0sDeKYaLPveT+gnY4mMNEAAi0AVEfbIvHBBlig8MCr9L2IiDva8uPXx7fwIVts3EPiylWQjNzmu3Kdw7V9oDRAGtnQbRkznL8xKlbniJcCNnlhq0+KO2j55nnaGm9U3d3Qg7spgNnTjO3VNS2p5g0nc627rHm9Ju/x5XPOw6HLew3g3Txras3EOXlj0JvoMMCefakr4hb8j0ZAydv+C8+XNs7if87bhIAUI4uhHcjOcshd15wLSuoJm/GU4T0HEfpxlO2uVHHqHQcsDKJmx5GxTugGoQYwgQXCEBY0pNNgghBIZQgUTzTwKuZYs8mkVvFlA3srF6VWUuBcTMMzptTwQjombHbszSwLgXbYaBRNbskZOPGb3NFoc5elVpKbUc3UhRTgywd7kjTyeU4qjT8aAB1twbBVhQWncuA98pvWLzSKNVxz4+EAE0p0njN7iaWEzc+cuqDFEnHTd80qNn1sMHhGo0cEksv2Ox+w4i2/kKNHkbDPSJSE2MxQgQ/jFXG3lDYhGx5JLoxyTiL520H5+eRo3eHqNMyxQ+216XI3I05KhansbGNlACW64WL3kehPrvuVBGJELbZJqp+rFKAhaNWq0bsZE/jaKsleGa+1UdUr4NoRlxFXEOqwId64vvUX0hlYBFM30PATGkSzd0dwtOKrZkHdAwQC3L+rD+4cGorytdo7mzBiDj96Wqfu6684Pyx2dnJuYss4/8mQJ9xsOfjEHCJF3n9Tdw/bkoIs1h3yF4HS55x38CnmntOnwcJRvBWZI0+a2JDH0QbB5VgziPArNrNMMd8kKn+5XME7y6Rjo9a4fkbZyQslxpA05pFTVwYs3D298AM0QGRzY3O9ZlLaylA7dEZlQgSeUjCTI5qedmDqz8WMg91gZnL3sYb41pWpb3AB4qoXKe3kNM0njdemxHc34Ks9H9rDfN39Tt953aw9m56U8xXrXMfQCTc1XcCMYhmJJ6XY+jYWXMwvVUZ+ep9Doq1UEMxA\"}}, \"sender_key\": \"0PkHPLX3M7MphiWpP9Siew7FYI4hgI580xQCdftrcEI\"}}}}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "PUT",
+        "url": "https://matrix.example.com/_matrix/client/v3/sendToDevice/m.room.encrypted/1"
+      },
+      {
+        "body": "{\"algorithm\": \"m.megolm.v1.aes-sha2\", \"ciphertext\": \"AwgAEoABtpjY6+pCJFU9ay4vgErzzzKA76wZX/fyAm7zhTvhCUbVIfQXUeVISyybDePslrW9+S1LNs2DLlxJtkM+fyG5ANN2SFm8BXlB5r2ayextJ4QNwnLCtnsMpWnO+0pfARRPSVuw3gxhR2xivIInzSV16A8Fk61fIzdPnYDgDeClmAQoRUq6msCXZvMWyWlAdcj80AK9wuPKn021NqnGlQn1lOdMAKC7nZRBgE1PuaXQ1WQ9j7LvQy0ZmYfBtGp/Jw9k1UpSHFLhjQA\", \"sender_key\": \"0PkHPLX3M7MphiWpP9Siew7FYI4hgI580xQCdftrcEI\", \"session_id\": \"Xgqdpn/3vWw/OWWEuIXzhX7LH+UBvn1wJFjBGL5Yx/I\", \"device_id\": \"APPRISEDEVICE\"}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "PUT",
+        "url": "https://matrix.example.com/_matrix/client/v3/rooms/%21room%3Amatrix.example.com/send/m.room.encrypted/1"
+      }
+    ]
   }
 ]

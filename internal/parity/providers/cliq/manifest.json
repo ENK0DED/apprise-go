@@ -1,0 +1,8 @@
+{
+  "name": "cliq",
+  "schemas": [
+    "cliq",
+    "zcliq",
+    "zohocliq"
+  ]
+}

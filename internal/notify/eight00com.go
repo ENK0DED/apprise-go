@@ -9,6 +9,7 @@ import (
 const eight00comURL = "https://api.800.com/message"
 
 type Eight00comTarget struct {
+	deliveryTracker
 	token   string
 	source  string
 	targets []string
@@ -95,8 +96,8 @@ func (e *Eight00comTarget) SendWithAttachments(body, title string, notifyType No
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(e.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -179,7 +180,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -195,13 +196,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"map_to":   "source",
@@ -225,7 +227,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -246,7 +248,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -263,7 +265,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -285,10 +287,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -296,13 +298,13 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}@{from_phone}", "{schema}://{token}@{from_phone}/{targets}"},
+			"templates": []any{"{schema}://{token}@{from_phone}", "{schema}://{token}@{from_phone}/{targets}"},
 			"tokens": map[string]any{
 				"from_phone": map[string]any{
 					"map_to":   "source",
 					"name":     "From Phone No",
 					"private":  false,
-					"regex":    []string{"^\\+?[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^\\+?[0-9\\s)(+-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -313,20 +315,20 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"eight00com"},
+					"values":   []any{"eight00com"},
 				},
 				"target_phone": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Phone No",
 					"prefix":   "+",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

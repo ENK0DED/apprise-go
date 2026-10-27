@@ -5,6 +5,12 @@ name: release
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to rebuild (uploads preserve its draft status)
+        type: string
+        required: true
 
 permissions:
   contents: write
@@ -63,12 +69,30 @@ jobs:
             ext: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
+          persist-credentials: false
+
+      - name: Validate release version
+        id: release-version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^var Version = "\([^" ]*\)"/\1/p' internal/version/version.go)
+          if [[ -z "$version" || "$RELEASE_TAG" != "v$version" ]]; then
+            echo "Release tag does not match the checked-out package version" >&2
+            exit 1
+          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName >/dev/null
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
+          cache: false
 
       - name: Build binary
         env:
@@ -110,11 +134,11 @@ jobs:
           else
             OUTPUT_NAME="apprise-go-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }}"
           fi
-          echo "output_name=${OUTPUT_NAME}" >> $GITHUB_OUTPUT
+          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Sign darwin binary
         if: matrix.notarize
-        uses: indygreg/apple-code-sign-action@v1
+        uses: indygreg/apple-code-sign-action@v1.2
         with:
           input_path: dist/${{ steps.set-output-name.outputs.output_name }}
           p12_file: apple_codesign.p12
@@ -130,7 +154,7 @@ jobs:
 
       - name: Notarize darwin zip
         if: matrix.notarize
-        uses: indygreg/apple-code-sign-action@v1
+        uses: indygreg/apple-code-sign-action@v1.2
         with:
           input_path: dist/${{ steps.set-output-name.outputs.output_name }}.zip
           sign: false
@@ -141,14 +165,17 @@ jobs:
         if: always()
         run: rm -f apple_codesign.p12 app_store_connect_key.json
 
-      - name: Upload release asset (darwin zip)
-        if: github.event_name == 'release' && matrix.notarize
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/${{ steps.set-output-name.outputs.output_name }}.zip
-
-      - name: Upload release asset (non-darwin)
-        if: github.event_name == 'release' && !matrix.notarize
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/${{ steps.set-output-name.outputs.output_name }}
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+          OUTPUT_NAME: ${{ steps.set-output-name.outputs.output_name }}
+          NOTARIZED: ${{ matrix.notarize }}
+        run: |
+          set -euo pipefail
+          if [[ "$NOTARIZED" == "true" ]]; then
+            asset="dist/${OUTPUT_NAME}.zip"
+          else
+            asset="dist/${OUTPUT_NAME}"
+          fi
+          gh release upload "$RELEASE_TAG" "$asset" --clobber --repo "$GITHUB_REPOSITORY"

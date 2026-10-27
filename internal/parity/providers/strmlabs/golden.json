@@ -3,7 +3,7 @@
     "name": "alert",
     "requests": [
       {
-        "body": "access_token=0123456789abcdef0123456789abcdef01234567&type=host&image_href=https%3A%2F%2Fexample.com%2Fimage.png&sound_href=HTTPS%3A%2F%2FEXAMPLE.COM%2FSOUND.MP3&message=apprise+parity&user_massage=hello+from+python&duration=2500&special_text_color=R",
+        "body": "access_token=0123456789abcdef0123456789abcdef01234567&type=host&image_href=https%3A%2F%2Fexample.com%2Fimage.png&sound_href=https%3A%2F%2Fexample.com%2Fsound.mp3&message=apprise+parity&user_message=hello+from+python&duration=2500&special_text_color=R",
         "headers": {
           "accept": "*/*",
           "content-type": "application/x-www-form-urlencoded",
@@ -18,7 +18,37 @@
     "name": "donation",
     "requests": [
       {
-        "body": "name=TESTER&identifier=APPRISE&amount=5&currency=CAD&access_token=0123456789abcdef0123456789abcdef01234567&message=hello+from+python",
+        "body": "name=Tester&identifier=apprise&amount=5&currency=CAD&access_token=0123456789abcdef0123456789abcdef01234567&message=apprise+parity%0D%0Ahello+from+python",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://streamlabs.com/api/v1.0/donations"
+      }
+    ]
+  },
+  {
+    "name": "alert-body-only",
+    "requests": [
+      {
+        "body": "access_token=0123456789abcdef0123456789abcdef01234567&type=donation&image_href=&sound_href=&message=Only+body&user_message=&duration=1000&special_text_color=",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://streamlabs.com/api/v1.0/alerts"
+      }
+    ]
+  },
+  {
+    "name": "donation-unicode-limit",
+    "requests": [
+      {
+        "body": "name=Tester&identifier=Apprise&amount=5&currency=USD&access_token=0123456789abcdef0123456789abcdef01234567&message=Notice%0D%0A%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9%C3%A9",
         "headers": {
           "accept": "*/*",
           "content-type": "application/x-www-form-urlencoded",

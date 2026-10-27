@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/unraid/apprise-go/internal/matrixolm"
 )
@@ -41,6 +42,7 @@ var matrixRoomIDRegex = regexp.MustCompile(`(?i)^\s*(?:!|&#33;|%21)([A-Za-z0-9._
 var matrixT2BotTokenRegex = regexp.MustCompile(`^[A-Za-z0-9]{64}$`)
 
 type MatrixTarget struct {
+	deliveryTracker
 	host                string
 	port                int
 	hasPort             bool
@@ -60,6 +62,8 @@ type MatrixTarget struct {
 	deviceID            string
 	transactionID       int
 	transactionIDString string
+	autoverify          bool
+	autoVerifyMu        sync.Mutex
 	e2ee                bool
 	hsreq               bool
 	webhookPath         string
@@ -75,37 +79,8 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		return nil, fmt.Errorf("missing host")
 	}
 
-	rooms := normalizeMatrixRooms(splitPath(target.Path))
-	if toValue := strings.TrimSpace(target.Query["to"]); toValue != "" {
-		rooms = append(rooms, normalizeMatrixRooms(parseDelimitedList(toValue))...)
-	}
-
-	user := strings.TrimSpace(target.User)
-	password := strings.TrimSpace(target.Password)
-	tokenQuery := strings.TrimSpace(target.Query["token"])
-	if tokenQuery != "" {
-		password = tokenQuery
-	}
-
-	mode := strings.ToLower(strings.TrimSpace(target.Query["mode"]))
-	if mode == "" && password == "" && len(rooms) == 0 {
-		mode = matrixModeT2Bot
-	}
-	if mode == matrixModeT2Bot {
-		password = strings.TrimSpace(host)
-		if tokenQuery != "" {
-			password = tokenQuery
-		}
-	}
-
-	if password == "" && user != "" {
-		password = user
-		user = ""
-	}
-
-	if mode == "" {
-		mode = matrixModeOff
-	}
+	rooms := matrixRoomsForURL(target)
+	user, password, mode := matrixCredentials(target, rooms)
 
 	switch mode {
 	case matrixModeOff, matrixModeMatrix, matrixModeSlack, matrixModeT2Bot, matrixModeHookshot:
@@ -138,7 +113,7 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		return nil, fmt.Errorf("unsupported matrix message type")
 	}
 
-	notifyFormat := normalizeNotifyFormat(target.Query["format"])
+	notifyFormat := normalizeNotifyFormat(targetNotifyFormat(target))
 	if notifyFormat == "" {
 		notifyFormat = "text"
 	}
@@ -171,7 +146,7 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		transactionID: 0,
 		// Upstream defaults end-to-end encryption on; it only takes effect
 		// for rooms the server reports as encrypted.
-		e2ee:  parseBoolWithDefault(target.Query["e2ee"], true),
+		e2ee: parseBoolWithDefault(target.Query["e2ee"], true), autoverify: parseBoolWithDefault(target.Query["autoverify"], false),
 		store: StoreFor(target),
 		hsreq: parseBoolWithDefault(target.Query["hsreq"], true),
 		webhookPath: func() string {
@@ -182,6 +157,15 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		}(),
 	}
 
+	if mode != matrixModeT2Bot {
+		storeGetJSON(matrixTarget.store, "access_token", &matrixTarget.accessToken)
+		storeGetJSON(matrixTarget.store, "user_id", &matrixTarget.userID)
+		storeGetJSON(matrixTarget.store, "home_server", &matrixTarget.homeServer)
+		storeGetJSON(matrixTarget.store, "device_id", &matrixTarget.deviceID)
+		if matrixTarget.homeServer == "" {
+			_, matrixTarget.homeServer, _ = strings.Cut(matrixTarget.userID, ":")
+		}
+	}
 	// A transaction id the server has already seen is ignored as a
 	// duplicate, so the counter has to survive the process.
 	var storedTransaction int
@@ -200,6 +184,47 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 	}
 
 	return matrixTarget, nil
+}
+
+func matrixRoomsForURL(target *ParsedURL) []string {
+	rooms := normalizeMatrixRooms(splitPath(target.Path))
+	if toValue := strings.TrimSpace(target.Query["to"]); toValue != "" {
+		rooms = append(rooms, normalizeMatrixRooms(parseDelimitedList(toValue))...)
+	}
+
+	return rooms
+}
+
+// matrixCredentials resolves URL credentials once for both delivery and storage IDs.
+func matrixCredentials(target *ParsedURL, rooms []string) (user, password, mode string) {
+	user = strings.TrimSpace(target.User)
+	password = strings.TrimSpace(target.Password)
+	tokenQuery := strings.TrimSpace(target.Query["token"])
+	if tokenQuery != "" {
+		password = tokenQuery
+	}
+
+	mode = strings.ToLower(strings.TrimSpace(target.Query["mode"]))
+	if mode == "" && password == "" && len(rooms) == 0 {
+		mode = matrixModeT2Bot
+	}
+	if mode == matrixModeT2Bot {
+		password = strings.TrimSpace(target.Host)
+		if tokenQuery != "" {
+			password = tokenQuery
+		}
+	}
+
+	if password == "" && user != "" {
+		password = user
+		user = ""
+	}
+
+	if mode == "" {
+		mode = matrixModeOff
+	}
+
+	return user, password, mode
 }
 
 func (m *MatrixTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
@@ -240,13 +265,46 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 			}
 		}
 	}
+	if m.userID == "" {
+		ok, response, _ := m.fetch("/account/whoami", nil, nil, http.MethodGet, "")
+		if ok {
+			if userID, _ := response["user_id"].(string); userID != "" {
+				m.userID = userID
+			}
+			if deviceID, _ := response["device_id"].(string); deviceID != "" {
+				m.deviceID = deviceID
+			}
+		}
+	}
+	if m.homeServer == "" {
+		if _, homeServer, ok := strings.Cut(m.userID, ":"); ok {
+			m.homeServer = homeServer
+		}
+		if m.homeServer == "" {
+			m.homeServer = m.host
+		}
+	}
+
+	m.persistIdentity(false)
 
 	rooms := m.rooms
 	if len(rooms) == 0 {
 		rooms = m.joinedRooms()
 		if len(rooms) == 0 {
-			return nil
+			return fmt.Errorf("no Matrix rooms to notify")
 		}
+	}
+	// Upstream falls back to plaintext for this send when key setup fails;
+	// keep the configured flag so later sends can retry encryption setup.
+	e2eeCapable := m.secure && m.e2ee
+	if e2eeCapable {
+		if _, err := m.e2eeAccount(); err != nil {
+			e2eeCapable = false
+		}
+	}
+
+	if e2eeCapable && m.autoverify {
+		m.autoVerify()
 	}
 
 	// Files are uploaded once and the resulting URIs reused for every room,
@@ -258,38 +316,76 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 	// and moves to the next one, so the other rooms still receive the message.
 	var outcome sendOutcome
 	for _, room := range rooms {
+		deliveryKey := "room:" + room
+		if m.isDelivered(deliveryKey) {
+			continue
+		}
+		messageKey := "message:" + deliveryKey
+		targetError := false
 		roomID := m.roomJoin(room)
 		if roomID == "" {
+			outcome.record(fmt.Errorf("matrix room join failed"))
 			continue
 		}
 
-		if m.includeImage && m.version == matrixVersionV2 {
+		// Resolve state before sending any content. An indeterminate room
+		// fails independently, while confirmed plaintext rooms keep their
+		// existing delivery path.
+		var encrypted bool
+		if e2eeCapable {
+			var err error
+			encrypted, err = m.roomEncrypted(roomID)
+			if err != nil {
+				outcome.record(err)
+				continue
+			}
+		}
+
+		if encrypted {
+			if !m.isDelivered(messageKey) {
+				if err := m.sendEncrypted(roomID, body, title); err != nil {
+					outcome.record(err)
+					continue
+				}
+				m.markDelivered(messageKey)
+			}
+			for index, attachment := range attachments {
+				key := fmt.Sprintf("attachment:%s:%d", deliveryKey, index)
+				if m.isDelivered(key) {
+					continue
+				}
+				err := m.sendEncryptedAttachment(roomID, attachment)
+				outcome.record(err)
+				if err == nil {
+					m.markDelivered(key)
+				} else {
+					targetError = true
+				}
+			}
+			if !targetError {
+				m.markDelivered(deliveryKey)
+			}
+			continue
+		}
+
+		if m.includeImage && m.version == matrixVersionV2 && !m.isDelivered("image:"+roomID) {
 			if ok := m.sendImage(roomID, title, notifyType); !ok {
 				outcome.record(fmt.Errorf("matrix image send failed"))
 				continue
 			}
+			m.markDelivered("image:" + roomID)
 		}
-
-		// Only an encrypted room gets encrypted traffic; anywhere else the
-		// plaintext path is what upstream uses too.
-		if m.e2ee && m.version == matrixVersionV3 && m.roomEncrypted(roomID) {
-			if err := m.sendEncrypted(roomID, body, title); err != nil {
-				outcome.record(err)
-				continue
-			}
-
-			// An encrypted room takes encrypted files: each one is
-			// encrypted and uploaded separately rather than sharing the
-			// plaintext upload path.
-			for _, attachment := range attachments {
-				outcome.record(m.sendEncryptedAttachment(roomID, attachment))
-			}
-			continue
-		}
-
 		if len(attachments) > 0 && !uploadsDone {
 			var err error
-			uploaded, err = m.uploadAttachments(attachments)
+			if memo := m.recall("uploaded"); memo != "" {
+				err = json.Unmarshal([]byte(memo), &uploaded)
+			} else {
+				uploaded, err = m.uploadAttachments(attachments)
+				if err == nil {
+					data, _ := json.Marshal(uploaded)
+					m.remember("uploaded", string(data))
+				}
+			}
 			if err != nil {
 				return err
 			}
@@ -298,7 +394,11 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 
 		// Each file becomes its own message event in the room, sent before
 		// the text.
-		for _, payload := range uploaded {
+		for index, payload := range uploaded {
+			key := fmt.Sprintf("attachment:%s:%d", deliveryKey, index)
+			if m.isDelivered(key) {
+				continue
+			}
 			event := map[string]any{"room_id": roomID, "type": "m.room.message"}
 			for key, value := range payload {
 				event[key] = value
@@ -307,15 +407,29 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 			ok, _, _ := m.fetch(m.messagePath(roomID), event, nil, m.messageMethod(), "")
 			if !ok {
 				outcome.record(fmt.Errorf("matrix attachment send failed"))
+				targetError = true
 				continue
 			}
 			m.advanceMessageTransaction()
+			m.markDelivered(key)
 		}
 
 		outcome.record(nil)
-		if ok := m.sendMessage(roomID, body, title, notifyType); !ok {
-			outcome.record(fmt.Errorf("matrix send failed"))
+		if !m.isDelivered(messageKey) {
+			if !m.sendMessage(roomID, body, title, notifyType) {
+				outcome.record(fmt.Errorf("matrix send failed"))
+				targetError = true
+			} else {
+				m.markDelivered(messageKey)
+			}
 		}
+		if !targetError {
+			m.markDelivered(deliveryKey)
+		}
+	}
+
+	if outcome.err() == nil && e2eeCapable && m.autoverify {
+		m.refreshVerifiedState()
 	}
 
 	return outcome.err()
@@ -416,7 +530,7 @@ func (m *MatrixTarget) uploadFetch(attachment Attachment, params url.Values) (bo
 // the first event is dropped. The spec asks for an id unique across requests
 // sharing an access token, so this advances per event rather than per room.
 func (m *MatrixTarget) advanceMessageTransaction() {
-	if m.version != matrixVersionV3 || m.accessToken == "" {
+	if m.accessToken == "" {
 		return
 	}
 
@@ -607,12 +721,17 @@ func (m *MatrixTarget) login() bool {
 		}
 	} else {
 		payload = map[string]any{
-			"type":     "m.login.password",
-			"user":     m.user,
-			"password": m.password,
+			"type":                        "m.login.password",
+			"user":                        m.user,
+			"password":                    m.password,
+			"initial_device_display_name": matrixDefaultUserAgent,
 		}
 	}
 
+	if m.deviceID != "" {
+		delete(payload, "initial_device_display_name")
+		payload["device_id"] = m.deviceID
+	}
 	ok, response, _ := m.fetch("/login", payload, nil, http.MethodPost, "")
 	if !ok {
 		return false
@@ -626,12 +745,14 @@ func (m *MatrixTarget) login() bool {
 	// The device the homeserver assigned; e2ee keys are bound to it.
 	m.deviceID, _ = response["device_id"].(string)
 	m.userID, _ = response["user_id"].(string)
+	m.persistIdentity(true)
 	return true
 }
 
 func (m *MatrixTarget) register() bool {
 	payload := map[string]any{
-		"kind": "user",
+		"initial_device_display_name": matrixDefaultUserAgent,
+		"kind":                        "user",
 		"auth": map[string]any{
 			"type": "m.login.dummy",
 		},
@@ -643,6 +764,10 @@ func (m *MatrixTarget) register() bool {
 		payload["password"] = m.password
 	}
 
+	if m.deviceID != "" {
+		delete(payload, "initial_device_display_name")
+		payload["device_id"] = m.deviceID
+	}
 	params := url.Values{}
 	params.Set("kind", "user")
 	ok, response, _ := m.fetch("/register", payload, params, http.MethodPost, "")
@@ -658,6 +783,7 @@ func (m *MatrixTarget) register() bool {
 	// The device the homeserver assigned; e2ee keys are bound to it.
 	m.deviceID, _ = response["device_id"].(string)
 	m.userID, _ = response["user_id"].(string)
+	m.persistIdentity(true)
 	return true
 }
 
@@ -690,26 +816,48 @@ func (m *MatrixTarget) roomJoin(room string) string {
 		return ""
 	}
 
-	if id, ok := m.normalizeRoomID(room); ok {
-		ok, _, _ := m.fetch("/join/"+url.PathEscape(id), map[string]any{}, nil, http.MethodPost, "")
-		if ok {
-			return id
+	identifier, isID := m.normalizeRoomID(room)
+	if !isID {
+		var ok bool
+		identifier, ok = m.normalizeRoomAlias(room)
+		if !ok {
+			return ""
 		}
-		return ""
 	}
 
-	alias, ok := m.normalizeRoomAlias(room)
+	// Upstream retains successful joins in the provider Store. Include the
+	// homeserver in the cache key even when hsreq=no leaves it out of the URL.
+	cacheKey := identifier
+	homeServer := m.homeServer
+	if _, explicitHomeServer, ok := strings.Cut(identifier, ":"); ok {
+		homeServer = explicitHomeServer
+	} else if homeServer != "" {
+		cacheKey += ":" + homeServer
+	} else {
+		cacheKey += ":None"
+	}
+	var mapping struct {
+		ID         string `json:"id"`
+		HomeServer string `json:"home_server"`
+	}
+	if storeGetJSON(m.store, cacheKey, &mapping) && mapping.ID != "" {
+		return mapping.ID
+	}
+
+	ok, response, _ := m.fetch("/join/"+url.PathEscape(identifier), map[string]any{}, nil, http.MethodPost, "")
 	if !ok {
 		return ""
 	}
-	ok, response, _ := m.fetch("/join/"+url.PathEscape(alias), map[string]any{}, nil, http.MethodPost, "")
-	if !ok {
-		return ""
+	mapping.ID, _ = response["room_id"].(string)
+	if mapping.ID == "" {
+		if !isID {
+			return ""
+		}
+		mapping.ID = identifier
 	}
-	if roomID, ok := response["room_id"].(string); ok && roomID != "" {
-		return roomID
-	}
-	return ""
+	mapping.HomeServer = homeServer
+	_ = m.store.Set(cacheKey, mapping, 0)
+	return mapping.ID
 }
 
 func (m *MatrixTarget) sendImage(roomID, title string, notifyType NotifyType) bool {
@@ -721,8 +869,11 @@ func (m *MatrixTarget) sendImage(roomID, title string, notifyType NotifyType) bo
 	if payload["body"] == "" {
 		payload["body"] = string(notifyType)
 	}
-	path := fmt.Sprintf("/rooms/%s/send/m.room.message", url.PathEscape(roomID))
-	ok, _, _ := m.fetch(path, payload, nil, http.MethodPost, "")
+	path := m.messagePath(roomID)
+	ok, _, _ := m.fetch(path, payload, nil, m.messageMethod(), "")
+	if ok {
+		m.advanceMessageTransaction()
+	}
 	return ok
 }
 
@@ -751,22 +902,12 @@ func (m *MatrixTarget) sendMessage(roomID, body, title string, notifyType Notify
 }
 
 func (m *MatrixTarget) messagePath(roomID string) string {
-	escapedRoom := url.PathEscape(roomID)
-	if m.version == matrixVersionV3 {
-		transaction := m.transactionIDString
-		if transaction == "" {
-			transaction = fmt.Sprintf("%d", m.transactionID)
-		}
-		return fmt.Sprintf("/rooms/%s/send/m.room.message/%s", escapedRoom, url.PathEscape(transaction))
-	}
-	return fmt.Sprintf("/rooms/%s/send/m.room.message", escapedRoom)
+	transaction := m.transactionValue()
+	return fmt.Sprintf("/rooms/%s/send/m.room.message/%s", url.PathEscape(roomID), url.PathEscape(transaction))
 }
 
 func (m *MatrixTarget) messageMethod() string {
-	if m.version == matrixVersionV3 {
-		return http.MethodPut
-	}
-	return http.MethodPost
+	return http.MethodPut
 }
 
 func (m *MatrixTarget) normalizeRoomID(room string) (string, bool) {
@@ -827,7 +968,7 @@ func (m *MatrixTarget) fetch(path string, payload map[string]any, params url.Val
 		"Content-Type": "application/json",
 		"Accept":       "application/json",
 	}
-	if m.accessToken != "" {
+	if m.accessToken != "" && urlOverride == "" {
 		headers["Authorization"] = "Bearer " + m.accessToken
 	}
 
@@ -847,7 +988,17 @@ func (m *MatrixTarget) fetch(path string, payload map[string]any, params url.Val
 		Body:    body,
 	}
 
-	status, response, err := matrixSend(spec)
+	client := httpClient()
+	bound := int64(0)
+	if path == "/login" {
+		currentHTTPOptionsMu.RLock()
+		options := currentHTTPOptions
+		currentHTTPOptionsMu.RUnlock()
+		options.followRedirect = false
+		client = httpClientForOptions(options)
+		bound = 1024 * 1024
+	}
+	status, response, err := matrixSendWithClient(spec, client, bound)
 	if err != nil {
 		return false, map[string]any{}, http.StatusInternalServerError
 	}
@@ -888,18 +1039,16 @@ func (m *MatrixTarget) baseURL() (string, error) {
 			}
 		} else {
 			baseURL, err := m.serverDiscovery()
-			// Only a successful discovery is remembered. Upstream caches the
-			// resolved base URL and nothing else, so a discovery that failed
-			// is attempted again on the next call rather than being recorded
-			// as "already done" -- and a failure falls back to the default
-			// base URL instead of ending the send, because a server without a
-			// .well-known document is a normal server.
-			if err == nil {
-				m.discoveryDone = true
-				m.baseURLCached = baseURL
-				if baseURL != "" {
-					return baseURL, nil
-				}
+			// A missing discovery document permits the default homeserver.
+			// Other discovery failures stop this operation, as upstream does.
+			if err != nil {
+				return "", err
+			}
+
+			m.discoveryDone = true
+			m.baseURLCached = baseURL
+			if baseURL != "" {
+				return baseURL, nil
 			}
 		}
 	}
@@ -954,18 +1103,28 @@ func (m *MatrixTarget) portSuffix() string {
 }
 
 func matrixSend(spec RequestSpec) (int, map[string]any, error) {
+	return matrixSendWithClient(spec, httpClient(), 0)
+}
+func matrixSendWithClient(spec RequestSpec, client *http.Client, bound int64) (int, map[string]any, error) {
 	req, err := spec.HTTPRequest()
 	if err != nil {
 		return http.StatusInternalServerError, map[string]any{}, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return http.StatusInternalServerError, map[string]any{}, err
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	var reader io.Reader = resp.Body
+	if bound > 0 {
+		reader = io.LimitReader(resp.Body, bound+1)
+	}
+	data, err := io.ReadAll(reader)
+	if bound > 0 && int64(len(data)) > bound {
+		return resp.StatusCode, map[string]any{}, fmt.Errorf("matrix response exceeds limit")
+	}
 	if err != nil {
 		return resp.StatusCode, map[string]any{}, err
 	}
@@ -1109,8 +1268,16 @@ func init() {
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"autoverify": map[string]any{
+					"default":  false,
+					"map_to":   "autoverify",
+					"name":     "Automatic Device Verification",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -1125,6 +1292,14 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"e2ee": map[string]any{
+					"default":  true,
+					"map_to":   "e2ee",
+					"name":     "End-to-End Encryption",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"emojis": map[string]any{
 					"default":  false,
 					"map_to":   "emojis",
@@ -1134,34 +1309,27 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
-				},
-				"image": map[string]any{
-					"default":  false,
-					"map_to":   "include_image",
-					"name":     "Include Image",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
-				},
-				"e2ee": map[string]any{
-					"default":  true,
-					"map_to":   "e2ee",
-					"name":     "End-to-End Encryption",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text", "html", "markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"hsreq": map[string]any{
 					"default":  true,
 					"map_to":   "hsreq",
 					"name":     "Force Home Server on Room IDs",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"image": map[string]any{
+					"default":  false,
+					"map_to":   "include_image",
+					"name":     "Include Image",
 					"private":  false,
 					"required": false,
 					"type":     "bool",
@@ -1173,7 +1341,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"off", "matrix", "slack", "t2bot", "hookshot"},
+					"values":   []any{"off", "matrix", "slack", "t2bot", "hookshot"},
 				},
 				"msgtype": map[string]any{
 					"default":  "text",
@@ -1182,7 +1350,24 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"text", "notice"},
+					"values":   []any{"text", "notice"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"overflow": map[string]any{
+					"default":  "upstream",
+					"map_to":   "overflow",
+					"name":     "Overflow Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"path": map[string]any{
 					"default":  "/webhook",
@@ -1192,17 +1377,26 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
-				"overflow": map[string]any{
-					"default":  "upstream",
-					"map_to":   "overflow",
-					"name":     "Overflow Mode",
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -1219,7 +1413,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -1247,11 +1441,21 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"2", "3"},
+					"values":   []any{"2", "3"},
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}", "{schema}://{user}@{token}", "{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{password}@{host}:{port}/{targets}", "{schema}://{token}@{host}/{targets}", "{schema}://{token}@{host}:{port}/{targets}", "{schema}://{user}:{token}@{host}/{targets}", "{schema}://{user}:{token}@{host}:{port}/{targets}"},
+			"templates": []any{"{schema}://{token}", "{schema}://{user}@{token}", "{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{password}@{host}:{port}/{targets}", "{schema}://{token}@{host}/{targets}", "{schema}://{token}@{host}:{port}/{targets}", "{schema}://{user}:{token}@{host}/{targets}", "{schema}://{user}:{token}@{host}:{port}/{targets}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -1282,7 +1486,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"matrix", "matrixs"},
+					"values":   []any{"matrix", "matrixs"},
 				},
 				"target_room_alias": map[string]any{
 					"map_to":   "targets",
@@ -1309,8 +1513,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_room_alias", "target_room_id", "target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_room_alias", "target_room_id", "target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,
@@ -1345,4 +1549,21 @@ func init() {
 		"service_url":      "https://matrix.org/",
 		"setup_url":        "https://appriseit.com/services/matrix/",
 	})
+}
+
+// Retain the server-assigned identity so another process reuses SAS trust.
+// Raw token URLs keep generating a fresh transaction UUID on construction.
+func (m *MatrixTarget) persistIdentity(storeToken bool) {
+	if m.homeServer == "" {
+		_, m.homeServer, _ = strings.Cut(m.userID, ":")
+	}
+	entries := map[string]string{"user_id": m.userID, "device_id": m.deviceID, "home_server": m.homeServer}
+	if storeToken {
+		entries["access_token"] = m.accessToken
+	}
+	for key, value := range entries {
+		if value != "" {
+			_ = m.store.Set(key, value, matrixE2EECacheTTL)
+		}
+	}
 }

@@ -1,0 +1,42 @@
+[
+ {
+  "Email": "test@example.com",
+  "URLs": [
+   "https://openpgpkey.example.com/.well-known/openpgpkey/example.com/hu/iffe93qcsgp4c8ncbb378rxjo6cn9q6u?l=test",
+   "https://example.com/.well-known/openpgpkey/hu/iffe93qcsgp4c8ncbb378rxjo6cn9q6u?l=test"
+  ]
+ },
+ {
+  "Email": "Test+Tag@EXAMPLE.com",
+  "URLs": [
+   "https://openpgpkey.example.com/.well-known/openpgpkey/example.com/hu/fxzxa3848sxqqo7675sif3snp9e1xohb?l=Test%2BTag",
+   "https://example.com/.well-known/openpgpkey/hu/fxzxa3848sxqqo7675sif3snp9e1xohb?l=Test%2BTag"
+  ]
+ },
+ {
+  "Email": "test@127.0.0.1",
+  "URLs": null
+ },
+ {
+  "Email": "test@example.com@other.example",
+  "URLs": null
+ },
+ {
+  "Email": "t@bad_host.example",
+  "URLs": null
+ },
+ {
+  "Email": "test@localhost",
+  "URLs": [
+   "https://openpgpkey.localhost/.well-known/openpgpkey/localhost/hu/iffe93qcsgp4c8ncbb378rxjo6cn9q6u?l=test",
+   "https://localhost/.well-known/openpgpkey/hu/iffe93qcsgp4c8ncbb378rxjo6cn9q6u?l=test"
+  ]
+ },
+ {
+  "Email": "täst@example.com",
+  "URLs": [
+   "https://openpgpkey.example.com/.well-known/openpgpkey/example.com/hu/hkmrnd9gzj6swx8pfafx568h6oh1ck5n?l=t%C3%A4st",
+   "https://example.com/.well-known/openpgpkey/hu/hkmrnd9gzj6swx8pfafx568h6oh1ck5n?l=t%C3%A4st"
+  ]
+ }
+]

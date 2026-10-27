@@ -1,0 +1,282 @@
+[
+ {
+  "Input": "<b>bold</b> & &nbsp; &emsp &apos;",
+  "Output": "<b>bold</b> &amp;       '"
+ },
+ {
+  "Input": "<b><i>nested</b> tail</i>",
+  "Output": "<b><i>nested</i></b> tail"
+ },
+ {
+  "Input": "<p>one<br>two</p><div>three</div>",
+  "Output": "one\r\ntwo\r\nthree"
+ },
+ {
+  "Input": "<pre><code class=\"language-python\">x <b>literal</b>\n  code</code></pre>",
+  "Output": "<pre><code class=\"language-python\">x literal\n  code</code></pre>"
+ },
+ {
+  "Input": "<blockquote>one<blockquote>two</blockquote>three</blockquote>",
+  "Output": "<blockquote>one\r\ntwo</blockquote>\r\nthree"
+ },
+ {
+  "Input": "<a href=\"https://example.com?a=1&b=2\">link</a>",
+  "Output": "<a href=\"https://example.com?a=1&amp;b=2\">link</a>"
+ },
+ {
+  "Input": "<ul><li>one</li><li>two<ul><li>child</li></ul></li></ul>",
+  "Output": "- one\r\n- two\r\n  - child"
+ },
+ {
+  "Input": "<table><tr><th>A</th><th>B</th></tr><tr><td>x</td><td>y</td></tr></table>",
+  "Output": "A | B\r\nx | y"
+ },
+ {
+  "Input": "<script>hidden</script><b>shown</b>",
+  "Output": "<b>shown</b>"
+ },
+ {
+  "Input": "<span class=\"tg-spoiler\">secret</span><tg-emoji emoji-id=\"123\">X</tg-emoji>",
+  "Output": "<tg-spoiler>secret</tg-spoiler><tg-emoji emoji-id=\"123\">X</tg-emoji>"
+ },
+ {
+  "Input": "<p>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<p>x\n y&z</p>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<p>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<p>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<div>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<div>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<div>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<div>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<b>x\n y&ztail",
+  "Output": "<b>x\r\ny&amp;ztail</b>"
+ },
+ {
+  "Input": "<b>x\n y&z</b>tail",
+  "Output": "<b>x\r\ny&amp;z</b>tail"
+ },
+ {
+  "Input": "<b>x\n y&z</b>tail",
+  "Output": "<b>x\r\ny&amp;z</b>tail"
+ },
+ {
+  "Input": "<b>x\n y&z</div>tail",
+  "Output": "<b>x\r\ny&amp;z\r\ntail</b>"
+ },
+ {
+  "Input": "<i>x\n y&ztail",
+  "Output": "<i>x\r\ny&amp;ztail</i>"
+ },
+ {
+  "Input": "<i>x\n y&z</i>tail",
+  "Output": "<i>x\r\ny&amp;z</i>tail"
+ },
+ {
+  "Input": "<i>x\n y&z</b>tail",
+  "Output": "<i>x\r\ny&amp;ztail</i>"
+ },
+ {
+  "Input": "<i>x\n y&z</div>tail",
+  "Output": "<i>x\r\ny&amp;z\r\ntail</i>"
+ },
+ {
+  "Input": "<h1>x\n y&ztail",
+  "Output": "<b>x\r\ny&amp;ztail</b>"
+ },
+ {
+  "Input": "<h1>x\n y&z</h1>tail",
+  "Output": "<b>x\r\ny&amp;z</b>\r\ntail"
+ },
+ {
+  "Input": "<h1>x\n y&z</b>tail",
+  "Output": "<b>x\r\ny&amp;ztail</b>"
+ },
+ {
+  "Input": "<h1>x\n y&z</div>tail",
+  "Output": "<b>x\r\ny&amp;z\r\ntail</b>"
+ },
+ {
+  "Input": "<li>x\n y&ztail",
+  "Output": "- x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<li>x\n y&z</li>tail",
+  "Output": "- x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<li>x\n y&z</b>tail",
+  "Output": "- x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<li>x\n y&z</div>tail",
+  "Output": "- x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<ul>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<ul>x\n y&z</ul>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<ul>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<ul>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<ol>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<ol>x\n y&z</ol>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<ol>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<ol>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<pre>x\n y&ztail",
+  "Output": "<pre>x\n y&amp;ztail</pre>"
+ },
+ {
+  "Input": "<pre>x\n y&z</pre>tail",
+  "Output": "<pre>x\n y&amp;z</pre>\r\ntail"
+ },
+ {
+  "Input": "<pre>x\n y&z</b>tail",
+  "Output": "<pre>x\n y&amp;ztail</pre>"
+ },
+ {
+  "Input": "<pre>x\n y&z</div>tail",
+  "Output": "<pre>x\n y&amp;z\r\ntail</pre>"
+ },
+ {
+  "Input": "<code>x\n y&ztail",
+  "Output": "<code>x\n y&amp;ztail</code>"
+ },
+ {
+  "Input": "<code>x\n y&z</code>tail",
+  "Output": "<code>x\n y&amp;z</code>tail"
+ },
+ {
+  "Input": "<code>x\n y&z</b>tail",
+  "Output": "<code>x\n y&amp;ztail</code>"
+ },
+ {
+  "Input": "<code>x\n y&z</div>tail",
+  "Output": "<code>x\n y&amp;z\r\ntail</code>"
+ },
+ {
+  "Input": "<br>x\n y&ztail",
+  "Output": "\r\nx\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<br>x\n y&z</br>tail",
+  "Output": "\r\nx\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<br>x\n y&z</b>tail",
+  "Output": "\r\nx\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<br>x\n y&z</div>tail",
+  "Output": "\r\nx\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<a>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<a>x\n y&z</a>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<a>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<a>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<span>x\n y&ztail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<span>x\n y&z</span>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<span>x\n y&z</b>tail",
+  "Output": "x\r\ny&amp;ztail"
+ },
+ {
+  "Input": "<span>x\n y&z</div>tail",
+  "Output": "x\r\ny&amp;z\r\ntail"
+ },
+ {
+  "Input": "<script>x\n y&ztail",
+  "Output": ""
+ },
+ {
+  "Input": "<script>x\n y&z</script>tail",
+  "Output": "tail"
+ },
+ {
+  "Input": "<script>x\n y&z</b>tail",
+  "Output": ""
+ },
+ {
+  "Input": "<script>x\n y&z</div>tail",
+  "Output": ""
+ },
+ {
+  "Input": "<blockquote>x\n y&ztail",
+  "Output": "<blockquote>x\r\ny&amp;ztail</blockquote>"
+ },
+ {
+  "Input": "<blockquote>x\n y&z</blockquote>tail",
+  "Output": "<blockquote>x\r\ny&amp;z</blockquote>\r\ntail"
+ },
+ {
+  "Input": "<blockquote>x\n y&z</b>tail",
+  "Output": "<blockquote>x\r\ny&amp;ztail</blockquote>"
+ },
+ {
+  "Input": "<blockquote>x\n y&z</div>tail",
+  "Output": "<blockquote>x\r\ny&amp;z\r\ntail</blockquote>"
+ }
+]
