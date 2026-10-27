@@ -5,5 +5,26 @@
     "body": "hello from python",
     "title": "apprise parity",
     "type": "warning"
+  },
+  {
+    "name": "upstream210-options-0",
+    "url": "pagerduty://routing@key?action=map",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
+  },
+  {
+    "name": "upstream210-options-1",
+    "url": "pagerduty://routing@key?action=resolve",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "failure"
+  },
+  {
+    "name": "upstream210-options-2",
+    "url": "pagerduty://routing@key?dedup=explicit",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
   }
 ]

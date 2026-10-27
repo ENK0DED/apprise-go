@@ -37,11 +37,16 @@ func NewIFTTTTarget(target *ParsedURL) (*IFTTTTarget, error) {
 		return nil, fmt.Errorf("missing events")
 	}
 
+	addTokens := cloneMap(target.QueryAdd)
+	delTokens := map[string]struct{}{}
+	for key := range target.QueryDel {
+		delTokens[strings.ToLower(key)] = struct{}{}
+	}
 	return &IFTTTTarget{
 		webhookID: webhookID,
 		events:    events,
-		addTokens: map[string]string{},
-		delTokens: map[string]struct{}{},
+		addTokens: addTokens,
+		delTokens: delTokens,
 	}, nil
 }
 

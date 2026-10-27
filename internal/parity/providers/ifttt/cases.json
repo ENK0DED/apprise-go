@@ -12,5 +12,12 @@
     "body": "hello",
     "title": "title",
     "type": "success"
+  },
+  {
+    "name": "upstream210-options-0",
+    "url": "ifttt://key/event?+custom=value&-value2=",
+    "body": "body\nsecond line",
+    "title": "Alert",
+    "type": "success"
   }
 ]

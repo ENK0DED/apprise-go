@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -41,6 +42,7 @@ type PagerDutyTarget struct {
 	region         string
 	severity       string
 	includeImage   bool
+	action, dedup  string
 	details        map[string]string
 }
 
@@ -135,8 +137,21 @@ func NewPagerDutyTarget(target *ParsedURL) (*PagerDutyTarget, error) {
 		details[key] = value
 	}
 
+	action := "trigger"
+	if raw := strings.ToLower(strings.TrimSpace(target.Query["action"])); raw != "" {
+		action = ""
+		for _, candidate := range []string{"trigger", "map", "resolve"} {
+			if strings.HasPrefix(candidate, raw) {
+				action = candidate
+				break
+			}
+		}
+		if action == "" {
+			return nil, fmt.Errorf("invalid PagerDuty action")
+		}
+	}
 	return &PagerDutyTarget{
-		apiKey:         apiKey,
+		apiKey: apiKey, action: action, dedup: strings.TrimSpace(target.Query["dedup"]),
 		integrationKey: integrationKey,
 		source:         source,
 		component:      component,
@@ -210,6 +225,16 @@ func (p *PagerDutyTarget) BuildRequest(body, title string, notifyType NotifyType
 		}}
 	}
 
+	dedup := p.dedup
+	if dedup == "" && p.action != "trigger" {
+		dedup = fmt.Sprintf("%x", sha256.Sum256([]byte(strings.TrimSpace(strings.SplitN(summary, "\n", 2)[0]))))
+	}
+	if dedup != "" {
+		payload["dedup_key"] = dedup
+	}
+	if p.action == "resolve" || p.action == "map" && notifyType == NotifySuccess {
+		payload = map[string]any{"routing_key": p.integrationKey, "event_action": "resolve", "dedup_key": dedup}
+	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return RequestSpec{}, err

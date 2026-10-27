@@ -27,9 +27,12 @@ func resolveTargetFormat(parsed *ParsedURL, inputFormat string) string {
 	if parsed == nil {
 		return ""
 	}
-	if parsed.Scheme == "fluxer" || parsed.Scheme == "fluxers" {
+	if parsed.Scheme == "fluxer" || parsed.Scheme == "fluxers" || parsed.Scheme == "discord" || parsed.Scheme == "guilded" {
 		for _, key := range []string{"href", "url", "thread"} {
 			if _, exists := parsed.Query[key]; exists {
+				if key == "href" && (parsed.Scheme == "discord" || parsed.Scheme == "guilded") {
+					continue
+				}
 				return "markdown"
 			}
 		}
