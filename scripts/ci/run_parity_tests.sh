@@ -25,7 +25,7 @@ parity_asset_root="$(.venv/bin/python -c 'from pathlib import Path; import appri
 APPRISE_ASSET_ROOT="${APPRISE_ASSET_ROOT:-${parity_asset_root}}" \
   go test ./internal/notify ./internal/cli -run '^(TestSchemaMatchesPython|TestSchemaDetailsParity)$' -count=1
 
-go test ./internal/notify -run TestAttachmentRequestParity -count=1 -v
+go test ./internal/notify -run '^(TestAttachmentRequestParity|TestTelegramReportedSpacingParity)$' -count=1 -v
 
 # Exercise every HTTP schema option as well as the curated provider cases.
 go test ./internal/parity -tags=e2e -run '^TestE2E' -count=1 \
