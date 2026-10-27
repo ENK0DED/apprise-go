@@ -107,7 +107,14 @@ func (t *WPushTarget) sendTopic(body, title, topic string) error {
 	if err != nil {
 		return err
 	}
-	response, err := httpClient().Do(req)
+	// WPUSH sends the API key in both its headers and JSON body. A redirect
+	// must not forward either credential to another endpoint. Use a local
+	// client option so this protection does not alter other providers.
+	currentHTTPOptionsMu.RLock()
+	options := currentHTTPOptions
+	currentHTTPOptionsMu.RUnlock()
+	options.followRedirect = false
+	response, err := httpClientForOptions(options).Do(req)
 	if err != nil {
 		return err
 	}
