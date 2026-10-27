@@ -12,5 +12,60 @@
     "body": "body",
     "title": "title",
     "type": "success"
+  },
+  {
+    "name": "topics",
+    "url": "simplepush://api-token/topicB/topicA?shared=yes&priority=h&links=https://example.com%20https://example.org&sptag=storage&topic_auth_token=auth",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "personal-encrypted",
+    "url": "spush://password@api-token",
+    "body": "中文 Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "topic-encrypted",
+    "url": "simplepush://password@api-token/Storage%20Topic",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "organization",
+    "url": "spush://spi_credential.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8/@member/Storage?priority=critical&critical_volume=0.5",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "broadcast",
+    "url": "spush://spi_credential.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8?broadcast=yes",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "attachment",
+    "url": "spush://api-token",
+    "body": "Body",
+    "title": "Title",
+    "type": "info",
+    "attachments": [
+      "%7Brepo%7D/internal/parity/fixtures/pixel.png"
+    ]
+  },
+  {
+    "name": "encrypted-attachment",
+    "url": "spush://password@api-token/topic",
+    "body": "",
+    "title": "",
+    "type": "info",
+    "attachments": [
+      "%7Brepo%7D/internal/parity/fixtures/notes.txt"
+    ]
   }
 ]

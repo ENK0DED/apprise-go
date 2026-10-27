@@ -19,7 +19,7 @@
     "name": "call",
     "requests": [
       {
-        "body": "Twiml=title%0D%0Ahello&From=%2B14155551234&To=%2B15557654321",
+        "body": "Twiml=%3CResponse%3E%3CSay%3Etitle%3C%2FSay%3E%3CSay%3Ehello%3C%2FSay%3E%3C%2FResponse%3E&From=%2B14155551234&To=%2B15557654321",
         "headers": {
           "accept": "application/json",
           "authorization": "Basic QUNhYmNkZWYxMjM0NTY3ODkwOnRva2VuMTIzNDU2",
@@ -236,6 +236,38 @@
         },
         "method": "POST",
         "url": "https://api.twilio.com/2010-04-01/Accounts/ACabcdef1234567890/Messages.json"
+      }
+    ]
+  },
+  {
+    "name": "call-escape-text",
+    "requests": [
+      {
+        "body": "Twiml=%3CResponse%3E%3CSay%3ERead+%26lt%3Bthis%26gt%3B%3C%2FSay%3E%3CSay%3EA+%26lt%3B+B+%26amp%3B+%22quoted%22+%27words%27%3C%2FSay%3E%3C%2FResponse%3E&From=%2B14155551234&To=%2B15557654321",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic QUNhYmNkZWYxMjM0NTY3ODkwOnRva2VuMTIzNDU2",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/ACabcdef1234567890/Calls.json"
+      }
+    ]
+  },
+  {
+    "name": "call-twiml",
+    "requests": [
+      {
+        "body": "Twiml=+%3CResponse%3E%3CSay%3EHello%3C%2FSay%3E%3C%2FResponse%3E&From=%2B14155551234&To=%2B15557654321",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic QUNhYmNkZWYxMjM0NTY3ODkwOnRva2VuMTIzNDU2",
+          "content-type": "application/x-www-form-urlencoded",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/ACabcdef1234567890/Calls.json"
       }
     ]
   }

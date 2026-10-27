@@ -1,8 +1,10 @@
 package notify
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +38,9 @@ func IsUnsupportedSchema(err error) bool {
 func NewTarget(parsed *ParsedURL) (Sender, error) {
 	if parsed == nil {
 		return nil, fmt.Errorf("nil parsed url")
+	}
+	if _, _, err := retrySettings(parsed); err != nil {
+		return nil, err
 	}
 	builder, ok := targetBuilders[strings.ToLower(parsed.Scheme)]
 	if !ok {
@@ -112,8 +117,9 @@ func DispatchSendWithInput(
 	format := ""
 	emojis := false
 	if parsed != nil {
+		parsed.sourceNotifyFormat = normalizeNotifyFormat(inputFormat)
 		mode = parsed.Query["overflow"]
-		format = parsed.Query["format"]
+		format = targetNotifyFormat(parsed)
 		emojis = parseBoolWithDefault(parsed.Query["emojis"], false)
 	}
 
@@ -125,14 +131,31 @@ func DispatchSendWithInput(
 		title = ApplyEmojis(title)
 	}
 
+	if parsed != nil && inputFormat != "" {
+		limits, _ := overflowLimitsFor(parsed.Scheme)
+		if resolved, ok := dynamicOverflowLimits(parsed.Scheme, parsed, limits); ok {
+			limits = resolved
+		}
+		if limits.titleMax <= 0 && title != "" {
+			var err error
+			title, err = ConvertMessageFormat(title, inputFormat, format)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	// The transport settings for this send: how long to wait for a
 	// connection and for a reply, and whether to follow redirects.
 	options := defaultHTTPOptions()
+	options.deadline = time.Now().Add(60 * time.Second)
+	if parsed != nil && parsed.deadlineConfigured {
+		options.deadline = parsed.notificationDeadline
+	}
 	if parsed != nil {
-		if seconds, err := strconv.ParseFloat(strings.TrimSpace(parsed.Query["cto"]), 64); err == nil && seconds > 0 {
+		if seconds, err := strconv.ParseFloat(strings.TrimSpace(parsed.Query["cto"]), 64); err == nil && seconds > 0 && !math.IsInf(seconds, 0) && !math.IsNaN(seconds) {
 			options.connectTimeout = time.Duration(seconds * float64(time.Second))
 		}
-		if seconds, err := strconv.ParseFloat(strings.TrimSpace(parsed.Query["rto"]), 64); err == nil && seconds > 0 {
+		if seconds, err := strconv.ParseFloat(strings.TrimSpace(parsed.Query["rto"]), 64); err == nil && seconds > 0 && !math.IsInf(seconds, 0) && !math.IsNaN(seconds) {
 			options.readTimeout = time.Duration(seconds * float64(time.Second))
 		}
 		options.followRedirect = parseBoolWithDefault(parsed.Query["redirect"], true)
@@ -144,57 +167,84 @@ func DispatchSendWithInput(
 		optional = parseBoolWithDefault(parsed.Query["optional"], false)
 	}
 
-	// ?retry= re-sends after a failure and ?wait= is how long to pause first.
-	// Both live in the orchestration layer upstream too, not in a plugin.
-	retries := 0
-	wait := time.Duration(0)
-	if parsed != nil {
-		if value, err := strconv.Atoi(strings.TrimSpace(parsed.Query["retry"])); err == nil && value > 0 {
-			retries = value
-		}
-		if seconds, err := strconv.ParseFloat(strings.TrimSpace(parsed.Query["wait"]), 64); err == nil && seconds > 0 {
-			wait = time.Duration(seconds * float64(time.Second))
-		}
+	retries, wait, settingsError := retrySettings(parsed)
+	if settingsError != nil {
+		return settingsError
 	}
 
 	parts := ApplyOverflowForURLWithInput(parsed, mode, format, inputFormat, title, body)
-
-	// A split message is still one notification. Upstream sends every part and
-	// reports failure at the end, so abandoning the rest after one part is
-	// rejected delivers a truncated message and reports the same failure a
-	// complete send would have -- the reader gets half a sentence and nothing
-	// says why.
-	var outcome sendOutcome
-	for index, part := range parts {
-		// Attachments ride with the first part only; upstream does not repeat
-		// them across a split.
-		carried := attachments
-		if index > 0 {
-			carried = nil
-		}
-
-		var err error
-		for attempt := 0; attempt <= retries; attempt++ {
-			if attempt > 0 && wait > 0 {
-				time.Sleep(wait)
-			}
-
-			err = DispatchSend(target, part.Body, part.Title, notifyType, carried)
-			if err == nil {
-				break
-			}
-		}
-		if err != nil && optional {
-			// ?optional=yes absorbs a failure once every attempt has been
-			// made, so a service the caller does not depend on cannot fail
-			// the notification. It does not skip retries — upstream runs
-			// them all and only reinterprets the final result.
-			continue
-		}
-		outcome.record(err)
+	previousDialect := false
+	if parsed != nil {
+		previousDialect = parsed.dialectApplied
+		defer func() { parsed.dialectApplied = previousDialect }()
+	}
+	parts = applyDialectOverflow(parsed, mode, format, inputFormat, parts)
+	lifecycle, tracksDelivery := target.(notificationLifecycle)
+	if tracksDelivery {
+		lifecycle.beginNotification(retries > 0)
+		defer lifecycle.beginNotification(false)
 	}
 
-	return outcome.err()
+	// One attempt covers all pieces. A later attempt revisits only pieces
+	// that failed, and each provider preserves accepted targets within them.
+	accepted := map[int]bool{}
+	var final error
+	for attempt := 0; attempt <= retries; attempt++ {
+		if attempt > 0 && wait > 0 {
+			pause := wait
+			if !options.deadline.IsZero() {
+				remaining := time.Until(options.deadline)
+				if remaining < 0 {
+					remaining = 0
+				}
+				if remaining < pause {
+					pause = remaining
+				}
+			}
+			time.Sleep(pause)
+		}
+		if !options.deadline.IsZero() && !time.Now().Before(options.deadline) {
+			final = context.DeadlineExceeded
+			break
+		}
+		var outcome sendOutcome
+		for index, part := range parts {
+			if accepted[index] {
+				continue
+			}
+			if !options.deadline.IsZero() && !time.Now().Before(options.deadline) {
+				outcome.record(context.DeadlineExceeded)
+				break
+			}
+			if tracksDelivery {
+				lifecycle.beginPiece(index)
+			}
+			carried := attachments
+			attachIndex := 0
+			if parsed != nil && parsed.Scheme == "tgram" && strings.EqualFold(parsed.Query["content"], "before") {
+				attachIndex = len(parts) - 1
+			}
+			if index != attachIndex {
+				carried = nil
+			}
+			if mode == OverflowTruncate && len(carried) > 1 {
+				carried = carried[:1]
+			}
+			err := DispatchSend(target, part.Body, part.Title, notifyType, carried)
+			if err == nil {
+				accepted[index] = true
+			}
+			outcome.record(err)
+		}
+		final = outcome.err()
+		if final == nil {
+			break
+		}
+	}
+	if optional {
+		return nil
+	}
+	return final
 }
 
 func DispatchSend(target Sender, body, title string, notifyType NotifyType, attachments []Attachment) error {
@@ -270,6 +320,22 @@ func TargetSchemaName(schema string) string {
 		return "notica"
 	case "mailtos":
 		return "mailto"
+	case "amqps":
+		return "amqp"
+	case "deltachats":
+		return "deltachat"
+	case "goalerts":
+		return "goalert"
+	case "gorushs":
+		return "gorush"
+	case "onebots":
+		return "onebot"
+	case "zcliq", "zohocliq":
+		return "cliq"
+	case "simplepush":
+		return "spush"
+	case "mobilemsg":
+		return "mobilemessage"
 	case "mqtts":
 		return "mqtt"
 	case "smpps":
@@ -294,6 +360,32 @@ func TargetSchemaName(schema string) string {
 }
 
 var targetBuilders = map[string]buildTargetFunc{
+	"amqp":          func(p *ParsedURL) (Sender, error) { return NewAMQPTarget(p) },
+	"amqps":         func(p *ParsedURL) (Sender, error) { return NewAMQPTarget(p) },
+	"cliq":          func(p *ParsedURL) (Sender, error) { return NewCliqTarget(p) },
+	"zcliq":         func(p *ParsedURL) (Sender, error) { return NewCliqTarget(p) },
+	"zohocliq":      func(p *ParsedURL) (Sender, error) { return NewCliqTarget(p) },
+	"simplepush":    func(p *ParsedURL) (Sender, error) { return NewSimplePushTarget(p) },
+	"github":        func(p *ParsedURL) (Sender, error) { return NewGitHubTarget(p) },
+	"deltachat":     func(p *ParsedURL) (Sender, error) { return NewDeltaChatTarget(p) },
+	"deltachats":    func(p *ParsedURL) (Sender, error) { return NewDeltaChatTarget(p) },
+	"mobilemessage": func(p *ParsedURL) (Sender, error) { return NewMobileMessageTarget(p) },
+	"mobilemsg":     func(p *ParsedURL) (Sender, error) { return NewMobileMessageTarget(p) },
+	"lfg":           func(p *ParsedURL) (Sender, error) { return NewLFGAlarmTarget(p) },
+	"youlmk":        func(p *ParsedURL) (Sender, error) { return NewYouLMKTarget(p) },
+	"zalo":          func(p *ParsedURL) (Sender, error) { return NewZaloTarget(p) },
+	"onebot":        func(p *ParsedURL) (Sender, error) { return NewOneBotTarget(p) },
+	"onebots":       func(p *ParsedURL) (Sender, error) { return NewOneBotTarget(p) },
+	"telnyx":        func(p *ParsedURL) (Sender, error) { return NewTelnyxTarget(p) },
+	"betterstack":   func(p *ParsedURL) (Sender, error) { return NewBetterStackTarget(p) },
+	"goalert":       func(p *ParsedURL) (Sender, error) { return NewGoAlertTarget(p) },
+	"goalerts":      func(p *ParsedURL) (Sender, error) { return NewGoAlertTarget(p) },
+	"gorush":        func(p *ParsedURL) (Sender, error) { return NewGorushTarget(p) },
+	"gorushs":       func(p *ParsedURL) (Sender, error) { return NewGorushTarget(p) },
+	"wpush":         func(p *ParsedURL) (Sender, error) { return NewWPushTarget(p) },
+	"ilert":         func(p *ParsedURL) (Sender, error) { return NewIncidentServiceTarget(p) },
+	"incidentio":    func(p *ParsedURL) (Sender, error) { return NewIncidentServiceTarget(p) },
+	"squadcast":     func(p *ParsedURL) (Sender, error) { return NewIncidentServiceTarget(p) },
 	"46elks": func(parsed *ParsedURL) (Sender, error) {
 		return NewFortySixElksTarget(parsed)
 	},
@@ -784,9 +876,6 @@ var targetBuilders = map[string]buildTargetFunc{
 	},
 	"viber": func(parsed *ParsedURL) (Sender, error) {
 		return NewViberTarget(parsed)
-	},
-	"chime": func(parsed *ParsedURL) (Sender, error) {
-		return NewChimeTarget(parsed)
 	},
 	"flowtriq": func(parsed *ParsedURL) (Sender, error) {
 		return NewFlowtriqTarget(parsed)

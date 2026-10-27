@@ -1,0 +1,63 @@
+[
+  {
+    "name": "token",
+    "requests": [
+      {
+        "body": "{\"title\": \"Title\", \"body\": \"Body\", \"priority\": \"normal\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer ylk_0123456789abcdef0123456789abcdef",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://youlmk.com/v1/notify"
+      }
+    ]
+  },
+  {
+    "name": "key-default-title",
+    "requests": [
+      {
+        "body": "{\"title\": \"Apprise Notifications\", \"body\": \"Body\", \"priority\": \"high\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://youlmk.com/k/k_0123456789abcd"
+      }
+    ]
+  },
+  {
+    "name": "options",
+    "requests": [
+      {
+        "body": "{\"title\": \"Title\", \"body\": \"Body\", \"priority\": \"critical\", \"url\": \"https://example.com\", \"url_label\": \"012345678901234567890123\", \"group\": \"storage\", \"image\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-success-256x256.png\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://youlmk.com/k/k_0123456789abcd"
+      }
+    ]
+  },
+  {
+    "name": "priority-mapping",
+    "requests": [
+      {
+        "body": "{\"title\": \"Title\", \"body\": \"Body\", \"priority\": \"low\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://youlmk.com/k/k_0123456789abcd"
+      }
+    ]
+  }
+]

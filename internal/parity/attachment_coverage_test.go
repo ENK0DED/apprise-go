@@ -47,8 +47,10 @@ func TestAttachmentSupportIsImplemented(t *testing.T) {
 	// only reaches providers with request fixtures. Anything here is covered
 	// by a test of its own instead.
 	elsewhere := map[string]string{
-		"mailto":  "mailto_attachment_parity_test.go",
-		"mailtos": "mailto_attachment_parity_test.go",
+		"mailto":     "mailto_attachment_parity_test.go",
+		"mailtos":    "mailto_attachment_parity_test.go",
+		"deltachat":  "deltachat_parity_test.go: TestDeltaChatSMTPParity",
+		"deltachats": "deltachat_parity_test.go: TestDeltaChatSMTPParity",
 	}
 
 	for schema, where := range elsewhere {

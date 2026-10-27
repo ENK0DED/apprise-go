@@ -17,6 +17,7 @@ const webexBotURL = "https://webexapis.com/v1/messages"
 var webexTokenPattern = regexp.MustCompile(`(?i)^[a-z0-9]{80,160}$`)
 
 type WebexTeamsTarget struct {
+	deliveryTracker
 	token       string
 	accessToken string
 	mode        string
@@ -61,7 +62,7 @@ func NewWebexTeamsTarget(target *ParsedURL) (*WebexTeamsTarget, error) {
 		}
 	}
 
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	if format == "" {
 		format = "markdown"
 	}
@@ -167,8 +168,8 @@ func (w *WebexTeamsTarget) SendWithAttachments(body, title string, notifyType No
 			return err
 		}
 
-		for _, spec := range specs {
-			outcome.record(SendRequest(spec))
+		for deliveryIndex0, spec := range specs {
+			outcome.record(w.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 		}
 
 		return outcome.err()
@@ -224,7 +225,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -240,13 +241,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"mode": map[string]any{
 					"map_to":   "mode",
@@ -254,7 +256,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"webhook", "bot"},
+					"values":   []any{"webhook", "bot"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -263,10 +273,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -283,7 +311,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -304,9 +332,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}", "{schema}://{access_token}/{targets}"},
+			"templates": []any{"{schema}://{token}", "{schema}://{access_token}/{targets}"},
 			"tokens": map[string]any{
 				"access_token": map[string]any{
 					"map_to":   "access_token",
@@ -321,10 +359,10 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"webex", "wxteams"},
+					"values":   []any{"webex", "wxteams"},
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Room IDs",
@@ -336,7 +374,7 @@ func init() {
 					"map_to":   "token",
 					"name":     "Webhook Token",
 					"private":  true,
-					"regex":    []string{"^[a-z0-9]{80,160}$", "i"},
+					"regex":    []any{"^[a-z0-9]{80,160}$", "i"},
 					"required": true,
 					"type":     "string",
 				},

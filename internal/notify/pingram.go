@@ -43,6 +43,7 @@ type pingramTargetEntry struct {
 }
 
 type PingramTarget struct {
+	deliveryTracker
 	apiKey       string
 	messageType  string
 	mode         string
@@ -169,7 +170,7 @@ func NewPingramTarget(target *ParsedURL) (*PingramTarget, error) {
 		tokens[key] = value
 	}
 
-	notifyFormat := normalizeNotifyFormat(target.Query["format"])
+	notifyFormat := normalizeNotifyFormat(targetNotifyFormat(target))
 	if notifyFormat == "" {
 		notifyFormat = "text"
 	}
@@ -195,12 +196,12 @@ func (n *PingramTarget) Send(body, title string, notifyType NotifyType) error {
 		return fmt.Errorf("missing targets")
 	}
 	var outcome sendOutcome
-	for _, target := range n.targets {
+	for deliveryIndex0, target := range n.targets {
 		spec, err := n.buildRequestFor(body, title, notifyType, target)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(n.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 	return outcome.err()
 }
@@ -466,7 +467,7 @@ func init() {
 					"alias_of": "apikey",
 				},
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -475,7 +476,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -484,17 +485,17 @@ func init() {
 					"type":     "list:string",
 				},
 				"channels": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "channels",
 					"name":     "Channels",
 					"private":  false,
 					"required": false,
 					"type":     "list:string",
-					"values":   []string{"call", "email", "inapp", "mobile_push", "slack", "sms", "web_push"},
+					"values":   []any{"call", "email", "inapp", "mobile_push", "slack", "sms", "web_push"},
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -510,13 +511,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text", "html"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"map_to":   "from_addr",
@@ -531,7 +533,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"message", "template"},
+					"values":   []any{"message", "template"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -548,7 +550,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -565,7 +567,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"us", "ca", "eu"},
+					"values":   []any{"us", "ca", "eu"},
 				},
 				"reply": map[string]any{
 					"map_to":   "reply_to",
@@ -585,7 +587,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -602,7 +604,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"type": map[string]any{
 					"alias_of": "type",
@@ -624,10 +626,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -644,13 +646,13 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{apikey}/{targets}", "{schema}://{type}@{apikey}/{targets}"},
+			"templates": []any{"{schema}://{apikey}/{targets}", "{schema}://{type}@{apikey}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^pingram_(sk|pk)_[\\w.-]+$", "i"},
+					"regex":    []any{"^pingram_(sk|pk)_[\\w.-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -661,14 +663,14 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pingram"},
+					"values":   []any{"pingram"},
 				},
 				"target_email": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"target_id": map[string]any{
 					"map_to":   "targets",
@@ -686,8 +688,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_email", "target_id", "target_sms"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_email", "target_id", "target_sms"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,
@@ -698,7 +700,7 @@ func init() {
 					"map_to":   "message_type",
 					"name":     "Message Type",
 					"private":  false,
-					"regex":    []string{"^[A-Z0-9_-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9_-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},

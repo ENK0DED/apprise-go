@@ -132,7 +132,7 @@ func TestE2ERequestParitySchemaExercise(t *testing.T) {
 				t.Fatalf("send request failed: %v", err)
 			}
 
-			assertRequestSpecSequenceMatchesExcept(t, pythonSpecs, goSpecs, defs[provider].VolatileHeaders)
+			assertRequestSpecSequenceMatchesExcept(t, pythonSpecs, goSpecs, nextcloudBotVolatileHeaders(t, parsedURL, pythonSpecs, goSpecs, defs[provider].VolatileHeaders))
 		})
 	}
 

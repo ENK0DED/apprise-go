@@ -3,8 +3,11 @@ package notify
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Overflow decides what happens to a body longer than the service accepts.
@@ -85,6 +88,11 @@ func ApplyOverflowForURL(target *ParsedURL, mode, format, title, body string) []
 // own format gets the plain separator, so the input cannot be inferred from
 // the service.
 func ApplyOverflowForURLWithInput(target *ParsedURL, mode, format, inputFormat, title, body string) []MessagePart {
+	if target != nil && strings.EqualFold(target.Scheme, "lfg") {
+		// The alarm ignores content and must ring only once, even for a body
+		// that would otherwise split into several notifications.
+		return []MessagePart{{Title: title, Body: body}}
+	}
 	schema := ""
 	if target != nil {
 		schema = target.Scheme
@@ -117,16 +125,6 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 	title = strings.TrimSpace(title)
 	body = strings.TrimRight(body, " \t\r\n")
 
-	// A line cap applies whatever the mode, since upstream enforces it before
-	// it looks at overflow at all.
-	if known && limits.lineMax > 0 {
-		lines := overflowLineBreak.Split(body, -1)
-		if len(lines) > limits.lineMax {
-			lines = lines[:limits.lineMax]
-		}
-		body = strings.Join(lines, "\r\n")
-	}
-
 	mode = strings.ToLower(strings.TrimSpace(mode))
 	if mode == "" {
 		mode = OverflowUpstream
@@ -136,21 +134,20 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 	// body on its own and letting the provider fold afterwards produces
 	// chunks that are longer than the limit by the width of the title.
 	if limits.titleMax <= 0 && title != "" {
-		// The bold line is part of the override path, which upstream only
-		// takes for a markdown-native service handed HTML. By default the
-		// framework fold applies here too.
-		markdownOut := strings.EqualFold(strings.TrimSpace(format), "markdown") &&
-			strings.EqualFold(strings.TrimSpace(inputFormat), "html")
-		if markdownOut && boldTitleSchemas[strings.ToLower(strings.TrimSpace(schema))] {
-			// WhatsApp has no heading syntax, so upstream uses a bold line.
-			body = "**" + strings.TrimLeft(title, "\r\n \t\v\f#-") + "**\n" + body
-			title = ""
-		} else {
-			body = foldTitleIntoBody(title, body, format, inputFormat)
-		}
+		body = foldTitleIntoBody(title, body, format, inputFormat)
 		if title != "" {
 			title = ""
 		}
+	}
+
+	// A line cap applies whatever the mode, since upstream enforces it before
+	// it looks at overflow at all.
+	if known && limits.lineMax > 0 {
+		lines := overflowLineBreak.Split(body, -1)
+		if len(lines) > limits.lineMax {
+			lines = lines[:limits.lineMax]
+		}
+		body = strings.Join(lines, "\r\n")
 	}
 
 	if mode == OverflowUpstream || !known || limits.bodyMax < 0 {
@@ -166,10 +163,10 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 	titleMax := limits.titleMax
 	if limits.amalgamateTitle {
 		titleMax = minInt(minInt(
-			len(title)+limits.maxCountWidth, limits.titleMax), limits.bodyMax)
+			utf8.RuneCountInString(title)+limits.maxCountWidth, limits.titleMax), limits.bodyMax)
 	}
-	if len(title) > titleMax {
-		title = strings.TrimRight(title[:titleMax], " \t\r\n")
+	if utf8.RuneCountInString(title) > titleMax {
+		title = strings.TrimRight(runePrefix(title, titleMax), " \t\r\n")
 	}
 
 	bodyMax := limits.bodyMax
@@ -183,17 +180,31 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 		bodyMax = limits.bodyMax - buffer
 	}
 
-	if bodyMax > 0 && len(body) <= bodyMax {
+	if bodyMax > 0 && utf8.RuneCountInString(body) <= bodyMax {
 		return []MessagePart{{Title: title, Body: body}}
 	}
 
 	if mode == OverflowTruncate {
 		cut := body
-		if bodyMax > 0 && len(cut) > bodyMax {
-			cut = cut[:bodyMax]
+		if bodyMax > 0 && utf8.RuneCountInString(cut) > bodyMax {
+			cut = runePrefix(cut, bodyMax)
 		}
 
-		return []MessagePart{{Title: title, Body: trimChunk(cut)}}
+		cut = trimChunk(cut)
+		if strings.EqualFold(format, "markdown") && strings.TrimSpace(inputFormat) != "" {
+			if (len(cut)-len(strings.TrimRight(cut, "\\")))%2 != 0 {
+				cut = strings.TrimRight(strings.TrimSuffix(cut, "\\"), " \t\r\n")
+			}
+			runes := []rune(body)
+			start := min(bodyMax, len(runes))
+			end := min(start+bodyMax*8, len(runes))
+			boundary := rune(-1)
+			if end < len(runes) {
+				boundary = runes[end]
+			}
+			cut, _ = repairCommonMark(cut, nil, string(runes[start:end]), boundary)
+		}
+		return []MessagePart{{Title: title, Body: cut}}
 	}
 
 	// Whether the title rides on every chunk or only the first.
@@ -203,12 +214,16 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 	}
 
 	if titleOnce || (limits.amalgamateTitle && bodyMax <= 0) {
-		return splitTitleOnce(body, title, bodyMax, format)
+		parts := splitTitleOnce(body, title, bodyMax, format)
+		if strings.EqualFold(format, "markdown") && strings.TrimSpace(inputFormat) != "" {
+			repairMessageParts(parts)
+		}
+		return parts
 	}
 
 	// A counter is only worth showing when there is room for it in the title
 	// and the service's title is long enough to carry one.
-	showCounter := title != "" && len(body) > bodyMax &&
+	showCounter := title != "" && utf8.RuneCountInString(body) > bodyMax &&
 		((limits.amalgamateTitle && bodyMax >= limits.countThreshold) ||
 			(!limits.amalgamateTitle && titleMax > limits.countThreshold)) &&
 		titleMax > limits.maxCountWidth+buffer &&
@@ -226,8 +241,8 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 		digits := len(fmt.Sprintf("%d", len(chunks)))
 		width := 4 + digits*2
 		if width <= limits.maxCountWidth {
-			if room := titleMax - width; len(title) > room && room >= 0 {
-				title = title[:room]
+			if room := titleMax - width; utf8.RuneCountInString(title) > room && room >= 0 {
+				title = runePrefix(title, room)
 			}
 			template = fmt.Sprintf(" [%%0%dd/%%0%dd]", digits, digits)
 		} else {
@@ -251,6 +266,9 @@ func applyOverflowWithLimits(schema, mode, format, inputFormat, title, body stri
 		return []MessagePart{{Title: title, Body: ""}}
 	}
 
+	if strings.EqualFold(format, "markdown") && strings.TrimSpace(inputFormat) != "" {
+		repairMessageParts(parts)
+	}
 	return parts
 }
 
@@ -262,11 +280,9 @@ func foldTitleIntoBody(title, body, format, inputFormat string) string {
 	case "html":
 		return "<b>" + title + "</b><br />\r\n" + body
 	case "markdown":
-		// A heading only when the caller's body was text or HTML. Markdown
-		// in, markdown out gets the plain separator.
-		switch strings.ToLower(strings.TrimSpace(inputFormat)) {
-		case "text", "html":
-		default:
+		// A declared source format permits a heading. Passthrough content
+		// retains the plain separator, even at a Markdown destination.
+		if strings.TrimSpace(inputFormat) == "" {
 			return title + "\r\n" + body
 		}
 
@@ -311,50 +327,174 @@ func trimChunk(chunk string) string {
 
 var overflowLineBreak = regexp.MustCompile(`\r*\n`)
 
-// overflowPunctuation matches the punctuation-then-space boundary smart
-// splitting prefers when there is no newline or space to break on.
-var overflowPunctuation = regexp.MustCompile(`[.!?,;:][ \t\r\n]`)
-
-// smartSplit breaks text into chunks no longer than limit, preferring to break
-// at a newline, then a space or tab, then punctuation followed by whitespace,
-// and only cutting mid-word when none of those is available.
+// smartSplit preserves upstream's Unicode boundaries and protects HTML and
+// Markdown constructs within each bounded window.
 func smartSplit(text string, limit int, format string) []string {
-	_ = format
-
 	if text == "" || limit <= 0 {
 		return []string{""}
 	}
-
-	result := []string{}
-	start := 0
-	for start < len(text) {
-		if len(text)-start <= limit {
-			result = append(result, text[start:])
+	r := []rune(text)
+	var result []string
+	for start := 0; start < len(r); {
+		end := min(start+limit, len(r))
+		if end == len(r) {
+			result = append(result, string(r[start:]))
 			break
 		}
-
-		windowEnd := start + limit
-		window := text[start:windowEnd]
-
-		splitAt := -1
-		if index := strings.LastIndexAny(window, "\r\n"); index >= 0 {
-			splitAt = start + index + 1
-		} else if index := strings.LastIndexAny(window, " \t"); index >= 0 {
-			splitAt = start + index + 1
-		} else if matches := overflowPunctuation.FindAllStringIndex(window, -1); len(matches) > 0 {
-			splitAt = start + matches[len(matches)-1][1]
+		visible := start
+		for visible < end && (unicode.IsSpace(r[visible]) || r[visible] >= 0x1c && r[visible] <= 0x1f) {
+			visible++
 		}
-
-		if splitAt <= start {
-			// Nothing to break on, so cut at the limit.
-			splitAt = windowEnd
+		newline, space, punct := -1, -1, -1
+		for i := visible; i < end; i++ {
+			switch r[i] {
+			case '\r', '\n':
+				newline = i + 1
+			case ' ', '\t':
+				space = i + 1
+			}
+			if strings.ContainsRune(".!?:;", r[i]) && i+1 < end && strings.ContainsRune(" \t\r\n\v\f", r[i+1]) {
+				j := i + 2
+				for j < end && strings.ContainsRune(" \t\r\n\v\f", r[j]) {
+					j++
+				}
+				punct = j
+			}
 		}
-
-		result = append(result, text[start:splitAt])
-		start = splitAt
+		cut := end
+		switch {
+		case newline >= 0:
+			cut = newline
+		case space >= 0:
+			cut = space
+		case punct >= 0:
+			cut = punct
+		}
+		original := cut
+		switch format {
+		case "html":
+			cut = splitEntityAdjust(r, start, cut)
+			cut = splitTagAdjust(r, start, cut, end)
+		case "markdown":
+			cut = splitEntityAdjust(r, start, cut)
+			cut = splitMarkdownAdjust(r, start, cut)
+			slash := cut
+			for slash > start && r[slash-1] == '\\' {
+				slash--
+			}
+			if (cut-slash)%2 != 0 {
+				cut--
+			}
+		}
+		if cut <= start {
+			cut = original
+		}
+		result = append(result, string(r[start:cut]))
+		start = cut
 	}
-
 	return result
+}
+
+func splitLast(r []rune, ch rune, start, end int) int {
+	for i := end - 1; i >= start; i-- {
+		if r[i] == ch {
+			return i
+		}
+	}
+	return -1
+}
+func splitFirst(r []rune, ch rune, start, end int) int {
+	for i := start; i < end; i++ {
+		if r[i] == ch {
+			return i
+		}
+	}
+	return -1
+}
+func splitEntityAdjust(r []rune, start, cut int) int {
+	amp := splitLast(r, '&', max(start, cut-33), cut)
+	if amp < 0 {
+		return cut
+	}
+	semi := splitFirst(r, ';', amp, min(len(r), cut+33))
+	if semi >= 0 && amp > start && amp < cut && cut <= semi {
+		return amp
+	}
+	return cut
+}
+func splitTagEnd(r []rune, start, end int) int {
+	for i := start + 1; i < end; i++ {
+		switch r[i] {
+		case '>':
+			return i
+		case '\'', '"':
+			next := splitFirst(r, r[i], i+1, end)
+			if next < 0 {
+				return -1
+			}
+			i = next
+		}
+	}
+	return -1
+}
+func splitTagAdjust(r []rune, start, cut, end int) int {
+	opener := splitFirst(r, '<', start, cut)
+	closer := -1
+	for opener >= 0 {
+		closer = splitTagEnd(r, opener, end)
+		if closer < 0 || closer >= cut {
+			break
+		}
+		opener = splitFirst(r, '<', closer+1, cut)
+	}
+	if opener < 0 {
+		return cut
+	}
+	if opener > start {
+		return opener
+	}
+	if closer >= 0 {
+		return closer + 1
+	}
+	return cut
+}
+func splitMarkdownAdjust(r []rune, start, cut int) int {
+	end := min(len(r), cut+(cut-start)+1)
+	opener := splitLast(r, '[', start, cut)
+	if opener < 0 {
+		bang := splitLast(r, '!', start, cut)
+		if bang >= 0 && bang+1 < len(r) && r[bang+1] == '[' {
+			opener = bang
+		}
+	}
+	if opener >= 0 {
+		closer := splitFirst(r, ')', opener, end)
+		if closer >= 0 && opener < cut && cut < closer {
+			return opener
+		}
+	}
+	opener = splitLast(r, '<', start, cut)
+	if opener >= 0 {
+		pipe := splitFirst(r, '|', opener+1, end)
+		if pipe >= 0 {
+			closer := splitFirst(r, '>', pipe, end)
+			if closer >= 0 && opener < cut && cut <= closer {
+				return opener
+			}
+		}
+	}
+	return cut
+}
+func runePrefix(s string, n int) string { r := []rune(s); return string(r[:max(0, min(n, len(r)))]) }
+func repairMessageParts(parts []MessagePart) {
+	state := cmRepairState{}
+	for i := range parts {
+		next := ""
+		if i+1 < len(parts) {
+			next = parts[i+1].Body
+		}
+		parts[i].Body, state = repairCommonMark(parts[i].Body, state, next, -1)
+	}
 }
 
 func overflowLimitsFor(schema string) (overflowLimits, bool) {
@@ -375,220 +515,245 @@ func OverflowSchemaKnown(schema string) bool {
 // testutil/scripts/overflow_limits.py and checked against it by
 // TestOverflowLimitsMatchUpstream.
 var overflowLimitsBySchema = map[string]overflowLimits{
-	"46elks":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"apprise":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"apprises":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"aprs":       {bodyMax: 67, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"atalk":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"azure":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"bark":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"barks":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"blink1":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"bluesky":    {bodyMax: 280, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"brevo":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"bsky":       {bodyMax: 280, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"bulksms":    {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"bulkvs":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"burstsms":   {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"chanify":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"chime":      {bodyMax: 4096, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"clickatell": {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"clicksend":  {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"d7sms":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"dapnet":     {bodyMax: 80, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"dbus":       {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"dingtalk":   {bodyMax: 32768, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"discord":    {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"dot":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"eight00com": {bodyMax: 600, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"elks":       {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"emby":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"embys":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"enigma2":    {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"enigma2s":   {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"evolution":  {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"evolutions": {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"exotel":     {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"fcm":        {bodyMax: 1024, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"feishu":     {bodyMax: 19985, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"flock":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"flowtriq":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"flowtriqs":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"fluxer":     {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"fluxers":    {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"form":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"forms":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"freemobile": {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"gchat":      {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"gio":        {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"glib":       {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"gnome":      {bodyMax: 32768, titleMax: 0, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"gotify":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"gotifys":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"groupme":    {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"growl":      {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"guilded":    {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"hassio":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"hassios":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"httpsms":    {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"humhub":     {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"humhubs":    {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ifttt":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"irc":        {bodyMax: 380, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ircs":       {bodyMax: 380, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"jellyfin":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"jellyfins":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"jira":       {bodyMax: 15000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"join":       {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"json":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"jsons":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"kavenegar":  {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"kde":        {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"kodi":       {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"kodis":      {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"kook":       {bodyMax: 5000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"kumulos":    {bodyMax: 240, titleMax: 64, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"lametric":   {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"lametrics":  {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"lark":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"lauther":    {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"line":       {bodyMax: 5000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"macosx":     {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mailersend": {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"mailgun":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"mailto":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"mailtos":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"mastodon":   {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mastodons":  {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"matrix":     {bodyMax: -1, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"matrixs":    {bodyMax: -1, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"misskey":    {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"misskeys":   {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mmost":      {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mmosts":     {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mqtt":       {bodyMax: 268435455, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"mqtts":      {bodyMax: 268435455, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"msg91":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"msgbird":    {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ncloud":     {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"nclouds":    {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"nctalk":     {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"nctalks":    {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"nexmo":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"notica":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"noticas":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"notifiarr":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"notifico":   {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"notificos":  {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"notifyre":   {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ntfy":       {bodyMax: 7800, titleMax: 200, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ntfys":      {bodyMax: 7800, titleMax: 200, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"o365":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"octopush":   {bodyMax: 1224, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"onesignal":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"opsgenie":   {bodyMax: 15000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pagerduty":  {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pagertree":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"parsep":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"parseps":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pbul":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pinglet":    {bodyMax: 3000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pinglets":   {bodyMax: 3000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pingram":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pjet":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pjets":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"plivo":      {bodyMax: 140, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"postmark":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"pover":      {bodyMax: 1024, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"prowl":      {bodyMax: 10000, titleMax: 1024, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"psafer":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"psafers":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"push":       {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushdeer":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushdeers":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushed":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushme":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushplus":   {bodyMax: 20000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"pushward":   {bodyMax: 3000, titleMax: 256, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"pushy":      {bodyMax: 4096, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"qq":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"qt":         {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"reddit":     {bodyMax: 6000, titleMax: 300, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"resend":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"revolt":     {bodyMax: 2000, titleMax: 100, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ringc":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"rocket":     {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"rockets":    {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"rsyslog":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ryver":      {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"schan":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"sendgrid":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"sendpulse":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"serwersms":  {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"ses":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"session":    {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"sessions":   {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"seven":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"sfr":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"signal":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"signals":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"signalgrid": {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"signl4":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"sinch":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"slack":      {bodyMax: 35000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"smpp":       {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smpps":      {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smsc":       {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smseagle":   {bodyMax: 1200, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smseagles":  {bodyMax: 1200, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smsmanager": {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smsmgr":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"smtp2go":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"sogs":       {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"sparkpost":  {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"spike":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"splunk":     {bodyMax: 400, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"spugpush":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"spush":      {bodyMax: 10000, titleMax: 1024, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"stackfield": {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"strmlabs":   {bodyMax: 255, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"synology":   {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"synologys":  {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"syslog":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"tgram":      {bodyMax: 4096, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"threema":    {bodyMax: 3500, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"toot":       {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"toots":      {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"tweet":      {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"trigv":      {bodyMax: 1000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"trigvs":     {bodyMax: 1000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"twilio":     {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"twist":      {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"twitter":    {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"vapid":      {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"viber":      {bodyMax: 30000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"victorops":  {bodyMax: 400, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"voipms":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"vonage":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"webex":      {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"wechat":     {bodyMax: 2048, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"wecom":      {bodyMax: 20000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
-	"wecombot":   {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"whatsapp":   {bodyMax: 1024, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"windows":    {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"workflow":   {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"workflows":  {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"wxpusher":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"wxteams":    {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
-	"x":          {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xbmc":       {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xbmcs":      {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xml":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xmls":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xmpp":       {bodyMax: 32768, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"xmpps":      {bodyMax: 32768, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"zoom":       {bodyMax: 4000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
-	"zulip":      {bodyMax: 10000, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"46elks":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"amqp":          {bodyMax: 16777216, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"amqps":         {bodyMax: 16777216, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"apprise":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"apprises":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"aprs":          {bodyMax: 67, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"atalk":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"azure":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"bark":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"barks":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"betterstack":   {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"bluesky":       {bodyMax: 280, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"brevo":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"bsky":          {bodyMax: 280, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"bulksms":       {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"bulkvs":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"burstsms":      {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"chanify":       {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"clickatell":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"clicksend":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"cliq":          {bodyMax: 5000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"d7sms":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"dapnet":        {bodyMax: 80, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"dbus":          {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"deltachat":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"deltachats":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"dingtalk":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"discord":       {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"dot":           {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"eight00com":    {bodyMax: 600, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"elks":          {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"emby":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"embys":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"enigma2":       {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"enigma2s":      {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"evolution":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"evolutions":    {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"exotel":        {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"fcm":           {bodyMax: 1024, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"feishu":        {bodyMax: 19985, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"flock":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"flowtriq":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"flowtriqs":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"fluxer":        {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"fluxers":       {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"form":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"forms":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"freemobile":    {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"gchat":         {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"gio":           {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"github":        {bodyMax: 65536, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"glib":          {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"gnome":         {bodyMax: 32768, titleMax: 0, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"goalert":       {bodyMax: 6144, titleMax: 1024, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"goalerts":      {bodyMax: 6144, titleMax: 1024, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"gorush":        {bodyMax: 4000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"gorushs":       {bodyMax: 4000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"gotify":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"gotifys":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"groupme":       {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"growl":         {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"guilded":       {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"hassio":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"hassios":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"httpsms":       {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"humhub":        {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"humhubs":       {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ifttt":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ilert":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"incidentio":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"irc":           {bodyMax: 380, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ircs":          {bodyMax: 380, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"jellyfin":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"jellyfins":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"jira":          {bodyMax: 15000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"join":          {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"json":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"jsons":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"kavenegar":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"kde":           {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"kodi":          {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"kodis":         {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"kook":          {bodyMax: 5000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"kumulos":       {bodyMax: 240, titleMax: 64, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"lametric":      {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"lametrics":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"lark":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"lauther":       {bodyMax: 2000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"lfg":           {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"line":          {bodyMax: 5000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"macosx":        {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mailersend":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"mailgun":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"mailto":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"mailtos":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"mastodon":      {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mastodons":     {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"matrix":        {bodyMax: -1, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"matrixs":       {bodyMax: -1, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"misskey":       {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"misskeys":      {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mmost":         {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mmosts":        {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mobilemessage": {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mobilemsg":     {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mqtt":          {bodyMax: 268435455, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"mqtts":         {bodyMax: 268435455, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"msg91":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"msgbird":       {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ncloud":        {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"nclouds":       {bodyMax: 4000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"nctalk":        {bodyMax: 32000, titleMax: 255, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"nctalks":       {bodyMax: 32000, titleMax: 255, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"nexmo":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"notica":        {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"noticas":       {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"notifiarr":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"notifico":      {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"notificos":     {bodyMax: 512, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"notifyre":      {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ntfy":          {bodyMax: 7800, titleMax: 200, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ntfys":         {bodyMax: 7800, titleMax: 200, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"o365":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"octopush":      {bodyMax: 1224, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"onebot":        {bodyMax: 4500, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"onebots":       {bodyMax: 4500, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"onesignal":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"opsgenie":      {bodyMax: 15000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pagerduty":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pagertree":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"parsep":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"parseps":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pbul":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pinglet":       {bodyMax: 3000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pinglets":      {bodyMax: 3000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pingram":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pjet":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pjets":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"plivo":         {bodyMax: 140, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"postmark":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"pover":         {bodyMax: 1024, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"prowl":         {bodyMax: 10000, titleMax: 1024, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"psafer":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"psafers":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"push":          {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushdeer":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushdeers":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushed":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushme":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushplus":      {bodyMax: 20000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"pushward":      {bodyMax: 3000, titleMax: 256, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"pushy":         {bodyMax: 4096, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"qq":            {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"qt":            {bodyMax: 32768, titleMax: 250, lineMax: 10, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"reddit":        {bodyMax: 6000, titleMax: 300, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"resend":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"revolt":        {bodyMax: 2000, titleMax: 100, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ringc":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"rocket":        {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"rockets":       {bodyMax: 1000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"rsyslog":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ryver":         {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"schan":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"sendgrid":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"sendpulse":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"serwersms":     {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"ses":           {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"session":       {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"sessions":      {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"seven":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"sfr":           {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"signal":        {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"signalgrid":    {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"signals":       {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"signl4":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"simplepush":    {bodyMax: 7000, titleMax: 300, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"sinch":         {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"slack":         {bodyMax: 35000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"smpp":          {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smpps":         {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smsc":          {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smseagle":      {bodyMax: 1200, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smseagles":     {bodyMax: 1200, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smsmanager":    {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smsmgr":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"smtp2go":       {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"sns":           {bodyMax: -1, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"sogs":          {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"sparkpost":     {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"spike":         {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"splunk":        {bodyMax: 400, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"spugpush":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"spush":         {bodyMax: 7000, titleMax: 300, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"squadcast":     {bodyMax: 30000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"stackfield":    {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"strmlabs":      {bodyMax: 255, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"synology":      {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"synologys":     {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"syslog":        {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"telnyx":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"tgram":         {bodyMax: 4096, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"threema":       {bodyMax: 3500, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"toot":          {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"toots":         {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"trigv":         {bodyMax: 1000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"trigvs":        {bodyMax: 1000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"tweet":         {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"twilio":        {bodyMax: -1, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"twist":         {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"twitter":       {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"vapid":         {bodyMax: 4000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"viber":         {bodyMax: 30000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"victorops":     {bodyMax: 400, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"voipms":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"vonage":        {bodyMax: 160, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"webex":         {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"wechat":        {bodyMax: 2048, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"wecom":         {bodyMax: 20000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "html"},
+	"wecombot":      {bodyMax: 32768, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"whatsapp":      {bodyMax: 1024, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"windows":       {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"workflow":      {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"workflows":     {bodyMax: 1000, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"wpush":         {bodyMax: 10000, titleMax: 255, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"wxpusher":      {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"wxteams":       {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"x":             {bodyMax: -1, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xbmc":          {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xbmcs":         {bodyMax: 32768, titleMax: 250, lineMax: 2, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xml":           {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xmls":          {bodyMax: 32768, titleMax: 250, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xmpp":          {bodyMax: 32768, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"xmpps":         {bodyMax: 32768, titleMax: -1, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"youlmk":        {bodyMax: 2000, titleMax: 120, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"zalo":          {bodyMax: 2000, titleMax: 0, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"zcliq":         {bodyMax: 5000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"zohocliq":      {bodyMax: 5000, titleMax: 200, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "markdown"},
+	"zoom":          {bodyMax: 4000, titleMax: 250, lineMax: 0, amalgamateTitle: true, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
+	"zulip":         {bodyMax: 10000, titleMax: 60, lineMax: 0, amalgamateTitle: false, buffer: 0, countThreshold: 130, maxCountWidth: 12, format: "text"},
 }
 
 // OverflowLimits is the exported view of a service's limits, so the parity
@@ -652,6 +817,27 @@ func dynamicOverflowLimits(schema string, target *ParsedURL, base overflowLimits
 	}
 
 	switch strings.ToLower(strings.TrimSpace(schema)) {
+	case "github":
+		plugin, err := NewGitHubTarget(target)
+		if err != nil {
+			return base, false
+		}
+		base.titleMax = 256
+		if plugin.number > 0 {
+			base.titleMax = 0
+		}
+		return base, true
+	case "mobilemessage", "mobilemsg":
+		parts := 10
+		if value, err := strconv.Atoi(target.Query["max_parts"]); err == nil && value >= 1 && value <= 99 {
+			parts = value
+		}
+		width := 153
+		if parseBoolWithDefault(target.Query["unicode"], false) {
+			width = 67
+		}
+		base.bodyMax = parts * width
+		return base, true
 	case "matrix", "matrixs":
 		// Webhooks are not sent as direct Matrix room events, so they keep
 		// their historical v1 character allowance. Everything else reserves
@@ -675,7 +861,7 @@ func dynamicOverflowLimits(schema string, target *ParsedURL, base overflowLimits
 			return base, true
 		}
 
-		format := normalizeNotifyFormat(target.Query["format"])
+		format := normalizeNotifyFormat(targetNotifyFormat(target))
 		formatted := format == "html" || format == "markdown"
 
 		secure := strings.EqualFold(strings.TrimSpace(schema), "matrixs")
@@ -702,6 +888,7 @@ func dynamicOverflowLimits(schema string, target *ParsedURL, base overflowLimits
 		base.bodyMax = 160
 		if method := query("method"); method != "" && strings.HasPrefix("call", method) {
 			base.bodyMax = 4000
+			base.titleMax = 250
 		}
 
 		return base, true
@@ -772,7 +959,3 @@ func dynamicOverflowLimits(schema string, target *ParsedURL, base overflowLimits
 
 	return base, false
 }
-
-// boldTitleSchemas fold a title as a bold line rather than a heading, because
-// their dialect has no heading syntax.
-var boldTitleSchemas = map[string]bool{"evolution": true, "evolutions": true}

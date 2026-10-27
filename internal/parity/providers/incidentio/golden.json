@@ -1,0 +1,114 @@
+[
+  {
+    "name": "map-info",
+    "requests": [
+      {
+        "body": "{\"title\": \"Storage alert\", \"description\": \"Disk space is low\", \"status\": \"firing\", \"deduplication_key\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "map-success",
+    "requests": [
+      {
+        "body": "{\"title\": \"Storage alert\", \"description\": \"Disk space is low\", \"status\": \"resolved\", \"deduplication_key\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "map-warning",
+    "requests": [
+      {
+        "body": "{\"title\": \"Storage alert\", \"description\": \"Disk space is low\", \"status\": \"firing\", \"deduplication_key\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "map-failure",
+    "requests": [
+      {
+        "body": "{\"title\": \"Storage alert\", \"description\": \"Disk space is low\", \"status\": \"firing\", \"deduplication_key\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "body-summary",
+    "requests": [
+      {
+        "body": "{\"title\": \"Disk space is low\", \"description\": \"Disk space is low\", \"status\": \"firing\", \"deduplication_key\": \"c2950c3a72b93ce9232aac06613c4587eda0da518c9f528802d18998cfd4e5ef\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "resolve-with-metadata",
+    "requests": [
+      {
+        "body": "{\"title\": \"Storage\", \"description\": \"Recovered\", \"status\": \"resolved\", \"deduplication_key\": \"disk\", \"source_url\": \"https://example.com\", \"metadata\": {\"severity\": \"high\"}}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  },
+  {
+    "name": "trigger-key",
+    "requests": [
+      {
+        "body": "{\"title\": \"New incident\", \"description\": \"Details\", \"status\": \"firing\", \"deduplication_key\": \"00000000-0000-4000-8000-000000000000\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.incident.io/v2/alert_events/http/01GW2G3V0S59R238FAHPDS1R66"
+      }
+    ]
+  }
+]

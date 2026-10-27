@@ -22,6 +22,7 @@ const twitterLookupURL = "https://api.twitter.com/2/users/by"
 const twitterDMURLTemplate = "https://api.twitter.com/2/dm_conversations/with/%s/messages"
 
 type TwitterTarget struct {
+	deliveryTracker
 	consumerKey    string
 	consumerSecret string
 	accessKey      string
@@ -136,14 +137,17 @@ func (t *TwitterTarget) SendWithAttachments(body, title string, notifyType Notif
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(t.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title,
+
+			// uploadMedia uploads each image and groups the ids into the tweets they will
+			// be posted in.
+			notifyType, attachments, index,
+		))
 	}
 
 	return outcome.err()
 }
 
-// uploadMedia uploads each image and groups the ids into the tweets they will
-// be posted in.
 func (t *TwitterTarget) uploadMedia(attachments []Attachment) ([][]string, error) {
 	batchSize := 1
 	if t.batch {
@@ -356,7 +360,7 @@ func (t *TwitterTarget) sendDM(body, title string) error {
 		return fmt.Errorf("no twitter direct message recipients")
 	}
 
-	for _, recipient := range recipients {
+	for deliveryIndex0, recipient := range recipients {
 		dmURL := fmt.Sprintf(twitterDMURLTemplate, recipient.ID)
 		payload := map[string]string{"text": message}
 		data, err := json.Marshal(payload)
@@ -389,7 +393,7 @@ func (t *TwitterTarget) sendDM(body, title string) error {
 			Body: string(data),
 		}
 
-		outcome.record(SendRequest(spec))
+		outcome.record(t.sendTrackedRequestFor(spec, "sendDM:0", body, title, deliveryIndex0))
 	}
 
 	return outcome.err()
@@ -517,7 +521,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -533,13 +537,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"mode": map[string]any{
 					"default":  "dm",
@@ -548,7 +553,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"dm", "tweet"},
+					"values":   []any{"dm", "tweet"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -557,10 +570,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -577,7 +608,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -595,9 +626,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{ckey}/{csecret}/{akey}/{asecret}", "{schema}://{ckey}/{csecret}/{akey}/{asecret}/{targets}"},
+			"templates": []any{"{schema}://{ckey}/{csecret}/{akey}/{asecret}", "{schema}://{ckey}/{csecret}/{akey}/{asecret}/{targets}"},
 			"tokens": map[string]any{
 				"akey": map[string]any{
 					"map_to":   "akey",
@@ -633,7 +674,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"tweet", "twitter", "x"},
+					"values":   []any{"tweet", "twitter", "x"},
 				},
 				"target_user": map[string]any{
 					"map_to":   "targets",
@@ -644,8 +685,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

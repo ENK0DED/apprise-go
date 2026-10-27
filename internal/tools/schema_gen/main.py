@@ -41,6 +41,8 @@ def go_value(value, indent):
         return "nil"
     if isinstance(value, bool):
         return "true" if value else "false"
+    if isinstance(value, int) and not -(2**31) <= value < 2**31:
+        return f"int64({value})"
     if isinstance(value, (int, float)):
         return json.dumps(value)
     return json.dumps(value)
@@ -122,4 +124,5 @@ def main():
     print("}")
 
 
-main()
+if __name__ == "__main__":
+    main()

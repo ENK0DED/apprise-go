@@ -1,0 +1,39 @@
+[
+  {
+    "name": "channel",
+    "url": "cliq://1000.secret/general",
+    "body": "Body",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "bot-broadcast",
+    "url": "zcliq://Storage@1000.secret/@notify?broadcast=yes&region=eu&company=company1",
+    "body": "Body",
+    "title": "Title",
+    "type": "warning"
+  },
+  {
+    "name": "mixed",
+    "url": "zohocliq://1000.secret/general/@notify?image=no&to=%23storage",
+    "body": "Body",
+    "title": "",
+    "type": "info"
+  },
+  {
+    "name": "declared-markdown",
+    "url": "cliq://1000.secret/general?image=no",
+    "body": "**bold** *italic* [link](<https://example.com>) `**literal**` <https://example.org>",
+    "body_format": "markdown",
+    "title": "Title",
+    "type": "info"
+  },
+  {
+    "name": "declared-text",
+    "url": "cliq://1000.secret/general?image=no",
+    "body": "**literal** &amp; stuff.",
+    "body_format": "text",
+    "title": "Title",
+    "type": "info"
+  }
+]

@@ -1,82 +1,29 @@
 package notify
 
-import (
-	"encoding/json"
-	"fmt"
-	"net/url"
-	"strings"
-)
-
-const chimeURLTemplate = "https://hooks.chime.aws/incomingwebhooks/%s?token=%s"
-
-type ChimeTarget struct {
-	webhookID string
-	token     string
-}
-
-func NewChimeTarget(target *ParsedURL) (*ChimeTarget, error) {
-	webhookID := strings.TrimSpace(target.Query["webhook_id"])
-	if webhookID == "" {
-		webhookID = strings.TrimSpace(target.Host)
-	}
-	if webhookID == "" {
-		return nil, fmt.Errorf("missing webhook id")
-	}
-
-	token := strings.TrimSpace(target.Query["token"])
-	if token == "" {
-		if parts := splitPath(target.Path); len(parts) > 0 {
-			token = parts[0]
-		}
-	}
-	if token == "" {
-		return nil, fmt.Errorf("missing token")
-	}
-
-	return &ChimeTarget{webhookID: webhookID, token: token}, nil
-}
-
-func (c *ChimeTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
-	_ = notifyType
-
-	// Chime has no title field; the framework folds it into the body, which
-	// the webhook renders as markdown.
-	payload := map[string]any{"Content": mergeTitleBody(title, body)}
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return RequestSpec{}, err
-	}
-
-	return RequestSpec{
-		Method: "POST",
-		// The token carries base64 padding, so it has to be escaped.
-		URL: fmt.Sprintf(chimeURLTemplate, c.webhookID, url.QueryEscape(c.token)),
-		Headers: map[string]string{
-			"User-Agent": "Apprise",
-			"Accept":     "*/*",
-			// Chime rejects a bare application/json content type.
-			"Content-Type": "application/json; charset=utf-8",
-		},
-		Body: string(data),
-	}, nil
-}
-
-func (c *ChimeTarget) Send(body, title string, notifyType NotifyType) error {
-	spec, err := c.BuildRequest(body, title, notifyType)
-	if err != nil {
-		return err
-	}
-
-	return SendRequest(spec)
-}
-
 func init() {
-	RegisterSchemaEntryOrdered(144, SchemaEntry{
+	RegisterSchemaEntryOrdered(195, SchemaEntry{
 		"attachment_support": false,
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"botname": map[string]any{
+					"alias_of": "botname",
+				},
+				"broadcast": map[string]any{
+					"default":  false,
+					"map_to":   "broadcast",
+					"name":     "Broadcast",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"company": map[string]any{
+					"map_to":   "company",
+					"name":     "Company ID",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
 				"cto": map[string]any{
 					"default":  4.0,
 					"map_to":   "cto",
@@ -94,13 +41,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []string{"markdown"},
+					"type":      "choice:string",
+					"values":    []string{"html", "markdown", "text"},
+				},
+				"image": map[string]any{
+					"default":  true,
+					"map_to":   "include_image",
+					"name":     "Include Image",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -127,6 +83,15 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"region": map[string]any{
+					"default":  "us",
+					"map_to":   "region",
+					"name":     "Region",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []string{"us", "eu", "in", "au", "cn", "jp", "sa", "uk", "ca"},
+				},
 				"retry": map[string]any{
 					"default":  0,
 					"map_to":   "retry",
@@ -152,6 +117,10 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "bool",
+				},
+				"to": map[string]any{
+					"alias_of": "targets",
+					"delim":    []string{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -182,48 +151,70 @@ func init() {
 					"required": false,
 					"type":     "float",
 				},
-				"webhook_id": map[string]any{
-					"alias_of": "webhook_id",
-				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{webhook_id}/{token}"},
+			"templates": []string{"{schema}://{token}/{targets}", "{schema}://{botname}@{token}/{targets}"},
 			"tokens": map[string]any{
+				"botname": map[string]any{
+					"map_to":   "botname",
+					"name":     "Bot Name",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
 				"schema": map[string]any{
-					"default":  "chime",
 					"map_to":   "schema",
 					"name":     "Schema",
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"chime"},
+					"values":   []string{"cliq", "zcliq", "zohocliq"},
+				},
+				"target_bot": map[string]any{
+					"map_to":   "targets",
+					"name":     "Target Bot",
+					"prefix":   "@",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"target_channel": map[string]any{
+					"map_to":   "targets",
+					"name":     "Target Channel",
+					"prefix":   "#",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"targets": map[string]any{
+					"delim":    []string{"/"},
+					"group":    []string{"target_bot", "target_channel"},
+					"map_to":   "targets",
+					"name":     "Targets",
+					"private":  false,
+					"required": true,
+					"type":     "list:string",
 				},
 				"token": map[string]any{
 					"map_to":   "token",
 					"name":     "Webhook Token",
 					"private":  true,
-					"required": true,
-					"type":     "string",
-				},
-				"webhook_id": map[string]any{
-					"map_to":   "webhook_id",
-					"name":     "Webhook ID",
-					"private":  true,
+					"regex":    []string{"^[A-Z0-9]+(\\.[A-Z0-9]+)+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
 			},
 		},
-		"enabled": true,
+		"enabled":   true,
+		"protocols": nil,
 		"requirements": map[string]any{
 			"details":              "",
 			"packages_recommended": []any{},
 			"packages_required":    []any{},
 		},
-		"protocols":        nil,
-		"secure_protocols": []string{"chime"},
-		"service_name":     "Amazon Chime",
-		"service_url":      "https://aws.amazon.com/chime/",
-		"setup_url":        "https://appriseit.com/services/chime/",
+		"secure_protocols": []string{"cliq", "zcliq", "zohocliq"},
+		"service_name":     "Zoho Cliq",
+		"service_url":      "https://www.zoho.com/cliq/",
+		"setup_url":        "https://appriseit.com/services/cliq/",
 	})
 }

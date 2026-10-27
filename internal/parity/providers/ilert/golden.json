@@ -1,0 +1,122 @@
+[
+  {
+    "name": "map-info",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ALERT\", \"summary\": \"Storage alert\", \"details\": \"Disk space is low\", \"alertKey\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-info-128x128.png\", \"alt\": \"info\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "map-success",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"RESOLVE\", \"summary\": \"Storage alert\", \"details\": \"Disk space is low\", \"alertKey\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-success-128x128.png\", \"alt\": \"success\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "map-warning",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ALERT\", \"summary\": \"Storage alert\", \"details\": \"Disk space is low\", \"alertKey\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-warning-128x128.png\", \"alt\": \"warning\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "map-failure",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ALERT\", \"summary\": \"Storage alert\", \"details\": \"Disk space is low\", \"alertKey\": \"6b68bc026426b93c39d1c5b81999c3a00d00ca235656abef1d1dd85877f62076\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-failure-128x128.png\", \"alt\": \"failure\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "body-summary",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ALERT\", \"summary\": \"Disk space is low\", \"details\": \"Disk space is low\", \"alertKey\": \"c2950c3a72b93ce9232aac06613c4587eda0da518c9f528802d18998cfd4e5ef\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-failure-128x128.png\", \"alt\": \"failure\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "resolve-with-metadata",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"RESOLVE\", \"summary\": \"Storage\", \"details\": \"Recovered\", \"alertKey\": \"disk\", \"links\": [{\"href\": \"https://example.com\"}], \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-info-128x128.png\", \"alt\": \"info\"}], \"labels\": {\"severity\": \"high\"}}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "trigger-key",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ALERT\", \"summary\": \"New incident\", \"details\": \"Details\", \"alertKey\": \"00000000-0000-4000-8000-000000000000\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-failure-128x128.png\", \"alt\": \"failure\"}]}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  },
+  {
+    "name": "accept-priority-route",
+    "requests": [
+      {
+        "body": "{\"integrationKey\": \"il1api0123456789abcdef0123456789abcdef\", \"eventType\": \"ACCEPT\", \"summary\": \"Storage\", \"details\": \"Assigned\", \"alertKey\": \"a69c4dece144a46e40d430726395533d8f335a7d601d8ca292220b3a4a7faca4\", \"priority\": \"HIGH\", \"routingKey\": \"route1\"}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.ilert.com/api/events"
+      }
+    ]
+  }
+]

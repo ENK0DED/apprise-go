@@ -1,0 +1,32 @@
+[
+  {
+    "name": "token",
+    "url": "zalo://12345:secret-key/chatA/chatB",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "query-token",
+    "url": "zalo://chatA/chatB?token=12345:secret-key&to=chatC",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "input-text",
+    "url": "zalo://12345%3Asecret-key/chatA",
+    "title": "Title",
+    "body": "Body *literal*",
+    "body_format": "text",
+    "type": "warning"
+  },
+  {
+    "name": "markdown",
+    "url": "zalo://12345/secret-key/chatA",
+    "title": "Title",
+    "body": "**Body**",
+    "body_format": "markdown",
+    "type": "failure"
+  }
+]

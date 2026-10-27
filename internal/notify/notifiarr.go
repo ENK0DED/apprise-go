@@ -18,6 +18,7 @@ var notifiarrChannelDelims = regexp.MustCompile(`[ \t\r\n,#\\/]+`)
 var notifiarrMentionRe = regexp.MustCompile(`(?i)\s*(?:<?@(&?)([0-9]+)>?|@([a-z0-9]+))`)
 
 type NotifiarrTarget struct {
+	deliveryTracker
 	apikey       string
 	includeImage bool
 	event        int
@@ -114,7 +115,7 @@ func (n *NotifiarrTarget) Send(body, title string, notifyType NotifyType) error 
 		return fmt.Errorf("missing channels")
 	}
 
-	for _, channel := range n.channels {
+	for deliveryIndex0, channel := range n.channels {
 		payload := n.buildPayload(body, title, notifyType, channel)
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -131,7 +132,7 @@ func (n *NotifiarrTarget) Send(body, title string, notifyType NotifyType) error 
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(n.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	return outcome.err()
@@ -313,7 +314,7 @@ func init() {
 					"alias_of": "apikey",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -336,13 +337,14 @@ func init() {
 					"type":     "int",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"alias_of": "source",
@@ -358,6 +360,14 @@ func init() {
 				"key": map[string]any{
 					"alias_of": "apikey",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -365,10 +375,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -392,7 +420,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -410,9 +438,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}/{targets}"},
+			"templates": []any{"{schema}://{apikey}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -428,7 +466,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"notifiarr"},
+					"values":   []any{"notifiarr"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -439,8 +477,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

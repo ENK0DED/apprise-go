@@ -1,4 +1,10 @@
 {
+ "betterstack": {
+  "team_wait": {
+   "min": 0,
+   "rejects_nonnumeric": true
+  }
+ },
  "burstsms": {
   "validity": {
    "rejects_nonnumeric": true
@@ -22,9 +28,35 @@
    "rejects_nonnumeric": true
   }
  },
+ "gorush": {
+  "badge": {
+   "min": 0,
+   "rejects_nonnumeric": true
+  }
+ },
+ "gorushs": {
+  "badge": {
+   "min": 0,
+   "rejects_nonnumeric": true
+  }
+ },
  "guilded": {
   "flags": {
    "min": 0,
+   "rejects_nonnumeric": true
+  }
+ },
+ "mobilemessage": {
+  "max_parts": {
+   "max": 99,
+   "min": 1,
+   "rejects_nonnumeric": true
+  }
+ },
+ "mobilemsg": {
+  "max_parts": {
+   "max": 99,
+   "min": 1,
    "rejects_nonnumeric": true
   }
  },

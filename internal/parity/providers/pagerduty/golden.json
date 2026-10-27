@@ -14,5 +14,53 @@
         "url": "https://events.eu.pagerduty.com/v2/enqueue"
       }
     ]
+  },
+  {
+    "name": "upstream210-options-0",
+    "requests": [
+      {
+        "body": "{\"routing_key\": \"routing\", \"event_action\": \"resolve\", \"dedup_key\": \"44a57b22e03d9a661c22ffc5ffea51b3e1e33de24a53609e70f690dea8f70872\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Token token=key",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue"
+      }
+    ]
+  },
+  {
+    "name": "upstream210-options-1",
+    "requests": [
+      {
+        "body": "{\"routing_key\": \"routing\", \"event_action\": \"resolve\", \"dedup_key\": \"44a57b22e03d9a661c22ffc5ffea51b3e1e33de24a53609e70f690dea8f70872\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Token token=key",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue"
+      }
+    ]
+  },
+  {
+    "name": "upstream210-options-2",
+    "requests": [
+      {
+        "body": "{\"routing_key\": \"routing\", \"payload\": {\"summary\": \"Alert\\r\\nbody\\nsecond line\", \"severity\": \"info\", \"source\": \"Apprise\", \"component\": \"Notification\"}, \"client\": \"Apprise\", \"event_action\": \"trigger\", \"dedup_key\": \"explicit\", \"images\": [{\"src\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-success-128x128.png\", \"alt\": \"success\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Token token=key",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://events.pagerduty.com/v2/enqueue"
+      }
+    ]
   }
 ]

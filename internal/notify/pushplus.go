@@ -36,6 +36,7 @@ var pushplusFormatTemplates = map[string]string{
 }
 
 type PushplusTarget struct {
+	deliveryTracker
 	token    string
 	topics   []string
 	channel  string
@@ -88,7 +89,7 @@ func NewPushplusTarget(target *ParsedURL) (*PushplusTarget, error) {
 	}
 
 	template := pushplusDefaultTemplate
-	if mapped, ok := pushplusFormatTemplates[normalizeNotifyFormat(target.Query["format"])]; ok {
+	if mapped, ok := pushplusFormatTemplates[normalizeNotifyFormat(targetNotifyFormat(target))]; ok {
 		template = mapped
 	}
 
@@ -108,8 +109,8 @@ func (p *PushplusTarget) BuildRequest(body, title string, notifyType NotifyType)
 func (p *PushplusTarget) Send(body, title string, notifyType NotifyType) error {
 	// Upstream keeps going after a failed target; see sendOutcome.
 	var outcome sendOutcome
-	for _, spec := range p.buildRequests(body, title, notifyType) {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range p.buildRequests(body, title, notifyType) {
+		outcome.record(p.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	return outcome.err()
@@ -174,8 +175,17 @@ func init() {
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"channel": map[string]any{
+					"default":  "wechat",
+					"map_to":   "channel",
+					"name":     "Channel",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"wechat", "webhook", "cp", "mail", "sms"},
+				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -191,22 +201,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
-				},
-				"channel": map[string]any{
-					"default":  "wechat",
-					"map_to":   "channel",
-					"name":     "Channel",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"wechat", "webhook", "cp", "mail", "sms"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"mode": map[string]any{
 					"alias_of": "channel",
@@ -218,16 +220,13 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
-				"to": map[string]any{
-					"alias_of": "targets",
-					"delim":    []string{",", " "},
-				},
-				"token": map[string]any{
-					"alias_of": "token",
-				},
-				"topic": map[string]any{
-					"alias_of": "targets",
-					"delim":    []string{",", " "},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -236,10 +235,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -253,6 +270,17 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "bool",
+				},
+				"to": map[string]any{
+					"alias_of": "targets",
+					"delim":    []any{",", " "},
+				},
+				"token": map[string]any{
+					"alias_of": "token",
+				},
+				"topic": map[string]any{
+					"alias_of": "targets",
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -270,9 +298,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}", "{schema}://{token}/{targets}"},
+			"templates": []any{"{schema}://{token}", "{schema}://{token}/{targets}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"map_to":   "schema",
@@ -280,11 +318,11 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pushplus", "wecom"},
+					"values":   []any{"pushplus", "wecom"},
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{},
+					"delim":    []any{"/"},
+					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Group Topics",
 					"private":  false,
@@ -295,7 +333,7 @@ func init() {
 					"map_to":   "token",
 					"name":     "User Token",
 					"private":  true,
-					"regex":    []string{"^[a-z0-9_-]{32,64}$", "i"},
+					"regex":    []any{"^[a-z0-9_-]{32,64}$", "i"},
 					"required": true,
 					"type":     "string",
 				},

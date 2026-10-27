@@ -19,6 +19,7 @@ var bulkSMSRoutes = map[string]struct{}{
 var bulkSMSGroupRe = regexp.MustCompile(`(?i)^@?([a-z0-9_-]+)$`)
 
 type BulkSMSTarget struct {
+	deliveryTracker
 	user     string
 	password string
 	source   string
@@ -166,7 +167,7 @@ func (b *BulkSMSTarget) Send(body, title string, notifyType NotifyType) error {
 		items = append(items, map[string]string{"type": "GROUP", "name": group})
 	}
 
-	for _, item := range items {
+	for deliveryIndex0, item := range items {
 		payload := b.buildPayload(message, item)
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -183,7 +184,7 @@ func (b *BulkSMSTarget) Send(body, title string, notifyType NotifyType) error {
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(b.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -249,7 +250,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -265,21 +266,30 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"map_to":   "source",
 					"name":     "From Phone No",
 					"private":  false,
-					"regex":    []string{"^\\+?[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^\\+?[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -288,7 +298,25 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"route": map[string]any{
 					"default":  "STANDARD",
@@ -297,10 +325,10 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"ECONOMY", "STANDARD", "PREMIUM"},
+					"values":   []any{"ECONOMY", "STANDARD", "PREMIUM"},
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -317,7 +345,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -343,17 +371,20 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user}:{password}@{targets}"},
+			"templates": []any{"{schema}://{token_id}:{token_secret}@{targets}"},
 			"tokens": map[string]any{
-				"password": map[string]any{
-					"map_to":   "password",
-					"name":     "Password",
-					"private":  true,
-					"required": true,
-					"type":     "string",
-				},
 				"schema": map[string]any{
 					"default":  "bulksms",
 					"map_to":   "schema",
@@ -361,14 +392,14 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"bulksms"},
+					"values":   []any{"bulksms"},
 				},
 				"target_group": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Group",
 					"prefix":   "@",
 					"private":  false,
-					"regex":    []string{"^[A-Z0-9 _-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9 _-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -377,23 +408,30 @@ func init() {
 					"name":     "Target Phone No",
 					"prefix":   "+",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_group", "target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_group", "target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,
 					"required": true,
 					"type":     "list:string",
 				},
-				"user": map[string]any{
+				"token_id": map[string]any{
 					"map_to":   "user",
-					"name":     "User Name",
+					"name":     "Token",
 					"private":  false,
+					"required": true,
+					"type":     "string",
+				},
+				"token_secret": map[string]any{
+					"map_to":   "password",
+					"name":     "Secret",
+					"private":  true,
 					"required": true,
 					"type":     "string",
 				},

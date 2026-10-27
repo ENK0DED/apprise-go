@@ -1,0 +1,133 @@
+[
+  {
+    "name": "private-group",
+    "requests": [
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"Title\\r\\nBody\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_private_msg"
+      },
+      {
+        "body": "{\"user_id\": 1122, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"Title\\r\\nBody\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_private_msg"
+      },
+      {
+        "body": "{\"group_id\": 6789, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"Title\\r\\nBody\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_group_msg"
+      }
+    ]
+  },
+  {
+    "name": "auth-port",
+    "requests": [
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"\\u4f60\\u597d\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer override",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/send_private_msg"
+      }
+    ]
+  },
+  {
+    "name": "attachment",
+    "requests": [
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"Title\\r\\nBody\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_private_msg"
+      },
+      {
+        "body": "{\"group_id\": 6789, \"message\": [{\"type\": \"text\", \"data\": {\"text\": \"Title\\r\\nBody\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_group_msg"
+      },
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"image\", \"data\": {\"file\": \"base64://iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_private_msg"
+      },
+      {
+        "body": "{\"group_id\": 6789, \"message\": [{\"type\": \"image\", \"data\": {\"file\": \"base64://iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_group_msg"
+      },
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"file\", \"data\": {\"file\": \"base64://cGxhaW4gdGV4dCBhdHRhY2htZW50Cg==\", \"name\": \"notes.txt\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_private_msg"
+      },
+      {
+        "body": "{\"group_id\": 6789, \"message\": [{\"type\": \"file\", \"data\": {\"file\": \"base64://cGxhaW4gdGV4dCBhdHRhY2htZW50Cg==\", \"name\": \"notes.txt\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/send_group_msg"
+      }
+    ]
+  },
+  {
+    "name": "attachment-only",
+    "requests": [
+      {
+        "body": "{\"user_id\": 12345, \"message\": [{\"type\": \"image\", \"data\": {\"file\": \"base64://iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/send_private_msg"
+      }
+    ]
+  }
+]

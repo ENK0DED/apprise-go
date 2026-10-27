@@ -39,10 +39,10 @@ class ContractFixtures(unittest.TestCase):
         self.assertIs(uuid.uuid4, original_uuid)
         self.assertIs(time.time, original_clock)
         self.assertNotEqual(uuid.uuid4(), uuid.uuid4())
-        account = MatrixOlmAccount()
-        keys = account.one_time_keys_payload("@fixture:example.com", "FIXTURE", count=50)
-        self.assertEqual(len(keys), 50)
-        self.assertEqual(len({v["key"] for v in keys.values()}), 50)
+        keys = [MatrixOlmAccount().fallback_keys_payload("@fixture:example.com", "FIXTURE") for _ in range(50)]
+        self.assertTrue(all(len(entry) == 1 for entry in keys))
+        self.assertEqual(len({next(iter(entry)) for entry in keys}), 50)
+        self.assertEqual(len({next(iter(entry.values()))["key"] for entry in keys}), 50)
 
     def test_schema_enum_defaults_use_wire_values(self) -> None:
         from apprise.common import NotifyFormat
@@ -53,6 +53,20 @@ class ContractFixtures(unittest.TestCase):
         requests = receiver.normalize_requests(REQUESTS)
         event = json.loads(requests[-1]["body"])["event"]
         self.assertEqual(event["content"]["body"], "# secret title\r\nsecret body")
+
+    def test_golden_comparison_authenticates_crypto(self) -> None:
+        from update_golden import comparable_golden
+        cases = [{"name": "encrypted", "requests": REQUESTS}]
+        verified = comparable_golden("matrix", cases)
+        self.assertEqual(json.loads(verified[0]["requests"][-1]["body"])["event"]["content"]["body"], "# secret title\r\nsecret body")
+        tampered = copy.deepcopy(cases)
+        payload = json.loads(tampered[0]["requests"][-1]["body"])
+        cipher = bytearray(receiver.b64(payload["ciphertext"]))
+        cipher[-1] ^= 1
+        payload["ciphertext"] = base64.b64encode(cipher).decode()
+        tampered[0]["requests"][-1]["body"] = json.dumps(payload)
+        with self.assertRaises((ValueError, KeyError, InvalidSignature)):
+            comparable_golden("matrix", tampered)
 
     def test_tampered_delivery_is_rejected(self) -> None:
         def mutate(

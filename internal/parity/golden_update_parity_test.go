@@ -18,4 +18,11 @@ func TestGoldenUpdateCheck(t *testing.T) {
 	if err != nil {
 		t.Fatalf("update_golden --check failed: %v (stderr: %s)", err, strings.TrimSpace(stderr))
 	}
+	t.Run("matrix-fresh-crypto", func(t *testing.T) {
+		t.Setenv("APPRISE_CAPTURE_CACHE", "0")
+		_, stderr, err := testutil.RunPythonScript(t, script, "--check", "matrix")
+		if err != nil {
+			t.Fatalf("fresh Matrix golden check failed: %v (stderr: %s)", err, strings.TrimSpace(stderr))
+		}
+	})
 }

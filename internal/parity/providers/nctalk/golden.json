@@ -56,5 +56,50 @@
         "url": "https://talk.local/nextcloud/ocs/v2.php/apps/spreed/api/v1/chat/room2"
       }
     ]
+  },
+  {
+    "name": "bot-secret",
+    "requests": [
+      {
+        "body": "{\"message\": \"Title\\r\\nBody\", \"silent\": true}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-nextcloud-talk-bot-random": "<volatile>",
+          "x-nextcloud-talk-bot-signature": "<volatile>"
+        },
+        "method": "POST",
+        "url": "https://example.com/ocs/v2.php/apps/spreed/api/v1/bot/room-one/message"
+      },
+      {
+        "body": "{\"message\": \"Title\\r\\nBody\", \"silent\": true}",
+        "headers": {
+          "accept": "application/json",
+          "content-type": "application/json",
+          "user-agent": "Apprise",
+          "x-nextcloud-talk-bot-random": "<volatile>",
+          "x-nextcloud-talk-bot-signature": "<volatile>"
+        },
+        "method": "POST",
+        "url": "https://example.com/ocs/v2.php/apps/spreed/api/v1/bot/room-two/message"
+      }
+    ]
+  },
+  {
+    "name": "user-silent",
+    "requests": [
+      {
+        "body": "{\"message\": \"Title\\r\\nBody\", \"silent\": true}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/ocs/v2.php/apps/spreed/api/v1/chat/room"
+      }
+    ]
   }
 ]

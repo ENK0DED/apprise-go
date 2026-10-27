@@ -3,7 +3,7 @@
     "name": "default",
     "requests": [
       {
-        "body": "{\"src\": \"+15551231234\", \"dst\": null, \"text\": \"title\\r\\nbody\", \"recipients\": \"+15557654321\"}",
+        "body": "{\"src\": \"+15551231234\", \"dst\": \"+15557654321\", \"text\": \"title\\r\\nbody\"}",
         "headers": {
           "accept": "*/*",
           "authorization": "Basic YWFhYWFhYWFhYWFhYWFhYWFhYWE6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=",
@@ -19,7 +19,7 @@
     "name": "token-query",
     "requests": [
       {
-        "body": "{\"src\": \"+15551231234\", \"dst\": null, \"text\": \"hello\", \"recipients\": \"+15557654321\"}",
+        "body": "{\"src\": \"+15551231234\", \"dst\": \"+15557654321\", \"text\": \"hello\"}",
         "headers": {
           "accept": "*/*",
           "authorization": "Basic YWFhYWFhYWFhYWFhYWFhYWFhYWE6YmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmJiYmI=",

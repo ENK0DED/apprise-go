@@ -1,4 +1,7 @@
 {
   "name": "spush",
-  "schemas": ["spush"]
+  "schemas": [
+    "spush",
+    "simplepush"
+  ]
 }

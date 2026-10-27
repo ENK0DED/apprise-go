@@ -1,0 +1,44 @@
+[
+  {
+    "name": "trigger",
+    "url": "goalert://example.com/12345678-1234-1234-1234-123456789abc",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "close-success",
+    "url": "goalerts://example.com:8443/prefix/12345678-1234-1234-1234-123456789abc?dedup=disk&+team=storage",
+    "title": "Title",
+    "body": "Recovered",
+    "type": "success"
+  },
+  {
+    "name": "explicit-trigger",
+    "url": "goalerts://example.com/12345678-1234-1234-1234-123456789abc?action=t",
+    "title": "Title",
+    "body": "Body",
+    "type": "success"
+  },
+  {
+    "name": "explicit-close",
+    "url": "goalert://example.com/12345678-1234-1234-1234-123456789abc?action=c",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "keys-query",
+    "url": "goalerts://example.com/nested/path?token=12345678-1234-1234-1234-123456789abc&to=abcdef12-1234-1234-1234-123456789abc",
+    "title": "Title",
+    "body": "Body",
+    "type": "warning"
+  },
+  {
+    "name": "body-summary",
+    "url": "goalerts://example.com/12345678-1234-1234-1234-123456789abc",
+    "title": "",
+    "body": "Disk **warning**",
+    "type": "failure"
+  }
+]

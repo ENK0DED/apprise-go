@@ -1,5 +1,6 @@
 import argparse
 import base64
+import copy
 import json
 import os
 import sys
@@ -37,7 +38,7 @@ DEFAULT_ENV = {
     "APPRISE_VAPID_TEST_JWT": "parity.jwt.token",
     "APPRISE_VAPID_TEST_PUBLIC_KEY": "parity-public-key",
     "APPRISE_VAPID_TEST_ENCRYPTED": "cGFyaXR5LXZhcGlk",
-    "APPRISE_SIMPLEPUSH_TEST_IV": "00112233445566778899AABBCCDDEEFF",
+    "APPRISE_SIMPLEPUSH_TEST_NONCE": "000102030405060708090a0b0c0d0e0f1011121314151617",
     "APPRISE_BARK_TEST_IV": "paritybark12",
 }
 UPSTREAM_ASSET_BASE = (
@@ -163,6 +164,22 @@ def parse_args():
     return parser.parse_args()
 
 
+def comparable_golden(provider, cases):
+    """Authenticate Matrix wire crypto before comparing recovered semantics.
+
+    Keep real encrypted packets in the fixture. Random keys, ratchets and
+    ciphertext differ on a fresh capture; the independent receiver verifies
+    both transcripts and recovers the notification they must carry.
+    """
+    if provider != "matrix":
+        return cases
+    from matrix_receipt import normalize_requests
+    result = copy.deepcopy(cases)
+    for case in result:
+        case["requests"] = normalize_requests(case["requests"])
+    return result
+
+
 def main():
     args = parse_args()
     apply_default_env()
@@ -235,23 +252,29 @@ def main():
             specs = normalize_multipart(rewrite_values(payload.get("requests", [])))
             if canonicalize_json_bodies:
                 specs = normalize_json_bodies(specs)
-            if volatile_headers:
+            case_volatile_headers = volatile_headers | {str(h).strip().lower() for h in case.get("volatile_headers", [])}
+            if case_volatile_headers:
                 for spec in specs:
                     headers = spec.get("headers") or {}
                     for name in list(headers):
-                        if name.strip().lower() in volatile_headers:
+                        if name.strip().lower() in case_volatile_headers:
                             headers[name] = "<volatile>"
             golden_cases.append({"name": case["name"], "requests": specs})
 
         golden_path = provider_dir / "golden.json"
         rendered = json.dumps(golden_cases, indent=2, sort_keys=True)
-        if args.check:
-            existing = ""
-            if golden_path.exists():
-                existing = golden_path.read_text()
-            if existing != rendered:
-                changed.append(provider_dir.name)
+        existing = golden_path.read_text() if golden_path.exists() else ""
+        if provider_dir.name == "matrix":
+            current = comparable_golden(provider_dir.name, golden_cases)
+            equal = bool(existing) and comparable_golden(
+                provider_dir.name, json.loads(existing)
+            ) == current
         else:
+            equal = existing == rendered
+        if args.check:
+            if not equal:
+                changed.append(provider_dir.name)
+        elif not equal:
             golden_path.write_text(rendered)
 
     if args.check and changed:

@@ -19,6 +19,7 @@ const (
 )
 
 type NtfyTarget struct {
+	deliveryTracker
 	target       *ParsedURL
 	mode         NtfyMode
 	topics       []string
@@ -91,7 +92,7 @@ func NewNtfyTarget(target *ParsedURL) (*NtfyTarget, error) {
 		}
 	}
 
-	notifyFormat := normalizeNotifyFormat(target.Query["format"])
+	notifyFormat := normalizeNotifyFormat(targetNotifyFormat(target))
 	if notifyFormat == "" {
 		notifyFormat = "text"
 	}
@@ -259,7 +260,7 @@ func (n *NtfyTarget) SendWithAttachments(body, title string, notifyType NotifyTy
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(n.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, index))
 	}
 
 	return outcome.err()

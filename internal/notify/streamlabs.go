@@ -52,12 +52,12 @@ func NewStreamlabsTarget(target *ParsedURL) (*StreamlabsTarget, error) {
 		currency = "USD"
 	}
 
-	name := strings.ToUpper(strings.TrimSpace(target.Query["name"]))
+	name := strings.TrimSpace(target.Query["name"])
 	if name == "" {
 		name = "Anon"
 	}
 
-	identifier := strings.ToUpper(strings.TrimSpace(target.Query["identifier"]))
+	identifier := strings.TrimSpace(target.Query["identifier"])
 	if identifier == "" {
 		identifier = "Apprise"
 	}
@@ -67,7 +67,7 @@ func NewStreamlabsTarget(target *ParsedURL) (*StreamlabsTarget, error) {
 		call:             call,
 		alertType:        alertType,
 		imageHref:        target.Query["image_href"],
-		soundHref:        strings.ToUpper(strings.TrimSpace(target.Query["sound_href"])),
+		soundHref:        strings.TrimSpace(target.Query["sound_href"]),
 		duration:         duration,
 		specialTextColor: strings.ToUpper(strings.TrimSpace(target.Query["special_text_color"])),
 		amount:           amount,
@@ -87,14 +87,23 @@ func (s *StreamlabsTarget) BuildRequest(body, title string, notifyType NotifyTyp
 		values.Set("amount", strconv.Itoa(s.amount))
 		values.Set("currency", s.currency)
 		values.Set("access_token", s.accessToken)
-		values.Set("message", body)
+		message := []rune(mergeTitleBody(title, body))
+		if len(message) > 254 {
+			message = message[:254]
+		}
+		values.Set("message", string(message))
 	} else {
 		values.Set("access_token", s.accessToken)
 		values.Set("type", s.alertType)
 		values.Set("image_href", s.imageHref)
 		values.Set("sound_href", s.soundHref)
-		values.Set("message", title)
-		values.Set("user_massage", body)
+		if title != "" {
+			values.Set("message", title)
+			values.Set("user_message", body)
+		} else {
+			values.Set("message", body)
+			values.Set("user_message", "")
+		}
 		values.Set("duration", strconv.Itoa(s.duration))
 		values.Set("special_text_color", s.specialTextColor)
 	}
@@ -177,7 +186,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"follow", "subscription", "donation", "host"},
+					"values":   []any{"follow", "subscription", "donation", "host"},
 				},
 				"amount": map[string]any{
 					"default":  0,
@@ -195,10 +204,10 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"ALERTS", "DONATIONS"},
+					"values":   []any{"ALERTS", "DONATIONS"},
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -210,7 +219,7 @@ func init() {
 					"map_to":   "currency",
 					"name":     "Currency",
 					"private":  false,
-					"regex":    []string{"^[A-Z]{3}$", "i"},
+					"regex":    []any{"^[A-Z]{3}$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -232,13 +241,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"identifier": map[string]any{
 					"default":  "Apprise",
@@ -261,9 +271,17 @@ func init() {
 					"map_to":   "name",
 					"name":     "Name",
 					"private":  false,
-					"regex":    []string{"^[^\\s].{1,24}$", "i"},
+					"regex":    []any{"^[^\\s].{1,24}$", "i"},
 					"required": false,
 					"type":     "string",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -272,10 +290,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -295,7 +331,7 @@ func init() {
 					"map_to":   "special_text_color",
 					"name":     "Special Text Color",
 					"private":  false,
-					"regex":    []string{"^[A-Z]$", "i"},
+					"regex":    []any{"^[A-Z]$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -323,17 +359,25 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
-			"kwargs": map[string]any{},
-			"templates": []string{
-				"{schema}://{access_token}/",
-			},
+			"kwargs":    map[string]any{},
+			"templates": []any{"{schema}://{access_token}/"},
 			"tokens": map[string]any{
 				"access_token": map[string]any{
 					"map_to":   "access_token",
 					"name":     "Access Token",
 					"private":  true,
-					"regex":    []string{"^[a-z0-9]{40}$", "i"},
+					"regex":    []any{"^[a-z0-9]{40}$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -344,7 +388,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"strmlabs"},
+					"values":   []any{"strmlabs"},
 				},
 			},
 		},

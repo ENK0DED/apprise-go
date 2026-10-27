@@ -46,5 +46,19 @@
     "body": "hello from python",
     "title": "apprise parity",
     "type": "info"
+  },
+  {
+    "name": "declared-commonmark-v2",
+    "url": "tgram://123456:abcdef/7890?format=markdown&mdv=v2",
+    "body": "# Heading\n**Bold** ~~literal~~ [link](https://example.com/a_(x))",
+    "title": "Title",
+    "body_format": "markdown"
+  },
+  {
+    "name": "declared-html-table",
+    "url": "tgram://123456:abcdef/7890?format=html",
+    "body": "<table><tr><th>A</th><th>B</th></tr><tr><td>x</td><td>y</td></tr></table>",
+    "title": "<i>Title</i>",
+    "body_format": "html"
   }
 ]

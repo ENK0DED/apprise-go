@@ -1,0 +1,51 @@
+[
+  {
+    "name": "direct",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "unicode",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq",
+    "title": "你好",
+    "body": "中文 🦄",
+    "type": "info"
+  },
+  {
+    "name": "body-title",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq",
+    "title": "",
+    "body": "Body only",
+    "type": "info"
+  },
+  {
+    "name": "topics",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq/zeta/alpha/?to=beta,alpha&topic_code=gamma&topic=delta",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "channels",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq?channel=QQBOT,app,APP,feishu&group=group1&option=other&url=https://example.com",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "option",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq?option=bound-instance",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "query-key",
+    "url": "wpush://WPUSH0123456789abcdefghijklmnopq?apikey=WPUSHabcdefghijklmnopqrstuvwxyz0",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  }
+]

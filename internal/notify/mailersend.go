@@ -15,6 +15,7 @@ const (
 )
 
 type MailerSendTarget struct {
+	deliveryTracker
 	apikey    string
 	fromEmail string
 	replyTo   string
@@ -61,7 +62,7 @@ func NewMailerSendTarget(target *ParsedURL) (*MailerSendTarget, error) {
 		targets = []string{fromEmail}
 	}
 
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	if format == "" {
 		// MailerSend defaults to HTML upstream.
 		format = "html"
@@ -99,8 +100,8 @@ func (m *MailerSendTarget) SendWithAttachments(body, title string, notifyType No
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(m.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -191,7 +192,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -200,7 +201,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -209,7 +210,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -225,13 +226,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html", "text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -248,7 +250,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -276,7 +278,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -293,7 +295,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -312,10 +314,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -323,13 +325,13 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{apikey}:{from_email}", "{schema}://{apikey}:{from_email}/{targets}"},
+			"templates": []any{"{schema}://{apikey}:{from_email}", "{schema}://{apikey}:{from_email}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^[a-zA-Z0-9._-]+$", "i"},
+					"regex":    []any{"^[a-zA-Z0-9._-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -338,7 +340,7 @@ func init() {
 					"name":     "Source Email",
 					"private":  false,
 					"required": true,
-					"type":     "string",
+					"type":     "email",
 				},
 				"schema": map[string]any{
 					"default":  "mailersend",
@@ -347,18 +349,18 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"mailersend"},
+					"values":   []any{"mailersend"},
 				},
 				"target_email": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

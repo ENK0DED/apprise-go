@@ -28,5 +28,20 @@
         "url": "https://maker.ifttt.com/trigger/event1/with/key/webhook123"
       }
     ]
+  },
+  {
+    "name": "upstream210-options-0",
+    "requests": [
+      {
+        "body": "{\"value1\": \"Alert\", \"value3\": \"success\", \"custom\": \"value\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://maker.ifttt.com/trigger/event/with/key/key"
+      }
+    ]
   }
 ]

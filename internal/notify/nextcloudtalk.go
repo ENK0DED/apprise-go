@@ -1,6 +1,10 @@
 package notify
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -9,6 +13,7 @@ import (
 const nextcloudTalkDefaultMessage = "Apprise"
 
 type NextcloudTalkTarget struct {
+	deliveryTracker
 	host      string
 	port      int
 	secure    bool
@@ -17,6 +22,8 @@ type NextcloudTalkTarget struct {
 	targets   []string
 	urlPrefix string
 	headers   map[string]string
+	secret    string
+	silent    bool
 }
 
 func NewNextcloudTalkTarget(target *ParsedURL) (*NextcloudTalkTarget, error) {
@@ -26,7 +33,7 @@ func NewNextcloudTalkTarget(target *ParsedURL) (*NextcloudTalkTarget, error) {
 	}
 
 	user := strings.TrimSpace(target.User)
-	if user == "" || strings.TrimSpace(target.Password) == "" {
+	if target.Query["secret"] == "" && (user == "" || strings.TrimSpace(target.Password) == "") {
 		return nil, fmt.Errorf("missing credentials")
 	}
 
@@ -44,65 +51,69 @@ func NewNextcloudTalkTarget(target *ParsedURL) (*NextcloudTalkTarget, error) {
 		password:  target.Password,
 		targets:   targets,
 		urlPrefix: urlPrefix,
-		headers:   headers,
+		headers:   headers, secret: target.Query["secret"], silent: parseBoolWithDefault(target.Query["silent"], false),
 	}, nil
 }
 
-func (n *NextcloudTalkTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
+func (n *NextcloudTalkTarget) BuildRequest(body, title string, kind NotifyType) (RequestSpec, error) {
 	if len(n.targets) == 0 {
 		return RequestSpec{}, fmt.Errorf("missing targets")
 	}
-
-	payload := map[string]string{
-		"message": n.message(body, title),
+	return n.requestFor(n.targets[0], body, title)
+}
+func (n *NextcloudTalkTarget) requestFor(target, body, title string) (RequestSpec, error) {
+	message := n.message(body, title)
+	payload := map[string]any{"message": message}
+	if n.silent {
+		payload["silent"] = true
 	}
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return RequestSpec{}, err
 	}
-
 	headers := n.buildHeaders()
-
-	_ = notifyType
-
-	return RequestSpec{
-		Method:  "POST",
-		URL:     n.buildURL(n.targets[0]),
-		Headers: headers,
-		Body:    string(data),
-	}, nil
+	if n.secret != "" {
+		nonce, signature, err := nextcloudTalkSignature(n.secret, message)
+		if err != nil {
+			return RequestSpec{}, err
+		}
+		headers["X-Nextcloud-Talk-Bot-Random"] = nonce
+		headers["X-Nextcloud-Talk-Bot-Signature"] = signature
+	}
+	return RequestSpec{Method: "POST", URL: n.buildURL(target), Headers: headers, Body: string(data)}, nil
 }
-
-func (n *NextcloudTalkTarget) Send(body, title string, notifyType NotifyType) error {
-	// Upstream keeps going after a failed target; see sendOutcome.
-	var outcome sendOutcome
+func (n *NextcloudTalkTarget) Send(body, title string, kind NotifyType) error {
 	if len(n.targets) == 0 {
 		return fmt.Errorf("missing targets")
 	}
-
-	payload := map[string]string{
-		"message": n.message(body, title),
-	}
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	headers := n.buildHeaders()
-
+	var outcome sendOutcome
 	for _, target := range n.targets {
-		spec := RequestSpec{
-			Method:  "POST",
-			URL:     n.buildURL(target),
-			Headers: headers,
-			Body:    string(data),
+		if n.isDelivered(target) {
+			continue
 		}
-		outcome.record(SendRequest(spec))
+		spec, err := n.requestFor(target, body, title)
+		if err == nil {
+			err = SendRequest(spec)
+		}
+		outcome.record(err)
+		if err == nil {
+			n.markDelivered(target)
+		}
 	}
-
-	_ = notifyType
-
 	return outcome.err()
+}
+func nextcloudTalkSignature(secret, message string) (string, string, error) {
+	random := make([]byte, 32)
+	if _, err := rand.Read(random); err != nil {
+		return "", "", err
+	}
+	nonce := hex.EncodeToString(random)
+	return nonce, nextcloudTalkMAC(secret, nonce, message), nil
+}
+func nextcloudTalkMAC(secret, nonce, message string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write([]byte(nonce + message))
+	return hex.EncodeToString(mac.Sum(nil))
 }
 
 func (n *NextcloudTalkTarget) buildHeaders() map[string]string {
@@ -115,7 +126,9 @@ func (n *NextcloudTalkTarget) buildHeaders() map[string]string {
 	for key, value := range n.headers {
 		headers[key] = value
 	}
-	headers["Authorization"] = basicAuthHeader(n.user, n.password)
+	if n.secret == "" {
+		headers["Authorization"] = basicAuthHeader(n.user, n.password)
+	}
 	return headers
 }
 
@@ -143,7 +156,15 @@ func (n *NextcloudTalkTarget) buildURL(target string) string {
 		base += fmt.Sprintf(":%d", n.port)
 	}
 
-	path := "/" + n.urlPrefix + "/ocs/v2.php/apps/spreed/api/v1/chat/" + target
+	prefix := ""
+	if n.urlPrefix != "" {
+		prefix = "/" + n.urlPrefix
+	}
+	endpoint := "chat/" + target
+	if n.secret != "" {
+		endpoint = "bot/" + target + "/message"
+	}
+	path := prefix + "/ocs/v2.php/apps/spreed/api/v1/" + endpoint
 	return base + path
 }
 
@@ -154,7 +175,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -170,13 +191,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -185,15 +215,44 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
 					"required": false,
 					"type":     "float",
+				},
+				"secret": map[string]any{
+					"alias_of": "secret",
+				},
+				"silent": map[string]any{
+					"default":  false,
+					"map_to":   "silent",
+					"name":     "Silent Notification",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"store": map[string]any{
 					"default":  true,
@@ -226,6 +285,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"headers": map[string]any{
@@ -237,7 +306,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{password}@{host}:{port}/{targets}"},
+			"templates": []any{"{schema}://{user}:{password}@{host}/{targets}", "{schema}://{user}:{password}@{host}:{port}/{targets}", "{schema}://{host}/{targets}?secret={secret}", "{schema}://{host}:{port}/{targets}?secret={secret}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -268,7 +337,14 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"nctalk", "nctalks"},
+					"values":   []any{"nctalk", "nctalks"},
+				},
+				"secret": map[string]any{
+					"map_to":   "secret",
+					"name":     "Secret",
+					"private":  true,
+					"required": true,
+					"type":     "string",
 				},
 				"target_room_id": map[string]any{
 					"map_to":   "targets",
@@ -278,8 +354,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_room_id"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_room_id"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

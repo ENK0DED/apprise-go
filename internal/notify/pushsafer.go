@@ -172,6 +172,7 @@ var pushSaferSoundOrder = []string{
 }
 
 type PushSaferTarget struct {
+	deliveryTracker
 	privateKey string
 	targets    []string
 	sound      *int
@@ -235,11 +236,11 @@ func (p *PushSaferTarget) SendWithAttachments(body, title string, notifyType Not
 		return p.sendPlain(body, title, notifyType)
 	}
 
-	for _, recipient := range p.targets {
+	for deliveryIndex0, recipient := range p.targets {
 		for start := 0; start < len(images); start += len(pushSaferPictureFields) {
 			end := min(start+len(pushSaferPictureFields), len(images))
 			spec := p.buildSpecWithImages(body, title, notifyType, recipient, images[start:end])
-			outcome.record(SendRequest(spec))
+			outcome.record(p.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 		}
 	}
 
@@ -253,16 +254,18 @@ func (p *PushSaferTarget) sendPlain(body, title string, notifyType NotifyType) e
 		return fmt.Errorf("missing targets")
 	}
 
-	for _, recipient := range p.targets {
+	for deliveryIndex1, recipient := range p.targets {
 		spec := p.buildSpec(body, title, notifyType, recipient)
-		outcome.record(SendRequest(spec))
+		outcome.record(p.sendTrackedRequestFor(spec, "sendPlain:0", body, title, notifyType,
+
+			// pushSaferPictureFields are the payload keys that carry images; PushSafer
+			// takes at most three per request.
+			deliveryIndex1))
 	}
 
 	return outcome.err()
 }
 
-// pushSaferPictureFields are the payload keys that carry images; PushSafer
-// takes at most three per request.
 var pushSaferPictureFields = []string{"p", "p2", "p3"}
 
 func (p *PushSaferTarget) buildSpec(body, title string, notifyType NotifyType, recipient string) RequestSpec {
@@ -356,7 +359,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -372,13 +375,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -387,7 +399,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"priority": map[string]any{
 					"map_to":   "priority",
@@ -397,8 +409,26 @@ func init() {
 					"type":     "choice:int",
 					"values":   []any{-2, -1, 0, 1, 2},
 				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -411,7 +441,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"silent", "ahem", "applause", "arrow", "baby", "bell", "bicycle", "bike", "boing", "buzzer", "camera", "carhorn", "horn", "cashregister", "chime", "creakydoor", "cuckooclock", "cuckoo", "disconnect", "dog", "doorbell", "fanfare", "gunshot", "honk", "jawharp", "morse", "electric", "radiotuner", "sirens", "militarytrumpets", "military", "trumpets", "ufo", "whahwhah", "whah", "goodye", "hello", "no", "okay", "ok", "ooohhhweee", "warn", "warning", "welcome", "yeah", "yes", "beep", "beep1", "weee", "wee", "cutinout", "flickglass", "laser", "windchime", "echo", "zipper", "hihat", "beep2", "beep3", "beep4", "alarmarmed", "armed", "alarmdisarmed", "disarmed", "backupready", "dooropen", "dopen", "doorclosed", "dclosed", "windowopen", "wopen", "windowclosed", "wclosed", "lighton", "lon", "lightoff", "loff", "doorbellrang"},
+					"values":   []any{"silent", "ahem", "applause", "arrow", "baby", "bell", "bicycle", "bike", "boing", "buzzer", "camera", "carhorn", "horn", "cashregister", "chime", "creakydoor", "cuckooclock", "cuckoo", "disconnect", "dog", "doorbell", "fanfare", "gunshot", "honk", "jawharp", "morse", "electric", "radiotuner", "sirens", "militarytrumpets", "military", "trumpets", "ufo", "whahwhah", "whah", "goodye", "hello", "no", "okay", "ok", "ooohhhweee", "warn", "warning", "welcome", "yeah", "yes", "beep", "beep1", "weee", "wee", "cutinout", "flickglass", "laser", "windchime", "echo", "zipper", "hihat", "beep2", "beep3", "beep4", "alarmarmed", "armed", "alarmdisarmed", "disarmed", "backupready", "dooropen", "dopen", "doorclosed", "dclosed", "windowopen", "wopen", "windowclosed", "wclosed", "lighton", "lon", "lightoff", "loff", "doorbellrang"},
 				},
 				"store": map[string]any{
 					"default":  true,
@@ -423,7 +453,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -449,9 +479,19 @@ func init() {
 					"type":     "choice:int",
 					"values":   []any{1, 2, 3},
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{privatekey}", "{schema}://{privatekey}/{targets}"},
+			"templates": []any{"{schema}://{privatekey}", "{schema}://{privatekey}/{targets}"},
 			"tokens": map[string]any{
 				"privatekey": map[string]any{
 					"map_to":   "privatekey",
@@ -466,7 +506,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"psafer", "psafers"},
+					"values":   []any{"psafer", "psafers"},
 				},
 				"target_device": map[string]any{
 					"map_to":   "targets",
@@ -483,8 +523,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_device", "target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_device", "target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

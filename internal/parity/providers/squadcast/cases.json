@@ -1,0 +1,58 @@
+[
+  {
+    "name": "map-info",
+    "url": "squadcast://abcdef0123456789",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "info"
+  },
+  {
+    "name": "map-success",
+    "url": "squadcast://abcdef0123456789",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "success"
+  },
+  {
+    "name": "map-warning",
+    "url": "squadcast://abcdef0123456789",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "warning"
+  },
+  {
+    "name": "map-failure",
+    "url": "squadcast://abcdef0123456789",
+    "body": "Disk space is low",
+    "title": "Storage alert",
+    "type": "failure"
+  },
+  {
+    "name": "body-summary",
+    "url": "squadcast://abcdef0123456789",
+    "body": "Disk space is low",
+    "title": "",
+    "type": "failure"
+  },
+  {
+    "name": "resolve-with-metadata",
+    "url": "squadcast://abcdef0123456789?action=res&dedup=disk&+severity=high&click=https://example.com",
+    "body": "Recovered",
+    "title": "Storage",
+    "type": "info"
+  },
+  {
+    "name": "trigger-key",
+    "url": "squadcast://abcdef0123456789?action=trigger",
+    "body": "Details",
+    "title": "New incident",
+    "type": "failure"
+  },
+  {
+    "name": "europe-priority",
+    "url": "squadcast://abcdef0123456789?region=eu&priority=2",
+    "body": "Details",
+    "title": "Europe",
+    "type": "warning"
+  }
+]

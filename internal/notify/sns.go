@@ -3,13 +3,13 @@ package notify
 import (
 	"encoding/xml"
 	"fmt"
-	"net/http"
 	"strings"
 )
 
 const snsServiceName = "sns"
 
 type SNSTarget struct {
+	deliveryTracker
 	accessKey    string
 	secretKey    string
 	sessionToken string
@@ -137,7 +137,7 @@ func (s *SNSTarget) Send(body, title string, notifyType NotifyType) error {
 	// Upstream keeps going after a failed target; see sendOutcome.
 	var outcome sendOutcome
 	message := mergeTitleBody(title, body)
-	for _, phone := range s.phones {
+	for deliveryIndex0, phone := range s.phones {
 		payload := s.publishPhonePayload(message, phone)
 		spec := RequestSpec{
 			Method:  "POST",
@@ -145,10 +145,10 @@ func (s *SNSTarget) Send(body, title string, notifyType NotifyType) error {
 			Headers: s.signer().headers(payload, fixedTime()),
 			Body:    payload,
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(s.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
-	for _, topic := range s.topics {
+	for deliveryIndex1, topic := range s.topics {
 		topicArn, err := s.createTopic(topic)
 		if err != nil {
 			return err
@@ -163,7 +163,7 @@ func (s *SNSTarget) Send(body, title string, notifyType NotifyType) error {
 			Headers: s.signer().headers(payload, fixedTime()),
 			Body:    payload,
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(s.sendTrackedRequestFor(spec, "Send:1", body, title, notifyType, deliveryIndex1))
 	}
 
 	_ = title
@@ -227,7 +227,7 @@ func (s *SNSTarget) createTopic(topic string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -264,7 +264,7 @@ func init() {
 					"alias_of": "access_key_id",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -280,13 +280,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"key": map[string]any{
 					"alias_of": "access_key_id",
@@ -298,10 +299,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"sms", "topic"},
+					"values":   []any{"sms", "topic"},
 				},
-				"token": map[string]any{
-					"alias_of": "token",
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -310,13 +316,31 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"region": map[string]any{
 					"alias_of": "region",
 				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -336,7 +360,10 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
+				},
+				"token": map[string]any{
+					"alias_of": "token",
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -354,9 +381,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}@{access_key_id}/{secret_access_key}/{region}/{targets}", "{schema}://{access_key_id}/{secret_access_key}/{region}/{targets}"},
+			"templates": []any{"{schema}://{token}@{access_key_id}/{secret_access_key}/{region}/{targets}", "{schema}://{access_key_id}/{secret_access_key}/{region}/{targets}"},
 			"tokens": map[string]any{
 				"access_key_id": map[string]any{
 					"map_to":   "access_key_id",
@@ -369,7 +406,7 @@ func init() {
 					"map_to":   "region_name",
 					"name":     "Region",
 					"private":  false,
-					"regex":    []string{"^[a-z]{2}-[a-z-]+?-[0-9]+$", "i"},
+					"regex":    []any{"^[a-z]{2}-[a-z-]+?-[0-9]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -380,7 +417,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"sns"},
+					"values":   []any{"sns"},
 				},
 				"secret_access_key": map[string]any{
 					"map_to":   "secret_access_key",
@@ -393,7 +430,7 @@ func init() {
 					"map_to":   "targets",
 					"name":     "Target Phone No",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -402,9 +439,18 @@ func init() {
 					"name":     "Target Topic",
 					"prefix":   "#",
 					"private":  false,
-					"regex":    []string{"^[A-Za-z0-9_-]+$", "i"},
+					"regex":    []any{"^[A-Za-z0-9_-]+$", "i"},
 					"required": false,
 					"type":     "string",
+				},
+				"targets": map[string]any{
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone_no", "target_topic"},
+					"map_to":   "targets",
+					"name":     "Targets",
+					"private":  false,
+					"required": true,
+					"type":     "list:string",
 				},
 				"token": map[string]any{
 					"map_to":   "session_token",
@@ -412,15 +458,6 @@ func init() {
 					"private":  true,
 					"required": false,
 					"type":     "string",
-				},
-				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone_no", "target_topic"},
-					"map_to":   "targets",
-					"name":     "Targets",
-					"private":  false,
-					"required": true,
-					"type":     "list:string",
 				},
 			},
 		},

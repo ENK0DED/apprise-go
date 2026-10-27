@@ -1,0 +1,23 @@
+[
+  {
+    "name": "self",
+    "url": "telnyx://api-key@15551234567",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "recipients",
+    "url": "telnyx://api-key@15551234567/15557654321/15559876543?profile=profile1",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "from-query",
+    "url": "telnyx://old-key@15557654321?from=15551234567&key=new-key&to=15559876543",
+    "title": "",
+    "body": "Body",
+    "type": "warning"
+  }
+]

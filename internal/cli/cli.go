@@ -5,21 +5,21 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/unraid/apprise-go/internal/notify"
 	"github.com/unraid/apprise-go/internal/version"
 )
 
-const usageText = "" +
-	"Usage:\n" +
-	"   apprise [OPTIONS] [APPRISE_URL [APPRISE_URL2 [APPRISE_URL3]]]\n" +
-	"   apprise storage [OPTIONS] [ACTION] [UID1 [UID2 [UID3]]]\n"
+const helpText = `Usage:
+   apprise [OPTIONS] [APPRISE_URL [APPRISE_URL2 [APPRISE_URL3]]]
+   apprise storage [OPTIONS] [ACTION] [UID1 [UID2 [UID3]]]
 
-const helpText = usageText + `
-Send a notification to all of the specified servers identified by their URLs
+Send a notification to the services identified by their URLs
 the content provided within the title, body and notification-type.
 
 For a list of all of the supported services and information on how to use
@@ -55,12 +55,28 @@ Options:
                                   (default=text). Possible values are: "text",
                                   "markdown", "html".
   -T, --theme THEME               Specify the default theme.
+  -tv, --template-var NAME=VALUE  Supply a value used by a YAML configuration
+                                  written with ${NAME}. Use multiple
+                                  --template-var (-tv) entries for more than
+                                  one. A value not given here is looked for in
+                                  the configuration's own default and then in
+                                  APPRISE_TEMPLATE_<NAME>.
   -g, --tag TAG                   Specify one or more tags to filter which
                                   services to notify. Use multiple --tag (-g)
                                   entries to match ANY tag. Use comma
                                   separators to require ALL tags (strict
                                   match). Omit to notify untagged services
                                   only, or use "all" to notify everything.
+  -L, --limit SECONDS             Give up on the whole run if it's taking too
+                                  long, in seconds (whole number or decimal,
+                                  e.g. 2.5). By default (0) there is no limit
+                                  -- see --service-limit to cap each service
+                                  on its own instead.
+  -SL, --service-limit SECONDS    Give up on any single service if it's taking
+                                  too long, in seconds (whole number or
+                                  decimal, e.g. 2.5), or 0 to turn this off
+                                  entirely. Leave unset to use Apprise's own
+                                  default of 60 seconds.
   -Da, --disable-async            Send all notifications sequentially
   -d, --dry-run                   Perform a trial run but only prints the
                                   notification services to-be triggered to
@@ -90,34 +106,38 @@ Actions:
 `
 
 const commandErrorUsage = "" +
-	"Usage: apprise [OPTIONS] SERVER_URL [SERVER_URL2 [SERVER_URL3]]\n" +
+	"Usage: apprise [OPTIONS] SERVICE_URL [SERVICE_URL2 [SERVICE_URL3]]\n" +
 	"Try 'apprise --help' for help.\n"
 
 type cliOptions struct {
-	body             string
-	title            string
-	notificationType string
-	inputFormat      string
-	disableAsync     bool
-	showVersion      bool
-	showHelp         bool
-	showSchema       bool
-	showDetails      bool
-	dryRun           bool
-	debug            bool
-	verbose          int
-	recursionDepth   int
-	interpretEscapes bool
-	interpretEmojis  bool
-	theme            string
-	configPaths      []string
-	attachments      []string
-	pluginPaths      []string
-	tags             []string
-	storagePath      string
-	storagePruneDays int
-	storageUIDLength int
-	storageMode      string
+	body                string
+	title               string
+	notificationType    string
+	inputFormat         string
+	disableAsync        bool
+	showVersion         bool
+	showHelp            bool
+	showSchema          bool
+	showDetails         bool
+	dryRun              bool
+	debug               bool
+	verbose             int
+	recursionDepth      int
+	interpretEscapes    bool
+	interpretEmojis     bool
+	theme               string
+	configPaths         []string
+	attachments         []string
+	pluginPaths         []string
+	tags                []string
+	storagePath         string
+	storagePruneDays    int
+	storageUIDLength    int
+	storageMode         string
+	limit, serviceLimit float64
+	templateVars        []string
+	templateValues      map[string]string
+	templateErr         error
 }
 
 type stringSliceFlag []string
@@ -152,6 +172,13 @@ func Run(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("apprise", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.Usage = func() {}
+
+	fs.Float64Var(&opts.limit, "limit", 0, "Limit the complete run in seconds.")
+	fs.Float64Var(&opts.limit, "L", 0, "Limit the complete run in seconds.")
+	fs.Float64Var(&opts.serviceLimit, "service-limit", 60, "Limit each service in seconds.")
+	fs.Float64Var(&opts.serviceLimit, "SL", 60, "Limit each service in seconds.")
+	fs.Var((*stringSliceFlag)(&opts.templateVars), "template-var", "Supply NAME=VALUE to a YAML template.")
+	fs.Var((*stringSliceFlag)(&opts.templateVars), "tv", "Supply NAME=VALUE to a YAML template.")
 
 	fs.StringVar(&opts.body, "body", "", "Specify the message body.")
 	fs.StringVar(&opts.body, "b", "", "Specify the message body.")
@@ -250,9 +277,35 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return RunStorage(&opts, urls, stdout, stderr)
 	}
 
+	if math.IsNaN(opts.limit) || math.IsInf(opts.limit, 0) || opts.limit < 0 || math.IsNaN(opts.serviceLimit) || math.IsInf(opts.serviceLimit, 0) || opts.serviceLimit < 0 {
+		fmt.Fprintln(stderr, "Notification limits must be finite and nonnegative.")
+		return 2
+	}
+	opts.templateValues = map[string]string{}
+	for _, entry := range opts.templateVars {
+		name, value, found := strings.Cut(entry, "=")
+		name = strings.TrimSpace(name)
+		if !found || !templateName.MatchString(name) {
+			fmt.Fprintf(stdout, "The --template-var (-tv) name '%s' is not in the expected NAME=VALUE format.\n", name)
+			fmt.Fprintln(stdout, "Try 'apprise --help' for more information.")
+			return 2
+		}
+		key := strings.ToLower(name)
+		if _, exists := opts.templateValues[key]; exists {
+			fmt.Fprintf(stdout, "The --template-var (-tv) name '%s' was provided more than once.\n", name)
+			fmt.Fprintln(stdout, "Try 'apprise --help' for more information.")
+			return 2
+		}
+		opts.templateValues[key] = value
+	}
+
 	tagged := resolveNotifyURLs(&opts, urls, stderr)
+	if opts.templateErr != nil {
+		fmt.Fprintln(stderr, opts.templateErr)
+		return 1
+	}
 	if len(tagged) == 0 {
-		fmt.Fprintln(stdout, "You must specify at least one server URL or populated configuration file.")
+		fmt.Fprintln(stdout, "You must specify at least one service URL or populated configuration file.")
 		fmt.Fprintln(stdout, "Try 'apprise --help' for more information.")
 		return 1
 	}
@@ -301,8 +354,18 @@ func Run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
+	runDeadline := time.Time{}
+	if opts.limit > 0 {
+		runDeadline = time.Now().Add(time.Duration(opts.limit * float64(time.Second)))
+	}
 	failed := false
 	for _, entry := range tagged {
+		if !runDeadline.IsZero() && !time.Now().Before(runDeadline) {
+			fmt.Fprintln(stderr, "Notification run exceeded its time limit.")
+			failed = true
+			break
+		}
+
 		parsed, err := notify.ParseURL(entry.URL)
 		if err != nil {
 			fmt.Fprintf(stderr, "invalid url: %s\n", err)
@@ -317,6 +380,14 @@ func Run(args []string, stdout, stderr io.Writer) int {
 			continue
 		}
 
+		deadline := runDeadline
+		if opts.serviceLimit > 0 {
+			serviceDeadline := time.Now().Add(time.Duration(opts.serviceLimit * float64(time.Second)))
+			if deadline.IsZero() || serviceDeadline.Before(deadline) {
+				deadline = serviceDeadline
+			}
+		}
+		notify.SetNotificationDeadline(parsed, deadline)
 		target, err := notify.NewTarget(parsed)
 		if err != nil {
 			if notify.IsUnsupportedSchema(err) {
@@ -328,8 +399,8 @@ func Run(args []string, stdout, stderr io.Writer) int {
 			continue
 		}
 
-		if err := notify.DispatchSendWithOverflow(
-			target, parsed, sendBody, title, nt, attachments); err != nil {
+		if err := notify.DispatchSendWithInput(
+			target, parsed, sendBody, title, opts.inputFormat, nt, attachments); err != nil {
 			fmt.Fprintf(stderr, "%s notify error: %s\n", notify.TargetSchemaName(parsed.Scheme), err)
 			failed = true
 		}
@@ -450,7 +521,7 @@ func resolveNotifyURLs(opts *cliOptions, args []string, stderr io.Writer) []tagg
 	}
 
 	if len(opts.configPaths) > 0 {
-		return filterTaggedURLs(loadTaggedURLs(loadConfigPaths(opts.configPaths)), parseTagFilters(opts.tags))
+		return filterTaggedURLs(loadTaggedURLsForOptions(opts, loadConfigPaths(opts.configPaths)), parseTagFilters(opts.tags))
 	}
 
 	if raw := strings.TrimSpace(os.Getenv(defaultEnvAppriseURLs)); raw != "" {
@@ -461,5 +532,5 @@ func resolveNotifyURLs(opts *cliOptions, args []string, stderr io.Writer) []tagg
 		return filterTaggedURLs(parsed, parseTagFilters(opts.tags))
 	}
 
-	return filterTaggedURLs(loadTaggedURLs(loadConfigPaths(nil)), parseTagFilters(opts.tags))
+	return filterTaggedURLs(loadTaggedURLsForOptions(opts, loadConfigPaths(nil)), parseTagFilters(opts.tags))
 }

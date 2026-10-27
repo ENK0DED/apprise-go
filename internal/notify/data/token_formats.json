@@ -10,6 +10,7 @@
   },
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[A-Z0-9_-]+$",
    "token": "appuser"
   }
@@ -17,6 +18,7 @@
  "brevo": {
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-zA-Z0-9._-]+$",
    "token": "apikey"
   }
@@ -24,6 +26,7 @@
  "bulkvs": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^\\+?[0-9\\s)(+-]+$",
    "token": "from_phone"
   }
@@ -66,6 +69,16 @@
    "token": "source"
   }
  },
+ "cliq": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^[A-Z0-9]+(\\.[A-Z0-9]+)+$",
+   "token": "token"
+  }
+ },
  "dingtalk": {
   "host": {
    "ignorecase": true,
@@ -87,6 +100,7 @@
  "eight00com": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^\\+?[0-9\\s)(+-]+$",
    "token": "from_phone"
   }
@@ -104,20 +118,59 @@
  "flock": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9-]+$",
+   "token": "token"
+  }
+ },
+ "github": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [],
+   "pattern": "^[a-z0-9-]+$",
+   "token": "owner"
+  },
+  "user": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^[a-z0-9_-]+$",
    "token": "token"
   }
  },
  "httpsms": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^\\+?[0-9\\s)(+-]+$",
    "token": "from_phone"
+  }
+ },
+ "ilert": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "key"
+   ],
+   "pattern": "^[A-Z0-9_-]+$",
+   "token": "key"
+  }
+ },
+ "incidentio": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "source"
+   ],
+   "pattern": "^[A-Z0-9]+$",
+   "token": "source"
   }
  },
  "join": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]{32}$",
    "token": "apikey"
   }
@@ -125,6 +178,7 @@
  "kavenegar": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]+$",
    "token": "apikey"
   },
@@ -140,6 +194,7 @@
  "kumulos": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
    "token": "apikey"
   }
@@ -147,35 +202,69 @@
  "lark": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9-]+$",
    "token": "token"
   }
  },
-	"lauther": {
-	 "host": {
-	  "ignorecase": true,
-	  "override_args": [
-	   "token"
-	  ],
-	  "pattern": "^lpt_[a-z0-9]+$",
-	  "token": "token"
-	 }
-	},
+ "lauther": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^lpt_[a-z0-9]+$",
+   "token": "token"
+  }
+ },
+ "lfg": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^[a-z0-9]{32}$",
+   "token": "token"
+  }
+ },
  "mailersend": {
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-zA-Z0-9._-]+$",
    "token": "apikey"
+  }
+ },
+ "mobilemessage": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "from"
+   ],
+   "pattern": "^\\+?[a-z0-9][a-z0-9 ()_.-]{1,19}$",
+   "token": "sender"
+  }
+ },
+ "mobilemsg": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "from"
+   ],
+   "pattern": "^\\+?[a-z0-9][a-z0-9 ()_.-]{1,19}$",
+   "token": "sender"
   }
  },
  "msg91": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]+$",
    "token": "authkey"
   },
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9 _-]+$",
    "token": "template"
   }
@@ -183,6 +272,7 @@
  "msgbird": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]{25}$",
    "token": "apikey"
   }
@@ -252,6 +342,7 @@
  "prowl": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[A-Za-z0-9]{40}$",
    "token": "apikey"
   }
@@ -259,6 +350,7 @@
  "push": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
    "token": "apikey"
   }
@@ -286,6 +378,7 @@
  "qq": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]{24,64}$",
    "token": "token"
   }
@@ -293,6 +386,7 @@
  "reddit": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9_-]+$",
    "token": "app_id"
   }
@@ -310,6 +404,7 @@
  "ringc": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9_-]+$",
    "token": "client_id"
   }
@@ -317,6 +412,7 @@
  "ryver": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[A-Z0-9_-]{3,32}$",
    "token": "organization"
   }
@@ -324,6 +420,7 @@
  "sendgrid": {
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[A-Z0-9._-]+$",
    "token": "apikey"
   }
@@ -368,6 +465,7 @@
  "spike": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]{32}$",
    "token": "token"
   }
@@ -394,8 +492,19 @@
  "spugpush": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-zA-Z0-9_-]{32,64}$",
    "token": "token"
+  }
+ },
+ "squadcast": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "key"
+   ],
+   "pattern": "^[A-Z0-9_-]+$",
+   "token": "key"
   }
  },
  "stackfield": {
@@ -411,13 +520,23 @@
  "strmlabs": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^[a-z0-9]{40}$",
    "token": "access_token"
+  }
+ },
+ "telnyx": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [],
+   "pattern": "^\\+?[0-9\\s)(+-]+$",
+   "token": "from_phone"
   }
  },
  "tgram": {
   "host": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^(bot)?(?P<key>[0-9]+:[a-z0-9_-]+)$",
    "token": "bot_token"
   }
@@ -425,6 +544,7 @@
  "trigv": {
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^trgv_[a-zA-Z0-9]{8}_[a-zA-Z0-9]{32}$",
    "token": "api_key"
   }
@@ -432,6 +552,7 @@
  "trigvs": {
   "user": {
    "ignorecase": true,
+   "override_args": [],
    "pattern": "^trgv_[a-zA-Z0-9]{8}_[a-zA-Z0-9]{32}$",
    "token": "api_key"
   }
@@ -510,6 +631,7 @@
  "wechat": {
   "host": {
    "ignorecase": false,
+   "override_args": [],
    "pattern": "^[0-9]+$",
    "token": "host"
   }
@@ -552,6 +674,16 @@
    "token": "token"
   }
  },
+ "wpush": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "apikey"
+   ],
+   "pattern": "^WPUSH[a-z0-9]{27}$",
+   "token": "apikey"
+  }
+ },
  "wxpusher": {
   "host": {
    "ignorecase": true,
@@ -559,6 +691,36 @@
     "token"
    ],
    "pattern": "^AT_[^\\s]+$",
+   "token": "token"
+  }
+ },
+ "youlmk": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^(ylk_[a-z0-9]{32}|k_[a-z0-9]{14})$",
+   "token": "token"
+  }
+ },
+ "zcliq": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^[A-Z0-9]+(\\.[A-Z0-9]+)+$",
+   "token": "token"
+  }
+ },
+ "zohocliq": {
+  "host": {
+   "ignorecase": true,
+   "override_args": [
+    "token"
+   ],
+   "pattern": "^[A-Z0-9]+(\\.[A-Z0-9]+)+$",
    "token": "token"
   }
  }

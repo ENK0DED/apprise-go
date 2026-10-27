@@ -1,0 +1,7 @@
+{
+  "name": "goalert",
+  "schemas": [
+    "goalert",
+    "goalerts"
+  ]
+}

@@ -21,6 +21,7 @@ type mattermostTarget struct {
 }
 
 type MattermostTarget struct {
+	deliveryTracker
 	host         string
 	port         int
 	secure       bool
@@ -140,7 +141,7 @@ func (m *MattermostTarget) SendWithAttachments(body, title string, notifyType No
 		channels = []mattermostTarget{{}}
 	}
 
-	for _, channel := range channels {
+	for deliveryIndex0, channel := range channels {
 		if m.mode == "bot" && channel.byName {
 			resolved, err := m.resolveChannelID(channel.value)
 			if err != nil {
@@ -164,14 +165,16 @@ func (m *MattermostTarget) SendWithAttachments(body, title string, notifyType No
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(m.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title,
+
+			// uploadFile posts one file to the channel and returns the id the post
+			// references.
+			notifyType, attachments, deliveryIndex0))
 	}
 
 	return outcome.err()
 }
 
-// uploadFile posts one file to the channel and returns the id the post
-// references.
 func (m *MattermostTarget) uploadFile(channelID string, attachment Attachment, index int) (string, error) {
 	fields := formFields{}
 	fields.Set("channel_id", channelID)
@@ -339,33 +342,14 @@ func init() {
 				},
 				"channel": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"channels": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
-				},
-				"icon_url": map[string]any{
-					"map_to":   "icon_url",
-					"name":     "Icon URL",
-					"private":  false,
-					"required": false,
-					"type":     "string",
-				},
-				"mode": map[string]any{
-					"default":  "webhook",
-					"map_to":   "mode",
-					"name":     "Mode",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"webhook", "bot"},
-				},
-				"team": map[string]any{
-					"alias_of": "user",
+					"delim":    []any{",", " "},
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -381,18 +365,43 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"icon_url": map[string]any{
+					"map_to":   "icon_url",
+					"name":     "Icon URL",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "string",
 				},
 				"image": map[string]any{
 					"default":  true,
 					"map_to":   "include_image",
 					"name":     "Include Image",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"mode": map[string]any{
+					"default":  "webhook",
+					"map_to":   "mode",
+					"name":     "Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"webhook", "bot"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
 					"type":     "bool",
@@ -404,10 +413,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -422,9 +449,12 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"team": map[string]any{
+					"alias_of": "user",
+				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -442,9 +472,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{host}/{token}", "{schema}://{host}:{port}/{token}", "{schema}://{host}/{fullpath}/{token}", "{schema}://{host}:{port}/{fullpath}/{token}", "{schema}://{user}@{host}/{token}", "{schema}://{user}@{host}:{port}/{token}", "{schema}://{user}@{host}/{fullpath}/{token}", "{schema}://{user}@{host}:{port}/{fullpath}/{token}"},
+			"templates": []any{"{schema}://{host}/{token}", "{schema}://{host}:{port}/{token}", "{schema}://{host}/{fullpath}/{token}", "{schema}://{host}:{port}/{fullpath}/{token}", "{schema}://{user}@{host}/{token}", "{schema}://{user}@{host}:{port}/{token}", "{schema}://{user}@{host}/{fullpath}/{token}", "{schema}://{user}@{host}:{port}/{fullpath}/{token}"},
 			"tokens": map[string]any{
 				"fullpath": map[string]any{
 					"map_to":   "fullpath",
@@ -475,7 +515,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"mmost", "mmosts"},
+					"values":   []any{"mmost", "mmosts"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -494,8 +534,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel", "target_channel_id"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel", "target_channel_id"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

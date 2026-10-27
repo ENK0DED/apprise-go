@@ -95,15 +95,17 @@ DROP_HEADERS = {"x-apprise-id", "x-apprise-recursion-count"}
 # session; dropping it would leave the part of the request most worth checking
 # uncompared.
 KEEP_HEADERS = {
+	"idempotency-key",
     "content-type",
     "accept",
     "accepts",
     "authorization",
     "content-range",
+    "api-token",
 }
 
 BLUESKY_CREATED_AT = "2024-01-01T00:00:00Z"
-CACHE_VERSION = 16
+CACHE_VERSION = 29
 
 # How many requests still have to fail before the mocks answer normally. Set
 # from --fail-first, and the only way to reach a retry path: every mock here
@@ -128,7 +130,7 @@ def matrix_e2ee_account():
         _matrix_e2ee_account = MatrixOlmAccount(
             ik_priv_b64=base64.b64encode(RECEIVER_IDENTITY).decode("ascii"),
             sk_priv_b64=base64.b64encode(RECEIVER_SIGNING).decode("ascii"),
-            otks={"fixture": base64.b64encode(RECEIVER_OTK).decode("ascii")},
+            fallback_otk={"id": "fixture", "sk": base64.b64encode(RECEIVER_OTK).decode("ascii")},
         )
     return _matrix_e2ee_account
 
@@ -148,8 +150,8 @@ def matrix_e2ee_device_keys():
 
 def matrix_e2ee_claimed_key():
     account = matrix_e2ee_account()
-    otks = account.one_time_keys_payload(
-        _MATRIX_E2EE_USER, _MATRIX_E2EE_DEVICE, count=1
+    otks = account.fallback_keys_payload(
+        _MATRIX_E2EE_USER, _MATRIX_E2EE_DEVICE
     )
     key_id, key_obj = next(iter(otks.items()))
     return {
@@ -355,8 +357,8 @@ def cache_key(url, body, title, notify_type, body_format, attach=None):
             "APPRISE_VAPID_TEST_ENCRYPTED": os.environ.get(
                 "APPRISE_VAPID_TEST_ENCRYPTED", ""
             ),
-            "APPRISE_SIMPLEPUSH_TEST_IV": os.environ.get(
-                "APPRISE_SIMPLEPUSH_TEST_IV", ""
+            "APPRISE_SIMPLEPUSH_TEST_NONCE": os.environ.get(
+                "APPRISE_SIMPLEPUSH_TEST_NONCE", ""
             ),
             "APPRISE_BARK_TEST_IV": os.environ.get("APPRISE_BARK_TEST_IV", ""),
         },
@@ -456,6 +458,8 @@ def apply_fixed_time():
         import apprise.plugins.ses as ses
 
         ses.datetime = FixedDatetime
+        import apprise.plugins.betterstack as betterstack
+        betterstack.datetime = FixedDatetime
     except Exception:
         pass
 
@@ -500,6 +504,9 @@ def apply_fixed_time():
         fixed_uuid = lambda: uuid_module.UUID("00000000-0000-4000-8000-000000000000")
         home_assistant.uuid4 = fixed_uuid
         pagertree.uuid4 = fixed_uuid
+        import importlib
+        for module_name in ("ilert", "incidentio", "squadcast", "wpush", "mobilemessage"):
+            importlib.import_module("apprise.plugins." + module_name).uuid4 = fixed_uuid
         matrix_base.uuid = types.SimpleNamespace(uuid4=fixed_uuid)
         # matrix.e2ee uses the original uuid module: one-time key IDs must
         # remain unique, or its fill-to-count loop can never terminate.
@@ -562,7 +569,7 @@ def apply_vapid_fixes():
         try:
             import apprise.plugins.vapid as vapid
 
-            vapid.NotifyVapid.jwt_token = property(lambda _self: jwt_token)
+            vapid.NotifyVapid._jwt_token = lambda _self, _audience: jwt_token
         except Exception:
             pass
 
@@ -587,19 +594,19 @@ def apply_vapid_fixes():
 
 
 def apply_simplepush_fixes():
-    iv_hex = os.environ.get("APPRISE_SIMPLEPUSH_TEST_IV")
-    if not iv_hex:
+    nonce_hex = os.environ.get("APPRISE_SIMPLEPUSH_TEST_NONCE")
+    if not nonce_hex:
         return
-    try:
-        iv_bytes = bytes.fromhex(iv_hex)
-    except Exception:
+    nonce = bytes.fromhex(nonce_hex)
+    if len(nonce) != 24:
+        raise ValueError("invalid Simplepush test nonce")
+    import apprise.plugins.simplepush as simplepush
+    if not simplepush.NOTIFY_SIMPLEPUSH_ENCRYPTION:
         return
-    try:
-        import apprise.plugins.simplepush as simplepush
-
-        simplepush.urandom = lambda n, _iv=iv_bytes: _iv[:n]
-    except Exception:
-        pass
+    # Keep the deterministic hook local to this provider; Matrix and other
+    # cryptographic code must retain their own randomness.
+    simplepush.sodium = types.SimpleNamespace(**vars(simplepush.sodium))
+    simplepush.sodium.randombytes = lambda n: nonce[:n]
 
 
 def apply_bark_fixes():
@@ -621,6 +628,10 @@ def capture_request(url, body, title, notify_type, body_format=None, attach=None
     if cached is not None:
         return cached
 
+    # Request traces compare payloads and order. Disable network pacing only
+    # inside this mocked transport; retry waits retain their real behavior.
+    from apprise.plugins.base import NotifyBase
+    NotifyBase.throttle = lambda *_args, **_kwargs: None
     apply_fixed_time()
     apply_fixed_mime_boundary()
     apply_store_fix()
@@ -699,7 +710,28 @@ def capture_request(url, body, title, notify_type, body_format=None, attach=None
         response = requests.Response()
         response.status_code = 200
         hostname = parsed.hostname or ""
-        if hostname in ("sendpulse.com", "api.sendpulse.com") and parsed.path == "/oauth/access_token":
+        if hostname == "api.simplepu.sh" and parsed.path == "/v1/user":
+            response._content = b'{"passwordSalt":"account-salt"}'
+        elif hostname == "api.simplepu.sh" and parsed.path == "/v1/org/integration/keys":
+            response._content = b'{"scopes":["send"],"enabled":true,"adminPubkeyB64":"AerU8GDWMVAxAcpQ88ahb7m9EYA4tcfGPXJC9BCq5FI=","wrappedKeys":[{"version":1,"blob":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXWxla8h7qzwxygjDwKeivC0WidcuECuOTsRO4F9p1yETzfCJfL2TJjk9J12Rabt9U"}]}'
+        elif hostname == "api.simplepu.sh" and parsed.path == "/v1/tasks/json":
+            files = json.loads(body_text).get("files", [])
+            response._content = json.dumps({"attachments":[{"id":"attachment-"+str(i+1)} for i in range(len(files))]}).encode()
+        elif hostname == "api.simplepu.sh" and parsed.path.endswith("/upload-url"):
+            attachment_id = parsed.path.split("/")[-2]
+            response._content = json.dumps({"presignedPutUrl":"https://upload.simplepu.sh/"+attachment_id}).encode()
+        elif hostname == "api.github.com" and parsed.path == "/graphql":
+            response._content = b'{"data":{"repository":{"id":"repo-id","discussion":{"id":"discussion-id"},"discussionCategories":{"nodes":[{"id":"general-id","name":"General","slug":"general"},{"id":"ideas-id","name":"Ideas","slug":"ideas"}]}}}}'
+        elif hostname == "api.mobilemessage.com.au":
+            messages = json.loads(body_text).get("messages", [])
+            response._content = json.dumps({"status":"complete","results":[{"status":"success"} for _ in messages]}).encode("utf-8")
+        elif hostname == "api.lfg.gm":
+            response._content = b'{"fired":true,"devices":2}'
+        elif hostname == "api.wpush.cn":
+            response._content = b'{"code":0}'
+        elif hostname == "files.slack.com" and parsed.path.startswith("/upload/"):
+            response._content = b"OK - 70"
+        elif hostname in ("sendpulse.com", "api.sendpulse.com") and parsed.path == "/oauth/access_token":
             response._content = b'{"access_token":"token","expires_in":3600}'
         elif hostname in ("reddit.com", "www.reddit.com") and parsed.path == "/api/v1/access_token":
             response._content = b'{"access_token":"token","expires_in":3600}'
@@ -831,6 +863,7 @@ def capture_request(url, body, title, notify_type, body_format=None, attach=None
                     "access_token": "token",
                     "home_server": host,
                     "user_id": f"@user:{host}",
+                    "device_id": "APPRISEDEVICE",
                 }
             ).encode("utf-8")
         elif "/_matrix/client/" in parsed.path and parsed.path.endswith("/account/whoami"):

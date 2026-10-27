@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -16,6 +17,7 @@ type Signl4Target struct {
 	location         string
 	alertingScenario string
 	filtering        bool
+	action           string
 	externalID       string
 	status           string
 }
@@ -29,14 +31,31 @@ func NewSignl4Target(target *ParsedURL) (*Signl4Target, error) {
 		return nil, fmt.Errorf("missing secret")
 	}
 
+	action := "trigger"
+	if raw := strings.ToLower(strings.TrimSpace(target.Query["action"])); raw != "" {
+		action = ""
+		for _, candidate := range []string{"trigger", "map", "acknowledge", "resolve"} {
+			if strings.HasPrefix(candidate, raw) {
+				action = candidate
+				break
+			}
+		}
+		if action == "" {
+			return nil, fmt.Errorf("invalid SIGNL4 action")
+		}
+	}
+	externalID := strings.TrimSpace(target.Query["external_id"])
+	if target.Query["external_id"] == "" {
+		externalID = strings.TrimSpace(target.Query["dedup"])
+	}
 	return &Signl4Target{
-		secret:           secret,
+		secret: secret, action: action,
 		service:          strings.TrimSpace(target.Query["service"]),
 		location:         strings.TrimSpace(target.Query["location"]),
 		alertingScenario: strings.TrimSpace(target.Query["alerting_scenario"]),
 		filtering:        parseBoolWithDefault(target.Query["filtering"], false),
-		externalID:       strings.TrimSpace(target.Query["external_id"]),
-		status:           strings.TrimSpace(target.Query["status"]),
+		externalID:       externalID,
+		status:           target.Query["status"],
 	}, nil
 }
 
@@ -102,14 +121,29 @@ func (s *Signl4Target) buildPayload(body, title string, notifyType NotifyType) m
 	if s.filtering {
 		payload["X-S4-Filtering"] = s.filtering
 	}
-	if s.externalID != "" {
-		payload["X-S4-ExternalID"] = s.externalID
+	externalID := s.externalID
+	if externalID == "" && s.action != "trigger" {
+		identity := title
+		if identity == "" {
+			identity = strings.TrimSpace(strings.SplitN(body, "\n", 2)[0])
+		}
+		externalID = fmt.Sprintf("%x", sha256.Sum256([]byte(identity)))
 	}
-	if s.status != "" {
-		payload["X-S4-Status"] = s.status
+	status := s.status
+	if status == "" {
+		switch {
+		case s.action == "resolve" || s.action == "map" && notifyType == NotifySuccess:
+			status = "resolved"
+		case s.action == "acknowledge":
+			status = "acknowledged"
+		}
 	}
-
-	_ = notifyType
+	if externalID != "" {
+		payload["X-S4-ExternalID"] = externalID
+	}
+	if status != "" {
+		payload["X-S4-Status"] = status
+	}
 
 	return payload
 }
@@ -120,6 +154,15 @@ func init() {
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"action": map[string]any{
+					"default":  "trigger",
+					"map_to":   "action",
+					"name":     "Action",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"trigger", "map", "acknowledge", "resolve"},
+				},
 				"alerting_scenario": map[string]any{
 					"map_to":   "alerting_scenario",
 					"name":     "Alerting Scenario",
@@ -128,12 +171,15 @@ func init() {
 					"type":     "string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
 					"required": false,
 					"type":     "float",
+				},
+				"dedup": map[string]any{
+					"alias_of": "external_id",
 				},
 				"emojis": map[string]any{
 					"default":  false,
@@ -159,13 +205,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"location": map[string]any{
 					"map_to":   "location",
@@ -174,6 +221,14 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -181,10 +236,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -229,9 +302,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{secret}"},
+			"templates": []any{"{schema}://{secret}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "signl4",
@@ -240,7 +323,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"signl4"},
+					"values":   []any{"signl4"},
 				},
 				"secret": map[string]any{
 					"map_to":   "secret",

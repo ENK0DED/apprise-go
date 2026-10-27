@@ -1,0 +1,30 @@
+[
+  {
+    "name": "android",
+    "url": "gorush://example.com/tokenA/tokenB",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "ios",
+    "url": "gorushs://user:pass@example.com:8443/token?platform=apns&priority=h&badge=0&topic=com.example.app&sound=default&+key=value",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "huawei",
+    "url": "gorush://user@example.com/token?mode=3",
+    "title": "",
+    "body": "Body",
+    "type": "warning"
+  },
+  {
+    "name": "targets",
+    "url": "gorushs://example.com/zeta/alpha?to=beta,alpha&platform=fcm",
+    "title": "Title",
+    "body": "Body",
+    "type": "success"
+  }
+]

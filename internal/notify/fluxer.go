@@ -22,9 +22,11 @@ var (
 )
 
 type FluxerTarget struct {
+	deliveryTracker
 	webhookID    string
 	webhookToken string
 	host         string
+	fullpath     string
 	port         int
 	secure       bool
 	mode         string
@@ -86,12 +88,26 @@ func NewFluxerTarget(target *ParsedURL) (*FluxerTarget, error) {
 		}
 	}
 
-	format := normalizeDiscordFormat(target.Query["format"])
+	fullpath := ""
+	if mode == "private" {
+		if len(tokens) > 3 {
+			fullpath = strings.Join(tokens[1:len(tokens)-2], "/")
+		}
+		if override := strings.TrimSpace(target.Query["path"]); override != "" {
+			fullpath = override
+		}
+		if fullpath == "" {
+			fullpath = "/api/"
+		}
+		fullpath = "/" + strings.Trim(fullpath, "/")
+	}
+	format := normalizeDiscordFormat(targetNotifyFormat(target))
 
 	fluxer := &FluxerTarget{
 		webhookID:    webhookID,
 		webhookToken: webhookToken,
 		host:         host,
+		fullpath:     fullpath,
 		port:         target.Port,
 		secure:       strings.EqualFold(target.Scheme, "fluxers"),
 		mode:         mode,
@@ -264,7 +280,7 @@ func (f *FluxerTarget) SendWithAttachments(body, title string, notifyType Notify
 	if err != nil {
 		return err
 	}
-	outcome.record(SendRequest(spec))
+	outcome.record(f.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments))
 
 	if len(attachments) == 0 {
 		return outcome.err()
@@ -295,7 +311,7 @@ func (f *FluxerTarget) SendWithAttachments(body, title string, notifyType Notify
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(f.sendTrackedRequestFor(spec, "SendWithAttachments:1", body, title, notifyType, attachments, index))
 	}
 
 	return outcome.err()
@@ -316,7 +332,7 @@ func (f *FluxerTarget) prefix() string {
 		prefix += fmt.Sprintf(":%d", f.port)
 	}
 
-	return prefix
+	return prefix + strings.TrimRight(f.fullpath, "/")
 }
 func init() {
 	RegisterSchemaEntryOrdered(164, SchemaEntry{
@@ -340,7 +356,7 @@ func init() {
 					"type":     "string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -388,13 +404,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"href": map[string]any{
 					"map_to":   "href",
@@ -418,7 +435,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"cloud", "private"},
+					"values":   []any{"cloud", "private"},
 				},
 				"name": map[string]any{
 					"alias_of": "botname",
@@ -438,10 +455,13 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"path": map[string]any{
+					"alias_of": "path",
 				},
 				"ping": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "ping",
 					"name":     "Ping Users/Roles",
@@ -468,7 +488,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -525,10 +545,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -536,7 +556,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{webhook_id}/{webhook_token}", "{schema}://{host}/{webhook_id}/{webhook_token}", "{schema}://{host}:{port}/{webhook_id}/{webhook_token}", "{schema}://{botname}@{webhook_id}/{webhook_token}", "{schema}://{botname}@{host}:{port}/{webhook_id}/{webhook_token}"},
+			"templates": []any{"{schema}://{webhook_id}/{webhook_token}", "{schema}://{host}/{webhook_id}/{webhook_token}", "{schema}://{host}:{port}/{webhook_id}/{webhook_token}", "{schema}://{host}{path}{webhook_id}/{webhook_token}", "{schema}://{host}:{port}{path}{webhook_id}/{webhook_token}", "{schema}://{botname}@{webhook_id}/{webhook_token}", "{schema}://{botname}@{host}:{port}/{webhook_id}/{webhook_token}", "{schema}://{botname}@{host}:{port}{path}{webhook_id}/{webhook_token}"},
 			"tokens": map[string]any{
 				"botname": map[string]any{
 					"map_to":   "user",
@@ -548,6 +568,14 @@ func init() {
 				"host": map[string]any{
 					"map_to":   "host",
 					"name":     "Hostname",
+					"private":  false,
+					"required": false,
+					"type":     "string",
+				},
+				"path": map[string]any{
+					"default":  "/api/",
+					"map_to":   "fullpath",
+					"name":     "Path",
 					"private":  false,
 					"required": false,
 					"type":     "string",
@@ -567,13 +595,13 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"fluxer", "fluxers"},
+					"values":   []any{"fluxer", "fluxers"},
 				},
 				"webhook_id": map[string]any{
 					"map_to":   "webhook_id",
 					"name":     "Webhook ID",
 					"private":  true,
-					"regex":    []string{"^[0-9]{10,}$", "i"},
+					"regex":    []any{"^[0-9]{10,}$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -581,7 +609,7 @@ func init() {
 					"map_to":   "webhook_token",
 					"name":     "Webhook Token",
 					"private":  true,
-					"regex":    []string{"^[A-Za-z0-9_\\-]{16,}$", "i"},
+					"regex":    []any{"^[A-Za-z0-9_\\-]{16,}$", "i"},
 					"required": true,
 					"type":     "string",
 				},

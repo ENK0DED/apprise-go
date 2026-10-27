@@ -19,6 +19,7 @@ type AppriseTarget struct {
 	target *ParsedURL
 
 	method  string
+	version string
 	token   string
 	path    string
 	tags    []string
@@ -30,17 +31,23 @@ var appriseTokenRe = regexp.MustCompile(`(?i)^[A-Z0-9_-]{1,128}$`)
 
 func NewAppriseTarget(target *ParsedURL) (*AppriseTarget, error) {
 	segments := splitPath(target.Path)
-	if len(segments) == 0 {
-		return nil, fmt.Errorf("missing token")
-	}
-
 	// Upstream validates the token's shape and raises; a URL whose last path
 	// segment is punctuation names no configuration that can exist.
-	token := segments[len(segments)-1]
+	token := target.Query["token"]
+	if token == "" {
+		token = target.Query["to"]
+	}
+	pathSegments := segments
+	if token == "" {
+		if len(segments) == 0 {
+			return nil, fmt.Errorf("missing token")
+		}
+		token = segments[len(segments)-1]
+		pathSegments = segments[:len(segments)-1]
+	}
 	if !appriseTokenRe.MatchString(token) {
 		return nil, fmt.Errorf("invalid apprise api token: %q", token)
 	}
-	pathSegments := segments[:len(segments)-1]
 	pathPrefix := ""
 	if len(pathSegments) > 0 {
 		pathPrefix = "/" + strings.Join(pathSegments, "/")
@@ -52,6 +59,16 @@ func NewAppriseTarget(target *ParsedURL) (*AppriseTarget, error) {
 	}
 	if method != appriseMethodForm && method != appriseMethodJSON {
 		return nil, fmt.Errorf("invalid method: %s", method)
+	}
+	version := target.Query["version"]
+	if version == "" {
+		version = target.Query["v"]
+	}
+	if version == "" {
+		version = "2"
+	}
+	if version != "1" && version != "2" {
+		return nil, fmt.Errorf("invalid Apprise API version")
 	}
 
 	tags := []string{}
@@ -68,6 +85,7 @@ func NewAppriseTarget(target *ParsedURL) (*AppriseTarget, error) {
 	return &AppriseTarget{
 		target:  target,
 		method:  method,
+		version: version,
 		token:   token,
 		path:    pathPrefix,
 		tags:    tags,
@@ -90,7 +108,10 @@ func (a *AppriseTarget) buildRequest(body, title string, notifyType NotifyType, 
 		host = fmt.Sprintf("%s:%d", host, a.target.Port)
 	}
 
-	endpoint := fmt.Sprintf("%s/notify/%s", a.path, a.token)
+	endpoint := a.path + "/notify"
+	if a.version == "1" {
+		endpoint += "/" + a.token
+	}
 	u := url.URL{
 		Scheme: scheme,
 		Host:   host,
@@ -100,9 +121,18 @@ func (a *AppriseTarget) buildRequest(body, title string, notifyType NotifyType, 
 		RawPath: pythonQuotePath(endpoint),
 	}
 
-	headers := cloneMap(a.headers)
-	headers["User-Agent"] = "Apprise"
+	headers := map[string]string{"User-Agent": "Apprise"}
+	for key, value := range a.headers {
+		headers[key] = value
+	}
 	headers["Accept"] = "application/json"
+	if a.version == "2" {
+		headers["X-Apprise-Config-ID"] = a.token
+	}
+	format := a.target.sourceNotifyFormat
+	if format == "" {
+		format = normalizeNotifyFormat(a.target.Query["format"])
+	}
 	if a.target.HasUser {
 		password := a.target.Password
 		if !a.target.HasPassword {
@@ -117,7 +147,9 @@ func (a *AppriseTarget) buildRequest(body, title string, notifyType NotifyType, 
 		values.Set("title", title)
 		values.Set("body", body)
 		values.Set("type", string(notifyType))
-		values.Set("format", "text")
+		if format != "" {
+			values.Set("format", format)
+		}
 		for _, tag := range a.tags {
 			values.Add("tag", tag)
 		}
@@ -148,10 +180,12 @@ func (a *AppriseTarget) buildRequest(body, title string, notifyType NotifyType, 
 	}
 
 	payload := map[string]any{
-		"title":  title,
-		"body":   body,
-		"type":   string(notifyType),
-		"format": "text",
+		"title": title,
+		"body":  body,
+		"type":  string(notifyType),
+	}
+	if format != "" {
+		payload["format"] = format
 	}
 	if len(a.tags) > 0 {
 		payload["tag"] = a.tags

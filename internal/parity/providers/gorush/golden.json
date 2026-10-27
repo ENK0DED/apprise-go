@@ -1,0 +1,64 @@
+[
+  {
+    "name": "android",
+    "requests": [
+      {
+        "body": "{\"notifications\": [{\"tokens\": [\"tokenA\", \"tokenB\"], \"platform\": 2, \"message\": \"Body\", \"title\": \"Title\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/api/push"
+      }
+    ]
+  },
+  {
+    "name": "ios",
+    "requests": [
+      {
+        "body": "{\"notifications\": [{\"tokens\": [\"token\"], \"platform\": 1, \"message\": \"Body\", \"title\": \"Title\", \"priority\": \"high\", \"topic\": \"com.example.app\", \"sound\": \"default\", \"badge\": 0, \"data\": {\"key\": \"value\"}}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/api/push"
+      }
+    ]
+  },
+  {
+    "name": "huawei",
+    "requests": [
+      {
+        "body": "{\"notifications\": [{\"tokens\": [\"token\"], \"platform\": 3, \"message\": \"Body\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Basic dXNlcjpOb25l",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/api/push"
+      }
+    ]
+  },
+  {
+    "name": "targets",
+    "requests": [
+      {
+        "body": "{\"notifications\": [{\"tokens\": [\"alpha\", \"beta\", \"zeta\"], \"platform\": 2, \"message\": \"Body\", \"title\": \"Title\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/api/push"
+      }
+    ]
+  }
+]

@@ -149,7 +149,7 @@ def normalize_requests(requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
         path = unquote(urlparse(request["url"]).path)
         if path.endswith("/keys/upload"):
             payload = json.loads(request["body"])
-            require(set(payload) == {"device_keys", "one_time_keys", "fallback_keys"}, "incomplete key upload")
+            require(set(payload) == {"device_keys", "fallback_keys"}, "incomplete key upload")
             keys = payload["device_keys"]
             user, device = keys["user_id"], keys["device_id"]
             identity, signing = b64(keys["keys"]["curve25519:"+device]), b64(keys["keys"]["ed25519:"+device])
@@ -157,7 +157,7 @@ def normalize_requests(requests: list[dict[str, Any]]) -> list[dict[str, Any]]:
             require(len(identity) == len(signing) == 32, "invalid device key length")
             require(keys["algorithms"] == ["m.olm.v1.curve25519-aes-sha2", "m.megolm.v1.aes-sha2"], "wrong device algorithms")
             signed_object(keys, user, device, signing)
-            for name, count in (("one_time_keys", 10), ("fallback_keys", 1)):
+            for name, count in (("fallback_keys", 1),):
                 objects = payload[name]
                 require(len(objects) == count, "wrong "+name+" count")
                 public_keys = set()

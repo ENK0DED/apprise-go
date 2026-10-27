@@ -47,6 +47,7 @@ const office365PersonalDomainList = "hotmail.at hotmail.be hotmail.ca hotmail.cl
 	"outlook.ph outlook.pt outlook.rs outlook.sa outlook.sg outlook.sk"
 
 type Office365Target struct {
+	deliveryTracker
 	tenant      string
 	clientID    string
 	secret      string
@@ -240,7 +241,7 @@ func (o *Office365Target) SendWithAttachments(body, title string, notifyType Not
 		small = append(small, attachment)
 	}
 
-	for _, target := range o.targets {
+	for deliveryIndex0, target := range o.targets {
 		payload, err := o.mailPayload(body, title, target, small)
 		if err != nil {
 			return err
@@ -261,7 +262,7 @@ func (o *Office365Target) SendWithAttachments(body, title string, notifyType Not
 		}
 
 		if len(large) == 0 {
-			outcome.record(SendRequest(spec))
+			outcome.record(o.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 			continue
 		}
 
@@ -488,7 +489,7 @@ func (o *Office365Target) mailPayload(body, title, target string, attachments []
 				"name":        attachment.FileName(index, ".dat"),
 				// Upstream sends the literal string rather than the file's
 				// type here. Matching it is the point of this port.
-				"contentType":  "attachment.mimetype",
+				"contentType":  attachment.MIMEType,
 				"contentBytes": attachment.Base64(),
 			})
 		}

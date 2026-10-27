@@ -25,6 +25,8 @@ var mailtoModePorts = map[string]int{
 }
 
 type MailtoTarget struct {
+	deliveryTracker
+	pgp          *mailPGP
 	smtpHost     string
 	port         int
 	secureMode   string
@@ -78,22 +80,9 @@ func NewMailtoTarget(target *ParsedURL) (*MailtoTarget, error) {
 		return nil, fmt.Errorf("invalid secure mode")
 	}
 
-	// PGP signing and encryption are not implemented here. Accepting the
-	// request and sending plaintext would be worse than refusing it: someone
-	// who asked for encryption would believe they had it.
-	if pgpMode := strings.ToLower(strings.TrimSpace(target.Query["pgp"])); pgpMode != "" {
-		switch {
-		case strings.HasPrefix("no", pgpMode):
-		case strings.HasPrefix("sign", pgpMode), strings.HasPrefix("encrypt", pgpMode):
-			return nil, fmt.Errorf("pgp %s is not supported", pgpMode)
-		default:
-			return nil, fmt.Errorf("invalid pgp mode: %s", target.Query["pgp"])
-		}
-	}
-	// wkd=yes implies encryption upstream, so it is refused for the same
-	// reason.
-	if parseBoolWithDefault(target.Query["wkd"], false) {
-		return nil, fmt.Errorf("pgp web key directory is not supported")
+	pgp, err := newMailPGP(target)
+	if err != nil {
+		return nil, err
 	}
 
 	port := target.Port
@@ -137,7 +126,7 @@ func NewMailtoTarget(target *ParsedURL) (*MailtoTarget, error) {
 
 	// An unrecognized ?format= falls back to the plugin default rather than
 	// failing; see the note in telegram.go.
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	switch format {
 	case "html", "markdown", "text":
 	default:
@@ -158,7 +147,7 @@ func NewMailtoTarget(target *ParsedURL) (*MailtoTarget, error) {
 	}
 
 	return &MailtoTarget{
-		smtpHost:     smtpHost,
+		smtpHost: smtpHost, pgp: pgp,
 		port:         port,
 		secureMode:   mode,
 		user:         strings.TrimSpace(target.User),
@@ -237,26 +226,29 @@ func (m *MailtoTarget) Send(body, title string, notifyType NotifyType) error {
 }
 
 func (m *MailtoTarget) SendWithAttachments(body, title string, notifyType NotifyType, attachments []Attachment) error {
-	client, err := m.connect()
-	if err != nil {
-		return err
-	}
-	defer func() {
-		_ = client.Quit()
-	}()
-
 	messages, err := m.buildMessages(body, title, attachments)
 	if err != nil {
 		return err
 	}
-
+	if len(messages) == 0 {
+		return nil
+	}
+	client, err := m.connect()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = client.Quit() }()
+	var outcome sendOutcome
 	for _, message := range messages {
-		if err := sendSMTPMessage(client, m.fromAddr, message.toAddrs, message.body); err != nil {
-			return err
+		err := sendSMTPMessage(client, m.fromAddr, message.toAddrs, message.body)
+		outcome.record(err)
+		if err == nil {
+			m.markDelivered(message.recipient)
+		} else {
+			_ = client.Reset()
 		}
 	}
-
-	return nil
+	return outcome.err()
 }
 
 func (m *MailtoTarget) connect() (*smtp.Client, error) {
@@ -274,9 +266,12 @@ func (m *MailtoTarget) connect() (*smtp.Client, error) {
 				tlsConfig.RootCAs = pool
 			}
 		}
-		conn, err := tls.Dial("tcp", addr, tlsConfig)
+		conn, err := tls.DialWithDialer(notificationDialer(), "tcp", addr, tlsConfig)
 		if err != nil {
 			return nil, err
+		}
+		if deadline := currentNotificationDeadline(); !deadline.IsZero() {
+			_ = conn.SetDeadline(deadline)
 		}
 		client, err := smtp.NewClient(conn, m.smtpHost)
 		if err != nil {
@@ -286,11 +281,14 @@ func (m *MailtoTarget) connect() (*smtp.Client, error) {
 		return m.authenticate(client)
 	}
 
-	conn, err := net.Dial("tcp", addr)
+	conn, err := notificationDialer().Dial("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 
+	if deadline := currentNotificationDeadline(); !deadline.IsZero() {
+		_ = conn.SetDeadline(deadline)
+	}
 	client, err := smtp.NewClient(conn, m.smtpHost)
 	if err != nil {
 		_ = conn.Close()
@@ -355,12 +353,24 @@ func (m *MailtoTarget) buildMessages(body, title string, attachments []Attachmen
 	messages := make([]mailtoMessage, 0, len(m.targets))
 
 	for _, target := range m.targets {
+		if m.isDelivered(target) {
+			continue
+		}
 		cc := filterEmailList(m.cc, append([]string{}, m.bcc...), target)
 		bcc := filterEmailList(m.bcc, nil, target)
 		reply := filterEmailList(m.replyTo, nil, target)
 
 		contentTypeHeader, transferHeader, messageBody := buildMailtoBody(
 			body, format, m.inline, attachments)
+		autocrypt := ""
+		if m.pgp != nil {
+			var err error
+			contentTypeHeader, transferHeader, messageBody, autocrypt, err = m.pgp.secure(contentTypeHeader, transferHeader, messageBody, target, m.fromAddr, subject)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		headers := []string{
 			fmt.Sprintf("Subject: %s", subject),
 			fmt.Sprintf("From: %s", fromHeader),
@@ -382,9 +392,15 @@ func (m *MailtoTarget) buildMessages(body, title string, attachments []Attachmen
 			headers = append(headers, "Reply-To: "+joinMailtoAddresses(reply))
 		}
 		for key, value := range m.headers {
+			if autocrypt != "" && strings.EqualFold(key, "Autocrypt") {
+				continue
+			}
 			headers = append(headers, fmt.Sprintf("%s: %s", key, value))
 		}
 
+		if autocrypt != "" {
+			headers = append(headers, "Autocrypt: "+autocrypt)
+		}
 		data := strings.Join(headers, "\r\n") + "\r\n\r\n" + messageBody
 		toAddrs := append([]string{target}, cc...)
 		toAddrs = append(toAddrs, bcc...)

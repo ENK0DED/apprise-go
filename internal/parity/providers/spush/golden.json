@@ -3,14 +3,15 @@
     "name": "default",
     "requests": [
       {
-        "body": "key=apikey123456&msg=hello+from+python&title=apprise+parity",
+        "body": "{\"contentFormat\": \"markdown\", \"title\": \"apprise parity\", \"content\": \"hello from python\"}",
         "headers": {
           "accept": "*/*",
-          "content-type": "application/x-www-form-urlencoded",
+          "api-token": "apikey123456",
+          "content-type": "application/json",
           "user-agent": "Apprise"
         },
         "method": "POST",
-        "url": "https://api.simplepush.io/send"
+        "url": "https://api.simplepu.sh/v1/tasks/json"
       }
     ]
   },
@@ -18,14 +19,239 @@
     "name": "event",
     "requests": [
       {
-        "body": "key=apikey123456&msg=body&title=title&event=deploy",
+        "body": "{\"contentFormat\": \"markdown\", \"title\": \"title\", \"content\": \"body\"}",
         "headers": {
           "accept": "*/*",
-          "content-type": "application/x-www-form-urlencoded",
+          "api-token": "apikey123456",
+          "content-type": "application/json",
           "user-agent": "Apprise"
         },
         "method": "POST",
-        "url": "https://api.simplepush.io/send"
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "topics",
+    "requests": [
+      {
+        "body": "{\"topic\": \"topicB\", \"shared\": true, \"topicAuthToken\": \"auth\", \"priority\": 4, \"contentFormat\": \"markdown\", \"title\": \"Title\", \"content\": \"Body\", \"tag\": \"storage\", \"links\": [\"https://example.com\", \"https://example.org\"]}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      },
+      {
+        "body": "{\"topic\": \"topicA\", \"shared\": true, \"topicAuthToken\": \"auth\", \"priority\": 4, \"contentFormat\": \"markdown\", \"title\": \"Title\", \"content\": \"Body\", \"tag\": \"storage\", \"links\": [\"https://example.com\", \"https://example.org\"]}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "personal-encrypted",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "api-token": "api-token",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://api.simplepu.sh/v1/user"
+      },
+      {
+        "body": "{\"contentFormat\": \"markdown\", \"encryption\": {\"type\": \"personal\", \"keyFingerprint\": \"IkdbQiZyCwI=\"}, \"title\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXJQF+UkOMBP+Pv7hwPdtQZnafoUyX\", \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXldCn2LDiX0nO9pUCodxPJPylfBRu/+PO/Sx1\"}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "topic-encrypted",
+    "requests": [
+      {
+        "body": "{\"topic\": \"Storage Topic\", \"contentFormat\": \"markdown\", \"encryption\": {\"type\": \"personal\", \"keyFingerprint\": \"ia9OhpI05HU=\"}, \"title\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXB0+J7mXvhamoOqV2GvKmb4SnFLCo\", \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXEUmZ+wlpv+ekJL9ZiGo+fqeZy64=\"}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "organization",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer spi_credential",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://api.simplepu.sh/v1/org/integration/keys"
+      },
+      {
+        "body": "{\"topic\": \"Storage\", \"priority\": 5, \"criticalVolume\": 0.5, \"contentFormat\": \"markdown\", \"encryption\": {\"type\": \"org\", \"v\": 1}, \"title\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX42DwnVC45fRYRLiFTQ0RnemKvSIG\", \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX9WbgiC6pHhJPvqJwX+QTzforavo=\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer spi_credential",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      },
+      {
+        "body": "{\"member\": \"member\", \"priority\": 5, \"criticalVolume\": 0.5, \"contentFormat\": \"markdown\", \"encryption\": {\"type\": \"org\", \"v\": 1}, \"title\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX42DwnVC45fRYRLiFTQ0RnemKvSIG\", \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX9WbgiC6pHhJPvqJwX+QTzforavo=\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer spi_credential",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "broadcast",
+    "requests": [
+      {
+        "body": "",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Bearer spi_credential",
+          "user-agent": "Apprise"
+        },
+        "method": "GET",
+        "url": "https://api.simplepu.sh/v1/org/integration/keys"
+      },
+      {
+        "body": "{\"broadcast\": true, \"contentFormat\": \"markdown\", \"encryption\": {\"type\": \"org\", \"v\": 1}, \"title\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX42DwnVC45fRYRLiFTQ0RnemKvSIG\", \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX9WbgiC6pHhJPvqJwX+QTzforavo=\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer spi_credential",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      }
+    ]
+  },
+  {
+    "name": "attachment",
+    "requests": [
+      {
+        "body": "{\"contentFormat\": \"markdown\", \"title\": \"Title\", \"content\": \"Body\", \"files\": [{\"filename\": \"pixel.png\", \"contentType\": \"image/png\", \"size\": 70, \"checksumSha256\": \"xBTNDiBN6XT3N1PH4o12OOezaRu4saK6trJbt/7Xznc=\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/attachments/attachment-1/upload-url"
+      },
+      {
+        "body": "\ufffdPNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0000\u0001\u0000\u0000\u0000\u0001\b\u0006\u0000\u0000\u0000\u001f\u0015\u0109\u0000\u0000\u0000\rIDATx\ufffdc\ufffd\ufffd\ufffdP\u000f\u0000\u0004\ufffd\u0001\ufffd\ufffd\ufffd\ufffd!\u0000\u0000\u0000\u0000IEND\ufffdB`\ufffd",
+        "body_b64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/octet-stream"
+        },
+        "method": "PUT",
+        "url": "https://upload.simplepu.sh/attachment-1"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/attachments/attachment-1/complete"
+      }
+    ]
+  },
+  {
+    "name": "encrypted-attachment",
+    "requests": [
+      {
+        "body": "{\"topic\": \"topic\", \"encryption\": {\"type\": \"personal\", \"keyFingerprint\": \"4AeeI1xSiY0=\"}, \"content\": \"AAECAwQFBgcICQoLDA0ODxAREhMUFRYX43EQBEt4vqtK2gVcow+FBirkqCJdmQfbNw==\", \"files\": [{\"filename\": \"notes.txt\", \"contentType\": \"text/plain\", \"size\": 62, \"checksumSha256\": \"lLRuWBqRD3s30xetAunMeNNtxZU1aAgBnHWyVq5uaEk=\"}]}",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/tasks/json"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/attachments/attachment-1/upload-url"
+      },
+      {
+        "body": "\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\b\t\n\u000b\f\r\u000e\u000f\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\ufffdr\u0005\bVv\ufffd\ufffdF\ufffd\u0015 c\ufffd\ufffd\ufffd.\ufffd1\ufffd\u0014\ufffd\u0018\ufffd\ufffd_~\ufffd\rA,\ufffd\ufffd\u0014Y\ufffd\ufffd\u0004",
+        "body_b64": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYX/XIFCFZ2vrZG0xUgY/aNvy7PMf4Ugxjgx19+/Q1BLPjZFFmG7QQ=",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/octet-stream"
+        },
+        "method": "PUT",
+        "url": "https://upload.simplepu.sh/attachment-1"
+      },
+      {
+        "body": "",
+        "headers": {
+          "accept": "*/*",
+          "api-token": "api-token",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.simplepu.sh/v1/attachments/attachment-1/complete"
       }
     ]
   }

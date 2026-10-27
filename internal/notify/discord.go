@@ -14,6 +14,7 @@ const discordWebhookBase = "https://discord.com/api/webhooks"
 const discordMaxAttachments = 10
 
 type DiscordTarget struct {
+	deliveryTracker
 	webhookID      string
 	webhookToken   string
 	username       string
@@ -47,7 +48,7 @@ func NewDiscordTarget(target *ParsedURL) (*DiscordTarget, error) {
 	}
 
 	threadID := strings.TrimSpace(target.Query["thread"])
-	format := normalizeDiscordFormat(target.Query["format"])
+	format := normalizeDiscordFormat(targetNotifyFormat(target))
 	if format == "" {
 		if threadID != "" {
 			format = "markdown"
@@ -218,7 +219,7 @@ func (d *DiscordTarget) SendWithAttachments(body, title string, notifyType Notif
 	if err != nil {
 		return err
 	}
-	outcome.record(SendRequest(spec))
+	outcome.record(d.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments))
 
 	if len(attachments) == 0 {
 		return outcome.err()
@@ -252,7 +253,7 @@ func (d *DiscordTarget) SendWithAttachments(body, title string, notifyType Notif
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(d.sendTrackedRequestFor(spec, "SendWithAttachments:1", body, title, notifyType, attachments))
 	}
 
 	return outcome.err()
