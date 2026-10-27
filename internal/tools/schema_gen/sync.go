@@ -47,6 +47,13 @@ func literal(value any, depth int) string {
 			parts[i] = literal(item, depth+1)
 		}
 		return "[]any{" + strings.Join(parts, ", ") + "}"
+	case json.Number:
+		if integer, err := v.Int64(); err == nil {
+			if integer < -2147483648 || integer > 2147483647 {
+				return "int64(" + v.String() + ")"
+			}
+		}
+		return v.String()
 	case string:
 		return strconv.Quote(v)
 	case nil:
@@ -78,7 +85,9 @@ func run() error {
 		return fmt.Errorf("read upstream metadata: %w: %s", err, stderr.String())
 	}
 	metadata := map[string]any{}
-	if err = json.Unmarshal(data, &metadata); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+	if err = decoder.Decode(&metadata); err != nil {
 		return err
 	}
 	files, err := filepath.Glob("internal/notify/*.go")

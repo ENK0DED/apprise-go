@@ -121,7 +121,7 @@ func init() {
 				},
 				"ttl": map[string]any{
 					"map_to":   "ttl",
-					"max":      4294967295,
+					"max":      int64(4294967295),
 					"min":      0,
 					"name":     "Time To Live",
 					"private":  false,
