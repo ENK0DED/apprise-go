@@ -13,6 +13,7 @@ fi
 # Keep standalone Markdown vectors tied to the same pinned Python reference.
 .venv/bin/python internal/testutil/scripts/generate_markdown_vectors.py --check
 .venv/bin/python internal/testutil/scripts/generate_sas_vectors.py --check
+.venv/bin/python internal/testutil/scripts/generate_format_conversion_vectors.py --check
 
 go run ./internal/tools/parity_report \
   -out reports/parity_report.md \
