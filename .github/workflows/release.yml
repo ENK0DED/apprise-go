@@ -164,23 +164,10 @@ jobs:
         if: always()
         run: rm -f apple_codesign.p12 app_store_connect_key.json
 
-      - name: Upload release asset (darwin zip)
-        if: github.event_name == 'release' && matrix.notarize
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/${{ steps.set-output-name.outputs.output_name }}.zip
-
-      - name: Upload release asset (non-darwin)
-        if: github.event_name == 'release' && !matrix.notarize
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/${{ steps.set-output-name.outputs.output_name }}
-
-      - name: Upload rebuilt release asset
-        if: github.event_name == 'workflow_dispatch'
+      - name: Upload release asset
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
           OUTPUT_NAME: ${{ steps.set-output-name.outputs.output_name }}
           NOTARIZED: ${{ matrix.notarize }}
         run: |
