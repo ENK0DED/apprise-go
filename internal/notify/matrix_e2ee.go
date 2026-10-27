@@ -521,10 +521,12 @@ func encryptMatrixAttachment(data []byte) ([]byte, map[string]any, error) {
 		return nil, nil, err
 	}
 
-	iv := make([]byte, 16)
-	if _, err := rand.Read(iv[:8]); err != nil {
+	iv := make([]byte, aes.BlockSize)
+	if _, err := rand.Read(iv); err != nil {
 		return nil, nil, err
 	}
+	// Matrix uses the final eight bytes as an initially zero CTR counter.
+	clear(iv[8:])
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
