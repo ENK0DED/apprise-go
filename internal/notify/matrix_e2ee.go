@@ -25,9 +25,8 @@ import (
 // on every notification and recipients see an endless parade of unverified
 // devices, while anything sent under a previous identity stays unreadable.
 
-// Keys live for a day short of upstream's expiry so a refresh happens before
-// a server would consider them stale.
-const matrixE2EECacheTTL = 7 * 24 * time.Hour
+// Keep identity and trust records for upstream's twenty-day cache lifetime.
+const matrixE2EECacheTTL = 20 * 24 * time.Hour
 
 type matrixDeviceKeys struct {
 	Curve25519 string
@@ -65,8 +64,7 @@ func (m *MatrixTarget) e2eeAccount() (*matrixolm.Account, error) {
 
 	// The upload is only valid for the identity that made it. A different
 	// device id from the server, or a regenerated account, invalidates it.
-	binding := fmt.Sprintf("%s|%s|%s|%s",
-		m.userID, m.deviceID, m.olmAccount.IdentityKey(), m.olmAccount.SigningKey())
+	binding := m.e2eeBinding()
 
 	var storedBinding string
 	if !storeGetJSON(m.store, "e2ee_device_binding", &storedBinding) || storedBinding != binding {
@@ -621,6 +619,9 @@ func matrixClaimedOneTimeKey(claimed map[string]any, userID, deviceID, ed25519Ke
 
 // matrixVerifyDeviceKeys checks that a device signed its own key bundle.
 func matrixVerifyDeviceKeys(info map[string]any, userID, deviceID string) bool {
+	if info["user_id"] != userID || info["device_id"] != deviceID {
+		return false
+	}
 	keys, _ := info["keys"].(map[string]any)
 	ed, _ := keys[fmt.Sprintf("ed25519:%s", deviceID)].(string)
 	if ed == "" {
@@ -677,4 +678,8 @@ func (m *MatrixTarget) advanceTransaction() {
 
 	m.transactionID++
 	_ = m.store.Set("transaction_id", m.transactionID, matrixE2EECacheTTL)
+}
+
+func (m *MatrixTarget) e2eeBinding() string {
+	return fmt.Sprintf("%s|%s|%s|%s", m.userID, m.deviceID, m.olmAccount.IdentityKey(), m.olmAccount.SigningKey())
 }

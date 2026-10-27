@@ -1,0 +1,710 @@
+[
+  {
+    "own_private": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-0",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-0",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "w8DkcMrjWhnFR2kCmyE4XINSZkFgupfY53z6QcpQ+MM"
+    },
+    "peer_public": "yq421FXuh7jyzufjldhQTVicCXKpEhxCi9QrlJ0ZZDI",
+    "decimal": [
+      8841,
+      2833,
+      3893
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-0",
+      "mac": {
+        "ed25519:SENDER": "2HBam8Ds8j+hxgR6dcIaB+0qikLlskfq97tkWt4tajw"
+      },
+      "keys": "xWDBshWDir7ldcZy5nIybenfNloLi+Ytq4ln56uOXxo"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-0",
+      "mac": {
+        "ed25519:PEER": "YsJdGGsvl4m1SZ2TB7io1h1H6fwo3KrA3klSm2lrTbU"
+      },
+      "keys": "LNvN4f3fyEhoo6ho1gy6wFcZX6wienbJUFtSNXXSYqY"
+    }
+  },
+  {
+    "own_private": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-1",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-1",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "x22+IQD6Iq/JKGFPkudD8nxmV9AlBK5uMKRUx6oXIPc"
+    },
+    "peer_public": "laFBiTT/wW7x80sMEG6yQhZxM7h0+3hv5kI6dxP081g",
+    "decimal": [
+      7779,
+      5598,
+      7473
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-1",
+      "mac": {
+        "ed25519:SENDER": "K4vDu1i4sI25Rho2hDtHD6sBkDR5ZCNPAwExl/aWAqo"
+      },
+      "keys": "xWTZCELIoKDamDErZ5ZOB3fvfTtgdb6FQL7QTn5pyFE"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-1",
+      "mac": {
+        "ed25519:PEER": "mGJntCNawRUTbtj8hj6WNnHNShziA35JOh5K2GAt1LM"
+      },
+      "keys": "bgJlgNIclegFZXxqdK98jBxI86XZBbVthdtaAPRmABA"
+    }
+  },
+  {
+    "own_private": "02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-2",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-2",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "iWgvyc9EtuSghgNToSXvCmJpDTBaJedsbZLKuNgWHzw"
+    },
+    "peer_public": "A+0Gr7dwF3rQZF2C9hy3X9+JhWTGVbylq9RWX4TUakU",
+    "decimal": [
+      2563,
+      6485,
+      5525
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-2",
+      "mac": {
+        "ed25519:SENDER": "zE2MMT3vi5ZOBo94Fv9go4XmsfTujxqoTVxjIGlh+aY"
+      },
+      "keys": "AXMSJ/Kl5ZEr7wgXOI6UW4rap45pptk/jWJGzxQrSzM"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-2",
+      "mac": {
+        "ed25519:PEER": "6zj2dit2emxntT/+Jf3zWMjx/KYIVEdrFr1+BEUVU5E"
+      },
+      "keys": "DV58qE+AgJsbhlWjpzj3GV3nNziBSJ6GfEAYPckHx3o"
+    }
+  },
+  {
+    "own_private": "030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-3",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-3",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "CQz+SAesgVQE7R8Q604XBUgRtJaKqk6/fDGfcpGuqp0"
+    },
+    "peer_public": "d0WMtdzN/ZEnz8WlzjSDaNYwqUkbeEdHtyqv+QHnaFU",
+    "decimal": [
+      4700,
+      4477,
+      6710
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-3",
+      "mac": {
+        "ed25519:SENDER": "oI9G0OZlkA3Ho+AKxfKOWsXOtBsxZXhEGmnmJaeTpWk"
+      },
+      "keys": "k7WuclsuZcuE/1SDheXEDpHHWXfbUO8Unlc5G3NacrY"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-3",
+      "mac": {
+        "ed25519:PEER": "MC0l8U1ftZ0QkPZ3vPV/d1yADmpBF1DZRsk7Cpt2fXw"
+      },
+      "keys": "P+oyio+qhSro9lE1gpLijTDe+481FThOsdTjJ/rWB/M"
+    }
+  },
+  {
+    "own_private": "0405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-4",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-4",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "kg4npxwwGo7Ppfrp9gpdE1TwYhcopQArJAf8SMxVFOE"
+    },
+    "peer_public": "iPdQZNB08/wCyBwSw7rTAET5KidcvhELeBdkV5XTjF4",
+    "decimal": [
+      3414,
+      8698,
+      3056
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-4",
+      "mac": {
+        "ed25519:SENDER": "hYu6RtmGiEMrbBkGqahQg9/1Zk376e1awMwJetzLWi0"
+      },
+      "keys": "XIo5Q156nIXmgERllaVYJEbTZ94KUQEyJSOT+sm/sm8"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-4",
+      "mac": {
+        "ed25519:PEER": "lkekcxKSM+/oVfRsLk2TrgxrrhG8eYQOnuqEfN54GQQ"
+      },
+      "keys": "jdcqfY1xVt2N2uOxHLvsw3vCQw2ovSAmyz41RM47GXU"
+    }
+  },
+  {
+    "own_private": "05060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-5",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-5",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "J4pt2Jm18q857CT1zegavLMpFl0lfa8PZLMFwGgmpRw"
+    },
+    "peer_public": "PWRwpotUXoV8O+odcM9Oe4OBkzNB6zVaoJiOx/yu3R4",
+    "decimal": [
+      5482,
+      7147,
+      5537
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-5",
+      "mac": {
+        "ed25519:SENDER": "IayKDlnwXw6wG55uOLC7j9ArlJ3ML7uiSmmX3oFWVHg"
+      },
+      "keys": "Xn4cBxVjeEOlzyP1HBcnlH3ylUYJ9rURjjSnjwajkkY"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-5",
+      "mac": {
+        "ed25519:PEER": "iOCvMnHK8hh50WZ+CvvhBe3PZ1anCzTPaOICSnetcA8"
+      },
+      "keys": "6YzSfuMzXUB5pnSgUURddXf712MIxIcH+yBhFB0GolQ"
+    }
+  },
+  {
+    "own_private": "060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-6",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-6",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "ZWmp+7xeE4ZiwohWAqFmagxy+OpweDybf0qyDw+h3S4"
+    },
+    "peer_public": "6DLKHb5nuR+Gag1hg2ZndWJHw+8L/YUyOhTymzDkJxY",
+    "decimal": [
+      2912,
+      1642,
+      8021
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-6",
+      "mac": {
+        "ed25519:SENDER": "3Jaqcayxc9JhjsPJx3T75RgnKygkvEbF8qCpgpv23qY"
+      },
+      "keys": "YmtbFdiIgkD2JuRkyEogeqextUivB3n7IGTbAAjCfcI"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-6",
+      "mac": {
+        "ed25519:PEER": "Cw7WdqD9HNMJfhzyVvVTbNiNtzA+F3BhwUf5oDiiIgI"
+      },
+      "keys": "Nq1u7SdAV6inwB9rO/DIU0qB3aIEkCrKoLYexiAQFms"
+    }
+  },
+  {
+    "own_private": "0708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-7",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-7",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "DBJ+in8NadPDjj2q2EzrVSZa0vuzrF85JTru0bMEDJo"
+    },
+    "peer_public": "OS0XSjizsb6vrx/oJIcIQcX6UxvG6v22QCwSRmRIjBw",
+    "decimal": [
+      5898,
+      8595,
+      5396
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-7",
+      "mac": {
+        "ed25519:SENDER": "vqGulcHTQW35QIYNIRXGN8pMiWy0eYE/1t8U6DFKgTE"
+      },
+      "keys": "A4FS7ykW1a0ms8c/5FII83MMu7itrOi5xQzdwVGJrRY"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-7",
+      "mac": {
+        "ed25519:PEER": "9Ta0bz8+KGMIDkwnH5Q2RCbtN2PXnDmFl+CiUiK7a9E"
+      },
+      "keys": "H+V3dtY12AL+2Djuyw+E8U3n0ZxNb5cr/KkeKgiYA3w"
+    }
+  },
+  {
+    "own_private": "08090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2021222324252627",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-8",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-8",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "G5dhN6nJzjLvl5iuNFwsl0hdY7YBt3oiT6CCTQ7m+IY"
+    },
+    "peer_public": "AjPwBu9L7RROoKW7RscGfHwqzsX4zIEfPfWf3NWsdhQ",
+    "decimal": [
+      2248,
+      4348,
+      1532
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-8",
+      "mac": {
+        "ed25519:SENDER": "aCSoG8uvihx27Ruw7ndrE0CUEYoRerzrIdMeAgM/MKA"
+      },
+      "keys": "9gSLnmRwo3in21SLRJKlA38/94LGGJJh4KG8o6Q1RcE"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-8",
+      "mac": {
+        "ed25519:PEER": "jptXhdsT/77K/X5t0z7pFlSESpZCwSlCocU0lOAALWY"
+      },
+      "keys": "WraXFGrTdRE7rFTqTEzih0NDS7Wv1ixDuYnlC3uaMJk"
+    }
+  },
+  {
+    "own_private": "090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-9",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-9",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "hJhSXffIJtePZk3MBOWfVy1rBAi7bB8cuAMTwjiIO/U"
+    },
+    "peer_public": "mVUt3ykrlk6bIfIqZ8u+MeDh5mZrqtCA5I5WPrnEwxc",
+    "decimal": [
+      4718,
+      8690,
+      6538
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-9",
+      "mac": {
+        "ed25519:SENDER": "YmsslgOCUsHmTPY+Ge62ZHFgpJOvyrSBrZ6nBz1mg1Y"
+      },
+      "keys": "9I4XM8DO3+07Q2tO9ptT6K1uqQRg8if++abvBEKj3h8"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-9",
+      "mac": {
+        "ed25519:PEER": "D2IKPpfYkvrtoPLkVKmASsli5xCUbZ3mbMw5QFw7omU"
+      },
+      "keys": "m1TR15yp5hRarzr4lUgPF0OGEtC+9QkiyrDQs4MS+Gw"
+    }
+  },
+  {
+    "own_private": "0a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20212223242526272829",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-10",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-10",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "G8oo1P/I/UISArIPuFztAQrpudVCVYJCnHsvh+ZBz+Q"
+    },
+    "peer_public": "dV/h26ijzb46qh8pYcQe3PNDQckiQxuY9F0tjFbJC34",
+    "decimal": [
+      4287,
+      6912,
+      2299
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-10",
+      "mac": {
+        "ed25519:SENDER": "aAQ9Q98bGFNKDfUtmenOqSs+67A96O2Z65hqX45rGy8"
+      },
+      "keys": "FYPfujXOTyrllwFwf/mPj7R0XUJCdZUoSRPhlADVfi8"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-10",
+      "mac": {
+        "ed25519:PEER": "+GkiWvGhZ34gpxNKElWMsiUhn2IyVCLz1ujGCBvWvI4"
+      },
+      "keys": "FxQnURfVUCn2MHaAUD7+kS5hHGhOOzx9NCSvUrKXQHg"
+    }
+  },
+  {
+    "own_private": "0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a",
+    "own_user": "@same:example.com",
+    "own_device": "SENDER",
+    "peer_user": "@same:example.com",
+    "peer_device": "PEER",
+    "start": {
+      "transaction_id": "transaction-11",
+      "from_device": "PEER",
+      "method": "m.sas.v1",
+      "key_agreement_protocols": [
+        "curve25519-hkdf-sha256"
+      ],
+      "hashes": [
+        "sha256"
+      ],
+      "message_authentication_codes": [
+        "hkdf-hmac-sha256.v2"
+      ],
+      "short_authentication_string": [
+        "decimal",
+        "emoji"
+      ]
+    },
+    "accept": {
+      "transaction_id": "transaction-11",
+      "key_agreement_protocol": "curve25519-hkdf-sha256",
+      "hash": "sha256",
+      "message_authentication_code": "hkdf-hmac-sha256.v2",
+      "short_authentication_string": [
+        "decimal"
+      ],
+      "commitment": "iPZPqkKI4OnWUGcoUOwoH8p7vmcPUkKNTmwHX1mnqfw"
+    },
+    "peer_public": "nNsuIfQ5cO8XS9IxJxG+yhUBjAV/HOYJaO2W0T5nvEE",
+    "decimal": [
+      3702,
+      4582,
+      4687
+    ],
+    "own_signing": "test-own-signing-key",
+    "own_mac": {
+      "transaction_id": "transaction-11",
+      "mac": {
+        "ed25519:SENDER": "oPaxni/1WmXi8LQMSnmTosrheLZFM61GquXEA8vXVOA"
+      },
+      "keys": "qYHfYxrmNa+o1GbHH/ZjcjpArjCHjZclY8eFEbBBYHo"
+    },
+    "peer_keys": {
+      "ed25519:PEER": "test-peer-signing-key"
+    },
+    "peer_mac": {
+      "transaction_id": "transaction-11",
+      "mac": {
+        "ed25519:PEER": "rOwYHf7QkjDs2lWHhGUJmzjaTbHAi3z6Mu2x0QXIaR8"
+      },
+      "keys": "QhhUahuYZ0qOHSAjwzS/xK+q7AGeqhrQu0uZJjvlCdU"
+    }
+  }
+]

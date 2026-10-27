@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
 
 	"github.com/unraid/apprise-go/internal/matrixolm"
 )
@@ -61,6 +62,8 @@ type MatrixTarget struct {
 	deviceID            string
 	transactionID       int
 	transactionIDString string
+	autoverify          bool
+	autoVerifyMu        sync.Mutex
 	e2ee                bool
 	hsreq               bool
 	webhookPath         string
@@ -143,7 +146,7 @@ func NewMatrixTarget(target *ParsedURL) (*MatrixTarget, error) {
 		transactionID: 0,
 		// Upstream defaults end-to-end encryption on; it only takes effect
 		// for rooms the server reports as encrypted.
-		e2ee:  parseBoolWithDefault(target.Query["e2ee"], true),
+		e2ee: parseBoolWithDefault(target.Query["e2ee"], true), autoverify: parseBoolWithDefault(target.Query["autoverify"], false),
 		store: StoreFor(target),
 		hsreq: parseBoolWithDefault(target.Query["hsreq"], true),
 		webhookPath: func() string {
@@ -289,6 +292,10 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 		}
 	}
 
+	if e2eeCapable && m.autoverify {
+		m.autoVerify()
+	}
+
 	// Files are uploaded once and the resulting URIs reused for every room,
 	// which is why this sits outside the loop.
 	var uploaded []map[string]any
@@ -408,6 +415,10 @@ func (m *MatrixTarget) sendServer(body, title string, notifyType NotifyType, att
 		if !targetError {
 			m.markDelivered(deliveryKey)
 		}
+	}
+
+	if outcome.err() == nil && e2eeCapable && m.autoverify {
+		m.refreshVerifiedState()
 	}
 
 	return outcome.err()

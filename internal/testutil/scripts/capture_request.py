@@ -105,7 +105,7 @@ KEEP_HEADERS = {
 }
 
 BLUESKY_CREATED_AT = "2024-01-01T00:00:00Z"
-CACHE_VERSION = 28
+CACHE_VERSION = 29
 
 # How many requests still have to fail before the mocks answer normally. Set
 # from --fail-first, and the only way to reach a retry path: every mock here
@@ -863,6 +863,7 @@ def capture_request(url, body, title, notify_type, body_format=None, attach=None
                     "access_token": "token",
                     "home_server": host,
                     "user_id": f"@user:{host}",
+                    "device_id": "APPRISEDEVICE",
                 }
             ).encode("utf-8")
         elif "/_matrix/client/" in parsed.path and parsed.path.endswith("/account/whoami"):

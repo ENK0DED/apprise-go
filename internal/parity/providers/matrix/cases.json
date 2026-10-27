@@ -49,5 +49,12 @@
     "body": "body",
     "title": "t",
     "type": "info"
+  },
+  {
+    "name": "autoverify-best-effort",
+    "url": "matrixs://user:pass@matrix.example.com/%23room:example.com?autoverify=yes",
+    "body": "body",
+    "title": "title",
+    "type": "info"
   }
 ]
