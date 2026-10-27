@@ -277,9 +277,6 @@ func (v *VapidTarget) pruneSubscriptions(expired map[string]bool) {
 	}
 }
 
-func (v *VapidTarget) buildHeaders() (map[string]string, error) {
-	return v.buildHeadersForOrigin(vapidURLByMode[v.mode])
-}
 func (v *VapidTarget) buildHeadersForOrigin(origin string) (map[string]string, error) {
 	jwtToken := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_JWT"))
 	publicKey := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_PUBLIC_KEY"))

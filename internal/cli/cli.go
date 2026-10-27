@@ -15,11 +15,6 @@ import (
 	"github.com/unraid/apprise-go/internal/version"
 )
 
-const usageText = "" +
-	"Usage:\n" +
-	"   apprise [OPTIONS] [APPRISE_URL [APPRISE_URL2 [APPRISE_URL3]]]\n" +
-	"   apprise storage [OPTIONS] [ACTION] [UID1 [UID2 [UID3]]]\n"
-
 const helpText = `Usage:
    apprise [OPTIONS] [APPRISE_URL [APPRISE_URL2 [APPRISE_URL3]]]
    apprise storage [OPTIONS] [ACTION] [UID1 [UID2 [UID3]]]

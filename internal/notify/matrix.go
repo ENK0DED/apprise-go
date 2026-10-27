@@ -1003,12 +1003,10 @@ func (m *MatrixTarget) baseURL() (string, error) {
 				return "", err
 			}
 
-			if err == nil {
-				m.discoveryDone = true
-				m.baseURLCached = baseURL
-				if baseURL != "" {
-					return baseURL, nil
-				}
+			m.discoveryDone = true
+			m.baseURLCached = baseURL
+			if baseURL != "" {
+				return baseURL, nil
 			}
 		}
 	}

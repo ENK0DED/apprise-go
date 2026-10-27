@@ -959,7 +959,3 @@ func dynamicOverflowLimits(schema string, target *ParsedURL, base overflowLimits
 
 	return base, false
 }
-
-// boldTitleSchemas fold a title as a bold line rather than a heading, because
-// their dialect has no heading syntax.
-var boldTitleSchemas = map[string]bool{"evolution": true, "evolutions": true}

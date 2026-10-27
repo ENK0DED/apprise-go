@@ -209,7 +209,6 @@ func CapturePythonRequestsWithFailuresResult(
 	url, body, title string,
 	failures int,
 ) ([]notify.RequestSpec, *bool) {
-
 	t.Helper()
 	return CapturePythonRequestsWithFailuresFormatResult(t, url, body, title, "", failures)
 }
