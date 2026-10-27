@@ -1,5 +1,6 @@
 import argparse
 import base64
+import copy
 import json
 import os
 import sys
@@ -163,6 +164,22 @@ def parse_args():
     return parser.parse_args()
 
 
+def comparable_golden(provider, cases):
+    """Authenticate Matrix wire crypto before comparing recovered semantics.
+
+    Keep real encrypted packets in the fixture. Random keys, ratchets and
+    ciphertext differ on a fresh capture; the independent receiver verifies
+    both transcripts and recovers the notification they must carry.
+    """
+    if provider != "matrix":
+        return cases
+    from matrix_receipt import normalize_requests
+    result = copy.deepcopy(cases)
+    for case in result:
+        case["requests"] = normalize_requests(case["requests"])
+    return result
+
+
 def main():
     args = parse_args()
     apply_default_env()
@@ -246,13 +263,18 @@ def main():
 
         golden_path = provider_dir / "golden.json"
         rendered = json.dumps(golden_cases, indent=2, sort_keys=True)
-        if args.check:
-            existing = ""
-            if golden_path.exists():
-                existing = golden_path.read_text()
-            if existing != rendered:
-                changed.append(provider_dir.name)
+        existing = golden_path.read_text() if golden_path.exists() else ""
+        if provider_dir.name == "matrix":
+            current = comparable_golden(provider_dir.name, golden_cases)
+            equal = bool(existing) and comparable_golden(
+                provider_dir.name, json.loads(existing)
+            ) == current
         else:
+            equal = existing == rendered
+        if args.check:
+            if not equal:
+                changed.append(provider_dir.name)
+        elif not equal:
             golden_path.write_text(rendered)
 
     if args.check and changed:

@@ -54,6 +54,20 @@ class ContractFixtures(unittest.TestCase):
         event = json.loads(requests[-1]["body"])["event"]
         self.assertEqual(event["content"]["body"], "# secret title\r\nsecret body")
 
+    def test_golden_comparison_authenticates_crypto(self) -> None:
+        from update_golden import comparable_golden
+        cases = [{"name": "encrypted", "requests": REQUESTS}]
+        verified = comparable_golden("matrix", cases)
+        self.assertEqual(json.loads(verified[0]["requests"][-1]["body"])["event"]["content"]["body"], "# secret title\r\nsecret body")
+        tampered = copy.deepcopy(cases)
+        payload = json.loads(tampered[0]["requests"][-1]["body"])
+        cipher = bytearray(receiver.b64(payload["ciphertext"]))
+        cipher[-1] ^= 1
+        payload["ciphertext"] = base64.b64encode(cipher).decode()
+        tampered[0]["requests"][-1]["body"] = json.dumps(payload)
+        with self.assertRaises((ValueError, KeyError, InvalidSignature)):
+            comparable_golden("matrix", tampered)
+
     def test_tampered_delivery_is_rejected(self) -> None:
         def mutate(
             endpoint: str, change: Callable[[dict[str, Any]], None]
