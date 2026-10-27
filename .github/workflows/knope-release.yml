@@ -23,6 +23,7 @@ jobs:
         uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
           token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
 
       - name: Install Knope
