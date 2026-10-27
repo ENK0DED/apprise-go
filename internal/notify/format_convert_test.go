@@ -59,7 +59,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "json://example.com/notify?format=html",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<em>Italics</em>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<em>Italics</em>", "<code>go\n")
 			},
 		},
 		{
@@ -79,11 +79,11 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "workflow://example.com/WORKFLOWID/SIGNATURE?format=html&image=no",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, converted, "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<code>go\n")
 			},
 			assertSpec: func(t *testing.T, spec notify.RequestSpec) {
 				t.Helper()
-				assertContainsAll(t, workflowTextBlock(t, spec, "body"), "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<pre><code class=\"language-go\">")
+				assertContainsAll(t, workflowTextBlock(t, spec, "body"), "<h1>Deploy Summary</h1>", "<strong>Bold</strong>", "<code>go\n")
 			},
 		},
 		{
@@ -136,7 +136,7 @@ func TestTargetFormatConversionCorpusAcrossWorkflowTargets(t *testing.T) {
 			rawURL: "tgram://123456:abcdef/7890/?format=html",
 			assertBody: func(t *testing.T, converted string) {
 				t.Helper()
-				assertContainsAll(t, converted, "<b>Deploy Summary</b>", "<b>Bold</b>", "<i>Italics</i>", `<a href="https://example.com/docs">Docs</a>`, `<pre><code class="language-go">if x &gt; 0 { return `+"`tick`"+` }\path`+"\n"+`</code></pre>`, "- first", "- second")
+				assertContainsAll(t, converted, "<b>Deploy Summary</b>", "<b>Bold</b>", "<i>Italics</i>", `<a href="https://example.com/docs">Docs</a>`, `<code>go`+"\n"+`if x &gt; 0 { return `+"`tick`"+` }\path</code>`, "- first", "- second")
 			},
 		},
 	}

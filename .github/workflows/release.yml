@@ -69,7 +69,7 @@ jobs:
             ext: ""
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           ref: refs/tags/${{ github.event.release.tag_name || inputs.tag }}
           persist-credentials: false
@@ -89,9 +89,10 @@ jobs:
           gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName >/dev/null
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         with:
           go-version-file: go.mod
+          cache: false
 
       - name: Build binary
         env:
@@ -137,7 +138,7 @@ jobs:
 
       - name: Sign darwin binary
         if: matrix.notarize
-        uses: indygreg/apple-code-sign-action@v1
+        uses: indygreg/apple-code-sign-action@v1.2
         with:
           input_path: dist/${{ steps.set-output-name.outputs.output_name }}
           p12_file: apple_codesign.p12
@@ -153,7 +154,7 @@ jobs:
 
       - name: Notarize darwin zip
         if: matrix.notarize
-        uses: indygreg/apple-code-sign-action@v1
+        uses: indygreg/apple-code-sign-action@v1.2
         with:
           input_path: dist/${{ steps.set-output-name.outputs.output_name }}.zip
           sign: false

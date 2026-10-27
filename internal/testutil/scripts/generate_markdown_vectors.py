@@ -15,7 +15,8 @@ parser=argparse.ArgumentParser();parser.add_argument('--check',action='store_tru
 assert apprise.__version__=='2.1.0','Use the pinned Apprise 2.1.0 reference'
 def write(name,value,compressed=False):
  raw=(json.dumps(value,ensure_ascii=False,indent=1)+'\n').encode()
- if compressed:raw=gzip.compress(raw,mtime=0)
+ # Python 3.15 changed the default level from 9 to 6; pin the encoding.
+ if compressed:raw=gzip.compress(raw,compresslevel=9,mtime=0)
  path=data/name
  if args.check:
   assert path.read_bytes()==raw,f'{name} differs from upstream; regenerate vectors'

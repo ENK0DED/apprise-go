@@ -20,15 +20,16 @@ jobs:
           fi
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
           token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
 
       - name: Install Knope
         uses: knope-dev/action@v2.1.2
         with:
-          version: 0.22.1
+          version: 0.23.2
           github-token: ${{ secrets.UNRAID_BOT_GITHUB_ADMIN_TOKEN }}
 
       - name: Create release
