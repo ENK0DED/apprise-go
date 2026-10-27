@@ -63,7 +63,10 @@ func httpClient() *http.Client {
 	currentHTTPOptionsMu.RLock()
 	options := currentHTTPOptions
 	currentHTTPOptionsMu.RUnlock()
+	return httpClientForOptions(options)
+}
 
+func httpClientForOptions(options httpOptions) *http.Client {
 	deadline := options.deadline
 	options.deadline = time.Time{}
 	// Explicit client transports are supported injection points for callers

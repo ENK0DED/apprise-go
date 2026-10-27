@@ -115,8 +115,9 @@ func (v *matrixSASVerifier) fetch(path string, payload map[string]any, params ur
 		remaining = 0
 	}
 	currentHTTPOptionsMu.RLock()
-	poll := currentHTTPOptions.readTimeout / 2
+	options := currentHTTPOptions
 	currentHTTPOptionsMu.RUnlock()
+	poll := options.readTimeout / 2
 	if poll < 250*time.Millisecond {
 		poll = 250 * time.Millisecond
 	}
@@ -144,7 +145,11 @@ func (v *matrixSASVerifier) fetch(path string, payload map[string]any, params ur
 	}
 	ctx, cancel := context.WithTimeout(request.Context(), timeout)
 	defer cancel()
-	response, err := httpClient().Do(request.WithContext(ctx))
+	// The verification long poll has its own upstream timeout. Keep the
+	// transport cache key stable; the context shortens the final request.
+	options.connectTimeout = poll + 2*time.Second
+	options.readTimeout = poll + 2*time.Second
+	response, err := httpClientForOptions(options).Do(request.WithContext(ctx))
 	if err != nil {
 		return nil, false
 	}

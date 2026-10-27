@@ -2,6 +2,9 @@ package notify
 
 import (
 	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
@@ -37,5 +40,30 @@ func TestMatrixSASIgnoresForeignStaleAndMalformedRequests(t *testing.T) {
 				t.Fatalf("malformed event affected verification: result%t terminal%t transaction%q", result, terminal, verifier.transaction)
 			}
 		})
+	}
+}
+
+func TestMatrixSASPollUsesVerificationTimeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(200 * time.Millisecond)
+		fmt.Fprint(w, `{"next_batch":"next"}`)
+	}))
+	defer server.Close()
+	parsed, err := ParseURL("matrix://user:pass@" + strings.TrimPrefix(server.URL, "http://") + "/!room?discovery=no&e2ee=no")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, err := NewMatrixTarget(parsed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := defaultHTTPOptions()
+	options.readTimeout = 100 * time.Millisecond
+	restore := withHTTPOptions(options)
+	defer restore()
+	verifier := matrixSASVerifier{target: target, deadline: time.Now().Add(time.Second)}
+	response, ok := verifier.fetch("/sync", nil, nil, http.MethodGet, false)
+	if !ok || response["next_batch"] != "next" {
+		t.Fatal("ordinary read timeout cut off the bounded verification poll")
 	}
 }
