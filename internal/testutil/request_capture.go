@@ -56,7 +56,52 @@ func (c *captureTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 
 	responseBody := "ok"
 	contentType := "text/plain"
-	if strings.Contains(req.URL.String(), "sendpulse.com/oauth/access_token") {
+	if req.URL.Host == "api.simplepu.sh" && req.URL.Path == "/v1/user" {
+		responseBody = `{"passwordSalt":"account-salt"}`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.simplepu.sh" && req.URL.Path == "/v1/org/integration/keys" {
+		responseBody = `{"scopes":["send"],"enabled":true,"adminPubkeyB64":"AerU8GDWMVAxAcpQ88ahb7m9EYA4tcfGPXJC9BCq5FI=","wrappedKeys":[{"version":1,"blob":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXWxla8h7qzwxygjDwKeivC0WidcuECuOTsRO4F9p1yETzfCJfL2TJjk9J12Rabt9U"}]}`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.simplepu.sh" && req.URL.Path == "/v1/tasks/json" {
+		var payload struct {
+			Files []any `json:"files"`
+		}
+		_ = json.Unmarshal([]byte(body), &payload)
+		created := make([]map[string]string, len(payload.Files))
+		for i := range created {
+			created[i] = map[string]string{"id": fmt.Sprintf("attachment-%d", i+1)}
+		}
+		data, _ := json.Marshal(map[string]any{"attachments": created})
+		responseBody = string(data)
+		contentType = "application/json"
+	} else if req.URL.Host == "api.simplepu.sh" && strings.HasSuffix(req.URL.Path, "/upload-url") {
+		parts := strings.Split(req.URL.Path, "/")
+		responseBody = `{"presignedPutUrl":"https://upload.simplepu.sh/` + parts[len(parts)-2] + `"}`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.github.com" && req.URL.Path == "/graphql" {
+		responseBody = `{"data":{"repository":{"id":"repo-id","discussion":{"id":"discussion-id"},"discussionCategories":{"nodes":[{"id":"general-id","name":"General","slug":"general"},{"id":"ideas-id","name":"Ideas","slug":"ideas"}]}}}}`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.mobilemessage.com.au" {
+		var payload struct {
+			Messages []any `json:"messages"`
+		}
+		_ = json.Unmarshal([]byte(body), &payload)
+		results := make([]map[string]string, len(payload.Messages))
+		for i := range results {
+			results[i] = map[string]string{"status": "success"}
+		}
+		data, _ := json.Marshal(map[string]any{"status": "complete", "results": results})
+		responseBody = string(data)
+		contentType = "application/json"
+	} else if req.URL.Host == "api.lfg.gm" {
+		responseBody = `{"fired":true,"devices":2}`
+		contentType = "application/json"
+	} else if req.URL.Host == "api.wpush.cn" {
+		responseBody = `{"code":0}`
+		contentType = "application/json"
+	} else if req.URL.Host == "files.slack.com" && strings.HasPrefix(req.URL.Path, "/upload/") {
+		responseBody = "OK - 70"
+	} else if strings.Contains(req.URL.String(), "sendpulse.com/oauth/access_token") {
 		responseBody = `{"access_token":"token","expires_in":3600}`
 		contentType = "application/json"
 	} else if strings.Contains(req.URL.Path, "/api/v4/teams/") && strings.Contains(req.URL.Path, "/channels/name/") {

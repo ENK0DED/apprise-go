@@ -241,6 +241,15 @@ func init() {
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"action": map[string]any{
+					"default":  "trigger",
+					"map_to":   "action",
+					"name":     "Action",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"trigger", "map", "resolve"},
+				},
 				"class": map[string]any{
 					"map_to":   "class_id",
 					"name":     "Class",
@@ -256,12 +265,19 @@ func init() {
 					"type":     "string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
 					"required": false,
 					"type":     "float",
+				},
+				"dedup": map[string]any{
+					"map_to":   "dedup",
+					"name":     "Deduplication Key",
+					"private":  false,
+					"required": false,
+					"type":     "string",
 				},
 				"emojis": map[string]any{
 					"default":  false,
@@ -272,13 +288,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"group": map[string]any{
 					"map_to":   "group",
@@ -295,6 +312,14 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -302,7 +327,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"region": map[string]any{
 					"default":  "us",
@@ -311,10 +344,20 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"us", "eu"},
+					"values":   []any{"us", "eu"},
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -327,7 +370,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"info", "warning", "critical", "error"},
+					"values":   []any{"info", "warning", "critical", "error"},
 				},
 				"store": map[string]any{
 					"default":  true,
@@ -353,6 +396,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"details": map[string]any{
@@ -364,7 +417,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{integrationkey}@{apikey}", "{schema}://{integrationkey}@{apikey}/{source}", "{schema}://{integrationkey}@{apikey}/{source}/{component}"},
+			"templates": []any{"{schema}://{integrationkey}@{apikey}", "{schema}://{integrationkey}@{apikey}/{source}", "{schema}://{integrationkey}@{apikey}/{source}/{component}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -395,7 +448,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pagerduty"},
+					"values":   []any{"pagerduty"},
 				},
 				"source": map[string]any{
 					"default":  "Apprise",

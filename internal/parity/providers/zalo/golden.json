@@ -1,0 +1,92 @@
+[
+  {
+    "name": "token",
+    "requests": [
+      {
+        "body": "{\"text\": \"Title\\r\\nBody\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatA\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      },
+      {
+        "body": "{\"text\": \"Title\\r\\nBody\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatB\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      }
+    ]
+  },
+  {
+    "name": "query-token",
+    "requests": [
+      {
+        "body": "{\"text\": \"Title\\r\\nBody\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatA\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      },
+      {
+        "body": "{\"text\": \"Title\\r\\nBody\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatB\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      },
+      {
+        "body": "{\"text\": \"Title\\r\\nBody\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatC\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      }
+    ]
+  },
+  {
+    "name": "input-text",
+    "requests": [
+      {
+        "body": "{\"text\": \"Title\\r\\nBody *literal*\", \"chat_id\": \"chatA\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      }
+    ]
+  },
+  {
+    "name": "markdown",
+    "requests": [
+      {
+        "body": "{\"text\": \"# Title\\n**Body**\", \"parse_mode\": \"markdown\", \"chat_id\": \"chatA\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://bot-api.zaloplatforms.com/bot12345:secret-key/sendMessage"
+      }
+    ]
+  }
+]

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "incident",
+    "url": "betterstack://token123",
+    "title": "Title",
+    "body": "Body",
+    "type": "failure"
+  },
+  {
+    "name": "body-summary",
+    "url": "betterstack://token123",
+    "title": "",
+    "body": "Body only",
+    "type": "warning"
+  },
+  {
+    "name": "teams",
+    "url": "betterstack://token123/person@example.com/Storage%20Team/OnCall?policy=policy1&alert=sms,critical&team_wait=0",
+    "title": "Title",
+    "body": "Body",
+    "type": "failure"
+  },
+  {
+    "name": "logs",
+    "url": "betterstack://token123@logs.example.com:8443",
+    "title": "Title",
+    "body": "Body",
+    "type": "warning"
+  },
+  {
+    "name": "logs-key",
+    "url": "betterstack://logs.example.com?token=token123",
+    "title": "",
+    "body": "Body",
+    "type": "success"
+  }
+]

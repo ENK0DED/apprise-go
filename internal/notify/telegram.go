@@ -23,6 +23,8 @@ type telegramRecipient struct {
 }
 
 type TelegramTarget struct {
+	parsed *ParsedURL
+	deliveryTracker
 	botToken     string
 	content      string
 	targets      []telegramRecipient
@@ -90,7 +92,7 @@ func NewTelegramTarget(target *ParsedURL) (*TelegramTarget, error) {
 	// failing: upstream's base class only maps the value it knows and leaves
 	// notify_format at the default otherwise, so a typo changes the rendering
 	// but never rejects the URL.
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	switch format {
 	case "html", "markdown", "text":
 	default:
@@ -105,15 +107,15 @@ func NewTelegramTarget(target *ParsedURL) (*TelegramTarget, error) {
 	return &TelegramTarget{
 		templatePath:   strings.TrimSpace(target.Query["template"]),
 		templateTokens: templateTokens,
-		botToken:       botToken,
-		content:        telegramContentPlacement(target.Query["content"]),
-		targets:        targets,
-		notifyFormat:   format,
-		markdownMode:   telegramMarkdownMode(target.Query["mdv"]),
-		silent:         parseBoolValue(target.Query["silent"], false),
-		preview:        parseBoolValue(target.Query["preview"], false),
-		detect:         detect,
-		includeImage:   parseBoolValue(target.Query["image"], false),
+		botToken:       botToken, parsed: target,
+		content:      telegramContentPlacement(target.Query["content"]),
+		targets:      targets,
+		notifyFormat: format,
+		markdownMode: telegramMarkdownMode(target.Query["mdv"]),
+		silent:       parseBoolValue(target.Query["silent"], false),
+		preview:      parseBoolValue(target.Query["preview"], false),
+		detect:       detect,
+		includeImage: parseBoolValue(target.Query["image"], false),
 	}, nil
 }
 
@@ -170,7 +172,7 @@ func (t *TelegramTarget) SendWithAttachments(body, title string, notifyType Noti
 
 	message := formatTelegramMessage(title, body, t.notifyFormat, t.markdownMode)
 
-	if t.parseMode() == "HTML" {
+	if t.parseMode() == "HTML" && (t.parsed == nil || !t.parsed.dialectApplied) {
 		// The caption goes through the same rewrite the message body does;
 		// Telegram rejects the tags it does not know wherever they appear.
 		message = rewriteTelegramHTML(message)
@@ -183,7 +185,7 @@ func (t *TelegramTarget) SendWithAttachments(body, title string, notifyType Noti
 		caption = message
 	}
 
-	for _, recipient := range t.targets {
+	for deliveryIndex0, recipient := range t.targets {
 		if t.includeImage {
 			spec, err := t.buildImageSpec(recipient, notifyType)
 			// Automatic notification icons are optional in upstream. A missing
@@ -197,12 +199,14 @@ func (t *TelegramTarget) SendWithAttachments(body, title string, notifyType Noti
 			if err != nil {
 				return err
 			}
-			outcome.record(SendRequest(spec))
+			outcome.record(t.sendTrackedRequestFor(spec, "SendWithAttachments:0",
+
+				// Each file goes to the endpoint Telegram wants for its type; a
+				// photo posted as a document arrives as an unpreviewable file. Only
+				// the first carries the caption.
+				body, title, notifyType, attachments, deliveryIndex0))
 		}
 
-		// Each file goes to the endpoint Telegram wants for its type; a
-		// photo posted as a document arrives as an unpreviewable file. Only
-		// the first carries the caption.
 		for index, attachment := range attachments {
 			attachmentCaption := ""
 			if index == 0 {
@@ -213,7 +217,13 @@ func (t *TelegramTarget) SendWithAttachments(body, title string, notifyType Noti
 			if err != nil {
 				return err
 			}
-			outcome.record(SendRequest(spec))
+			outcome.record(t.sendTrackedRequestFor(spec, "SendWithAttachments:1", body, title, notifyType, attachments,
+
+				// sendRichMessage sends a Telegram Rich Message built from the configured
+				// template to every target, followed by any attachments exactly as they would
+				// be sent for a normal notification.
+				deliveryIndex0, index,
+			))
 		}
 	}
 
@@ -222,9 +232,6 @@ func (t *TelegramTarget) SendWithAttachments(body, title string, notifyType Noti
 	return outcome.err()
 }
 
-// sendRichMessage sends a Telegram Rich Message built from the configured
-// template to every target, followed by any attachments exactly as they would
-// be sent for a normal notification.
 func (t *TelegramTarget) sendRichMessage(body, title string, notifyType NotifyType, attachments []Attachment) error {
 	imageURL := ""
 	if t.includeImage {
@@ -253,7 +260,7 @@ func (t *TelegramTarget) sendRichMessage(body, title string, notifyType NotifyTy
 	}
 
 	var outcome sendOutcome
-	for _, recipient := range t.targets {
+	for deliveryIndex1, recipient := range t.targets {
 		payload := map[string]any{
 			"rich_message": richMessage,
 		}
@@ -274,7 +281,7 @@ func (t *TelegramTarget) sendRichMessage(body, title string, notifyType NotifyTy
 			return err
 		}
 
-		outcome.record(SendRequest(RequestSpec{
+		outcome.record(t.sendTrackedRequestFor(RequestSpec{
 			Method: "POST",
 			URL:    telegramAPIBase + t.botToken + "/sendRichMessage",
 			Headers: map[string]string{
@@ -282,16 +289,18 @@ func (t *TelegramTarget) sendRichMessage(body, title string, notifyType NotifyTy
 				"Content-Type": "application/json",
 			},
 			Body: string(data),
-		}))
+		}, "sendRichMessage:0",
 
-		// Attachments are untouched by Rich Message mode -- they are always
-		// sent afterward, exactly as a normal notification would send them.
+			// Attachments are untouched by Rich Message mode -- they are always
+			// sent afterward, exactly as a normal notification would send them.
+			body, title, notifyType, attachments, deliveryIndex1))
+
 		for index, attachment := range attachments {
 			spec, err := t.buildAttachmentSpec(recipient, attachment, "", index)
 			if err != nil {
 				return err
 			}
-			outcome.record(SendRequest(spec))
+			outcome.record(t.sendTrackedRequestFor(spec, "sendRichMessage:1", body, title, notifyType, attachments, deliveryIndex1, index))
 		}
 	}
 
@@ -599,6 +608,14 @@ func init() {
 		"category":           "native",
 		"details": map[string]any{
 			"args": map[string]any{
+				"album": map[string]any{
+					"default":  false,
+					"map_to":   "album",
+					"name":     "Group Photo/Video Attachments",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"content": map[string]any{
 					"default":  "before",
 					"map_to":   "content",
@@ -606,10 +623,10 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"before", "after"},
+					"values":   []any{"before", "after"},
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -633,13 +650,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html", "markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"image": map[string]any{
 					"default":  false,
@@ -656,7 +674,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"v1", "v2"},
+					"values":   []any{"v1", "v2"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -673,7 +691,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"preview": map[string]any{
 					"default":  false,
@@ -702,7 +720,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -737,7 +755,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"topic": map[string]any{
 					"map_to":   "topic",
@@ -763,10 +781,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -783,13 +801,13 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{bot_token}", "{schema}://{bot_token}/{targets}"},
+			"templates": []any{"{schema}://{bot_token}", "{schema}://{bot_token}/{targets}"},
 			"tokens": map[string]any{
 				"bot_token": map[string]any{
 					"map_to":   "bot_token",
 					"name":     "Bot Token",
 					"private":  true,
-					"regex":    []string{"^(bot)?(?P<key>[0-9]+:[a-z0-9_-]+)$", "i"},
+					"regex":    []any{"^(bot)?(?P<key>[0-9]+:[a-z0-9_-]+)$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -800,19 +818,19 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"tgram"},
+					"values":   []any{"tgram"},
 				},
 				"target_user": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Chat ID",
 					"private":  false,
-					"regex":    []string{"^((-?[0-9]{1,32})|([a-z_-][a-z0-9_-]+))$", "i"},
+					"regex":    []any{"^((-?[0-9]{1,32})|([a-z_-][a-z0-9_-]+))$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

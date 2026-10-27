@@ -9,6 +9,7 @@ import (
 const iftttNotifyURL = "https://maker.ifttt.com/trigger/%s/with/key/%s"
 
 type IFTTTTarget struct {
+	deliveryTracker
 	webhookID string
 	events    []string
 	addTokens map[string]string
@@ -55,12 +56,12 @@ func (t *IFTTTTarget) BuildRequest(body, title string, notifyType NotifyType) (R
 func (t *IFTTTTarget) Send(body, title string, notifyType NotifyType) error {
 	// Upstream keeps going after a failed target; see sendOutcome.
 	var outcome sendOutcome
-	for _, event := range t.events {
+	for deliveryIndex0, event := range t.events {
 		spec, err := t.buildRequestForEvent(event, body, title, notifyType)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(t.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	return outcome.err()
@@ -125,7 +126,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -141,13 +142,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -156,10 +166,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -176,7 +204,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "events",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -193,6 +221,16 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "bool",
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
 				},
 			},
 			"kwargs": map[string]any{
@@ -213,10 +251,10 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{webhook_id}/{events}"},
+			"templates": []any{"{schema}://{webhook_id}/{events}"},
 			"tokens": map[string]any{
 				"events": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "events",
 					"name":     "Events",
@@ -231,7 +269,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"ifttt"},
+					"values":   []any{"ifttt"},
 				},
 				"webhook_id": map[string]any{
 					"map_to":   "webhook_id",

@@ -40,52 +40,26 @@ var FrameworkArgs = map[string]FrameworkArg{
 			"verify=no to accept the capture server's own certificate.",
 	},
 
-	// --- declared, not implemented -------------------------------------
+	// Framework behavior is verified separately from schema declarations.
 	"overflow": {
 		Implemented:    true,
 		FixtureCovered: true,
-		Note: "Implemented for the framework default: ?overflow=truncate " +
-			"shortens the body to the service's body_maxlen and " +
-			"?overflow=split sends one notification per chunk, splitting on " +
-			"newlines, then spaces, then punctuation. Verified against " +
-			"upstream by the 46elks and discord fixtures, which take " +
-			"different branches of the sizing logic — discord repeats the " +
-			"title with a [1/2] counter where 46elks folds it into the body. " +
-			"The eight services whose limits upstream computes per instance " +
-			"rather than declaring — twilio's depends on ?method=, webex's " +
-			"on whether it is a webhook — are resolved from the URL and " +
-			"covered by fixtures of their own. Not covered: the four " +
-			"plugins that take over splitting entirely (telegram, " +
-			"evolution, google_chat, slack), which convert or repair markup " +
-			"around the split; TestOverflowOverridesAreKnown fails when " +
-			"upstream adds another; all four share one guard and only " +
-			"diverge for HTML converted to markdown, so ordinary sends take " +
-			"the framework path this port implements. One further limit: " +
-			"the fold used for measuring is also what the provider " +
-			"receives. That surfaced as telegram sending <br /> where " +
-			"upstream sends a newline, and the cause was not the fold: the " +
-			"port had none of telegram's HTML rewrite, so any body carrying " +
-			"a tag Telegram does not accept went out unconverted. That is " +
-			"ported now and covered. Old note: ?overflow=split makes upstream send one request per chunk and " +
-			"?overflow=truncate shortens the body to the provider's " +
-			"body_maxlen. The port does neither, so a split sends one " +
-			"request where upstream sends several. The default mode is " +
-			"upstream, which means leave the content alone, and that the " +
-			"port does match. This is fixture-able: a case with " +
-			"?overflow=split and a long enough body fails today with a " +
-			"request count mismatch.",
+		Note: "Truncates or splits by Unicode character limits, folds titles, " +
+			"repairs CommonMark across pieces, then reapplies limits after " +
+			"service dialect conversion. Provider fixtures cover title counters, " +
+			"dynamic limits and declared formats. Upstream-generated vectors " +
+			"check Markdown repair and rendered-size splitting independently. " +
+			"Matrix and Telegram retain their service-specific delivery rules; " +
+			"TestOverflowOverridesAreKnown detects changes to those overrides.",
 	},
 	"retry": {
 		Implemented: true,
-		Note: "Re-sends after a failure, up to retry extra attempts, in the " +
-			"dispatch layer rather than in a provider — which is where " +
-			"upstream keeps it too. It needed instrumentation before it " +
-			"could be checked at all: every mock in the harness answers 200, " +
-			"so neither side ever re-sent anything. Both capture mocks now " +
-			"take a failure budget (--fail-first, FailNextRequests), and " +
-			"retry_parity_test.go compares the attempt count against " +
-			"upstream. Not marked fixture-covered because it needs that " +
-			"budget rather than an ordinary provider case.",
+		Note: "Retries a complete notification after all pieces have been " +
+			"attempted. Accepted pieces and targets remain delivered during " +
+			"later attempts, and state resets for the next notification. " +
+			"The retry count is capped at ten. Differential failure-budget " +
+			"tests compare complete request traces, including partial retries; " +
+			"ordinary static fixtures cannot represent a rejected request.",
 	},
 	"wait": {
 		Implemented: true,

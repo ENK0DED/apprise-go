@@ -1,0 +1,30 @@
+[
+  {
+    "name": "token",
+    "url": "youlmk://ylk_0123456789abcdef0123456789abcdef",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "key-default-title",
+    "url": "youlmk://k_0123456789abcd",
+    "title": "",
+    "body": "Body",
+    "type": "warning"
+  },
+  {
+    "name": "options",
+    "url": "youlmk://k_0123456789abcd?priority=c&url=https://example.com&url_label=012345678901234567890123456789&group=storage&image=yes",
+    "title": "Title",
+    "body": "Body",
+    "type": "success"
+  },
+  {
+    "name": "priority-mapping",
+    "url": "youlmk://k_0123456789abcd?failure=l",
+    "title": "Title",
+    "body": "Body",
+    "type": "failure"
+  }
+]

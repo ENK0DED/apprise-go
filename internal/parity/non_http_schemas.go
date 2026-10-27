@@ -1,6 +1,10 @@
 package parity
 
 var nonHTTPSchemas = map[string]struct{}{
+	// AMQP is compared through a real local broker by amqp_parity_test.go.
+	"amqp": {}, "amqps": {},
+	// Delta Chat uses SMTP and is covered by deltachat_parity_test.go.
+	"deltachat": {}, "deltachats": {},
 	"aprs":   {},
 	"dbus":   {},
 	"gio":    {},

@@ -39,10 +39,10 @@ class ContractFixtures(unittest.TestCase):
         self.assertIs(uuid.uuid4, original_uuid)
         self.assertIs(time.time, original_clock)
         self.assertNotEqual(uuid.uuid4(), uuid.uuid4())
-        account = MatrixOlmAccount()
-        keys = account.one_time_keys_payload("@fixture:example.com", "FIXTURE", count=50)
-        self.assertEqual(len(keys), 50)
-        self.assertEqual(len({v["key"] for v in keys.values()}), 50)
+        keys = [MatrixOlmAccount().fallback_keys_payload("@fixture:example.com", "FIXTURE") for _ in range(50)]
+        self.assertTrue(all(len(entry) == 1 for entry in keys))
+        self.assertEqual(len({next(iter(entry)) for entry in keys}), 50)
+        self.assertEqual(len({next(iter(entry.values()))["key"] for entry in keys}), 50)
 
     def test_schema_enum_defaults_use_wire_values(self) -> None:
         from apprise.common import NotifyFormat

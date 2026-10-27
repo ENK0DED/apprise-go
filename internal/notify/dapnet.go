@@ -18,6 +18,7 @@ const (
 var dapnetCallSignRe = regexp.MustCompile(`(?i)^([0-9a-z]{1,2}[0-9][a-z0-9]{1,3})(?:-([0-9]{1,2}))?\s*$`)
 
 type DapnetTarget struct {
+	deliveryTracker
 	user     string
 	password string
 	priority int
@@ -124,7 +125,7 @@ func (d *DapnetTarget) Send(body, title string, notifyType NotifyType) error {
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(d.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, idx))
 	}
 
 	_ = notifyType
@@ -231,7 +232,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -247,13 +248,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -262,7 +272,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"priority": map[string]any{
 					"default":  0,
@@ -273,8 +283,26 @@ func init() {
 					"type":     "choice:int",
 					"values":   []any{0, 1},
 				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -320,9 +348,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user}:{password}@{targets}"},
+			"templates": []any{"{schema}://{user}:{password}@{targets}"},
 			"tokens": map[string]any{
 				"password": map[string]any{
 					"map_to":   "password",
@@ -338,19 +376,19 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"dapnet"},
+					"values":   []any{"dapnet"},
 				},
 				"target_callsign": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Callsign",
 					"private":  false,
-					"regex":    []string{"^[a-z0-9]{2,5}(-[a-z0-9]{1,2})?$", "i"},
+					"regex":    []any{"^[a-z0-9]{2,5}(-[a-z0-9]{1,2})?$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_callsign"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_callsign"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

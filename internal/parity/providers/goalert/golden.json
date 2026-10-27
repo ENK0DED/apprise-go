@@ -1,0 +1,109 @@
+[
+  {
+    "name": "trigger",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/api/v2/generic/incoming"
+      }
+    ]
+  },
+  {
+    "name": "close-success",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Recovered\", \"action\": \"close\", \"dedup\": \"disk\", \"meta\": {\"team\": \"storage\"}}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com:8443/prefix/api/v2/generic/incoming"
+      }
+    ]
+  },
+  {
+    "name": "explicit-trigger",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/api/v2/generic/incoming"
+      }
+    ]
+  },
+  {
+    "name": "explicit-close",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Body\", \"action\": \"close\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/api/v2/generic/incoming"
+      }
+    ]
+  },
+  {
+    "name": "keys-query",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/nested/path/api/v2/generic/incoming"
+      },
+      {
+        "body": "{\"summary\": \"Title\", \"details\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer abcdef12-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/nested/path/api/v2/generic/incoming"
+      }
+    ]
+  },
+  {
+    "name": "body-summary",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Disk **warning**\", \"details\": \"Disk **warning**\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer 12345678-1234-1234-1234-123456789abc",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://example.com/api/v2/generic/incoming"
+      }
+    ]
+  }
+]

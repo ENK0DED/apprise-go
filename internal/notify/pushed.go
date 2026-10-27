@@ -13,6 +13,7 @@ var pushedChannelRe = regexp.MustCompile(`^#?([A-Za-z0-9]+)$`)
 var pushedUserRe = regexp.MustCompile(`^@([A-Za-z0-9]+)$`)
 
 type PushedTarget struct {
+	deliveryTracker
 	appKey    string
 	appSecret string
 	channels  []string
@@ -95,11 +96,11 @@ func (p *PushedTarget) Send(body, title string, notifyType NotifyType) error {
 		if err != nil {
 			return err
 		}
-		return SendRequest(spec)
+		return p.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType)
 	}
 
 	var firstErr error
-	for _, channel := range p.channels {
+	for deliveryIndex0, channel := range p.channels {
 		payload := map[string]any{}
 		for key, value := range basePayload {
 			payload[key] = value
@@ -113,12 +114,12 @@ func (p *PushedTarget) Send(body, title string, notifyType NotifyType) error {
 			}
 			continue
 		}
-		if err := SendRequest(spec); err != nil && firstErr == nil {
+		if err := p.sendTrackedRequestFor(spec, "Send:1", body, title, notifyType, deliveryIndex0); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
 
-	for _, user := range p.users {
+	for deliveryIndex1, user := range p.users {
 		payload := map[string]any{}
 		for key, value := range basePayload {
 			payload[key] = value
@@ -132,7 +133,7 @@ func (p *PushedTarget) Send(body, title string, notifyType NotifyType) error {
 			}
 			continue
 		}
-		if err := SendRequest(spec); err != nil && firstErr == nil {
+		if err := p.sendTrackedRequestFor(spec, "Send:2", body, title, notifyType, deliveryIndex1); err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
@@ -180,7 +181,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -196,13 +197,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -211,10 +221,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -231,7 +259,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -249,12 +277,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
-			"kwargs": map[string]any{},
-			"templates": []string{
-				"{schema}://{app_key}/{app_secret}",
-				"{schema}://{app_key}/{app_secret}@{targets}",
-			},
+			"kwargs":    map[string]any{},
+			"templates": []any{"{schema}://{app_key}/{app_secret}", "{schema}://{app_key}/{app_secret}@{targets}"},
 			"tokens": map[string]any{
 				"app_key": map[string]any{
 					"map_to":   "app_key",
@@ -277,7 +312,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pushed"},
+					"values":   []any{"pushed"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -296,8 +331,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel", "target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel", "target_user"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

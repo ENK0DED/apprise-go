@@ -20,6 +20,7 @@ type SMTPCapture struct {
 	listener        net.Listener
 	mu              sync.Mutex
 	messages        []SMTPMessage
+	rejectOnce      map[string]int
 	tlsConfig       *tls.Config
 	supportStartTLS bool
 }
@@ -165,6 +166,16 @@ func (s *SMTPCapture) handleConn(conn net.Conn) {
 		case strings.HasPrefix(upper, "RCPT TO:"):
 			addr := strings.TrimSpace(line[len("RCPT TO:"):])
 			addr = strings.Trim(addr, "<>")
+			s.mu.Lock()
+			reject := s.rejectOnce[strings.ToLower(addr)] > 0
+			if reject {
+				s.rejectOnce[strings.ToLower(addr)]--
+			}
+			s.mu.Unlock()
+			if reject {
+				writeLine("550 fixture recipient temporarily rejected")
+				continue
+			}
 			rcptTo = append(rcptTo, addr)
 			writeLine("250 OK")
 		case strings.HasPrefix(upper, "DATA"):
@@ -224,4 +235,14 @@ func (s *SMTPCapture) handleConn(conn net.Conn) {
 			writeLine("250 OK")
 		}
 	}
+}
+
+// RejectRecipientOnce exercises partial delivery without an external mail server.
+func (s *SMTPCapture) RejectRecipientOnce(email string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.rejectOnce == nil {
+		s.rejectOnce = map[string]int{}
+	}
+	s.rejectOnce[strings.ToLower(email)]++
 }

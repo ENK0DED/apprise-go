@@ -3,7 +3,7 @@
     "name": "basic-auth-file",
     "requests": [
       {
-        "body": "payload={\"text\": \"apprise parity\\r\\nhello from python\", \"file_url\": \"https://example.com/file.txt\"}",
+        "body": "payload=%7B%22text%22%3A+%22apprise+parity%5Cr%5Cnhello+from+python%22%2C+%22file_url%22%3A+%22https%3A%2F%2Fexample.com%2Ffile.txt%22%7D",
         "headers": {
           "accept": "*/*",
           "authorization": "Basic dXNlcjpwYXNz",
@@ -20,7 +20,7 @@
     "name": "synologys-default",
     "requests": [
       {
-        "body": "payload={\"text\": \"apprise parity\\r\\nhello from python\", \"file_url\": \"https://example.com/file.txt\"}",
+        "body": "payload=%7B%22text%22%3A+%22apprise+parity%5Cr%5Cnhello+from+python%22%2C+%22file_url%22%3A+%22https%3A%2F%2Fexample.com%2Ffile.txt%22%7D",
         "headers": {
           "accept": "*/*",
           "authorization": "Basic dXNlcjpwYXNz",

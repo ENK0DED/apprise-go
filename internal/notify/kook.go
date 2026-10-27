@@ -25,6 +25,7 @@ var kookTargetPattern = regexp.MustCompile(`^\d{1,20}$`)
 var kookModes = []string{kookModeBot, kookModeHook}
 
 type KookTarget struct {
+	deliveryTracker
 	token    string
 	mode     string
 	format   string
@@ -58,7 +59,7 @@ func NewKookTarget(target *ParsedURL) (*KookTarget, error) {
 		mode = matched
 	}
 
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	if format == "" {
 		// Kook renders KMarkdown natively, so markdown is the default.
 		format = "markdown"
@@ -112,8 +113,8 @@ func (k *KookTarget) SendWithAttachments(body, title string, notifyType NotifyTy
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(k.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -303,7 +304,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -319,13 +320,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"mode": map[string]any{
 					"default":  "bot",
@@ -334,7 +336,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"bot", "webhook"},
+					"values":   []any{"bot", "webhook"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -351,7 +353,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -372,7 +374,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -389,7 +391,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -411,10 +413,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -422,7 +424,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{token}", "{schema}://{token}/{targets}"},
+			"templates": []any{"{schema}://{token}", "{schema}://{token}/{targets}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "kook",
@@ -431,10 +433,10 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"kook"},
+					"values":   []any{"kook"},
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Targets",

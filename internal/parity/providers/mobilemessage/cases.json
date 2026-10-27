@@ -1,0 +1,30 @@
+[
+  {
+    "name": "batch",
+    "url": "mobilemessage://user:pass@Unraid/0412345678/61498765432?ref=storage",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "individual",
+    "url": "mobilemsg://user:pass@Unraid/412345678/498765432?batch=no&unicode=yes&max_parts=2",
+    "title": "Title",
+    "body": "你好",
+    "type": "warning"
+  },
+  {
+    "name": "numeric-sender",
+    "url": "mobilemessage://user:pass@61412345678/0412345678",
+    "title": "",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "from-query",
+    "url": "mobilemessage://user:pass@0412345678?from=Unraid&to=61498765432",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  }
+]

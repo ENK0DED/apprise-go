@@ -188,7 +188,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -204,13 +204,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -227,7 +228,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"priority": map[string]any{
 					"default":  "normal",
@@ -236,7 +237,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"silent", "normal", "urgent"},
+					"values":   []any{"silent", "normal", "urgent"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -257,7 +258,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -292,10 +293,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -320,7 +321,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{token}@{host}/{namespace}/{topic}", "{schema}://{token}@{host}:{port}/{namespace}/{topic}", "{schema}://{token}@{host}{path}{namespace}/{topic}", "{schema}://{token}@{host}:{port}{path}{namespace}/{topic}"},
+			"templates": []any{"{schema}://{token}@{host}/{namespace}/{topic}", "{schema}://{token}@{host}:{port}/{namespace}/{topic}", "{schema}://{token}@{host}{path}{namespace}/{topic}", "{schema}://{token}@{host}:{port}{path}{namespace}/{topic}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -359,7 +360,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pinglet", "pinglets"},
+					"values":   []any{"pinglet", "pinglets"},
 				},
 				"token": map[string]any{
 					"map_to":   "token",

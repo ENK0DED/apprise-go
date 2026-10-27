@@ -27,5 +27,19 @@
     "title": "over",
     "type": "info",
     "body_format": "html"
+  },
+  {
+    "name": "declared-markdown",
+    "url": "gchat://workspace/key/token",
+    "body": "# Heading\n**Bold** [link](https://example.com?a=1&b=2)",
+    "title": "Title",
+    "body_format": "markdown"
+  },
+  {
+    "name": "declared-html-title",
+    "url": "gchat://workspace/key/token",
+    "body": "<p>Body &amp; text</p>",
+    "title": "<i>Title</i>",
+    "body_format": "html"
   }
 ]

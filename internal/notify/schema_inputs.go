@@ -193,13 +193,75 @@ func adjustSchemaValues(specs schemaSpecs, target *ParsedURL, values map[string]
 	}
 
 	switch strings.ToLower(strings.TrimSpace(target.Scheme)) {
-	case "mailto", "mailtos":
+	case "mailto", "mailtos", "deltachat", "deltachats":
 		if _, ok := values["from_addr"]; !ok {
 			values["from_addr"] = schemaValueAny("")
 		}
 		if _, ok := values["smtp_host"]; !ok {
 			values["smtp_host"] = schemaValueAny("")
 		}
+	case "fluxer", "fluxers":
+		if _, ok := values["fullpath"]; !ok {
+			values["fullpath"] = schemaValueAny(nil)
+		}
+	case "github":
+		entries := splitPath(target.Path)
+		if len(entries) > 2 && entries[2] != "new" {
+			values["number"] = schemaValueAny(entries[2])
+		}
+	case "betterstack":
+		if target.User == "" && target.Query["token"] == "" {
+			values["host"] = schemaValueAny(nil)
+		}
+		var targets []string
+		from := target.Query["from"]
+		for _, entry := range splitPath(target.Path) {
+			if from == "" && isSimpleEmail(entry) {
+				from = entry
+			} else {
+				targets = append(targets, entry)
+			}
+		}
+		targets = append(targets, parseDelimitedList(target.Query["to"])...)
+		if from != "" {
+			values["from_addr"] = schemaValueAny(from)
+		}
+		values["targets"] = schemaValueList(append([]string{}, targets...))
+	case "goalert", "goalerts":
+		var path, targets []string
+		for _, entry := range splitPath(target.Path) {
+			if goAlertKeyPattern.MatchString(entry) {
+				targets = append(targets, entry)
+			} else {
+				path = append(path, entry)
+			}
+		}
+		for _, key := range []string{"to", "token"} {
+			targets = append(targets, parseDelimitedList(target.Query[key])...)
+		}
+		fullpath := "/"
+		if len(path) > 0 {
+			fullpath += strings.Join(path, "/") + "/"
+		}
+		values["fullpath"] = schemaValueAny(fullpath)
+		values["targets"] = schemaValueList(append([]string{}, targets...))
+	case "zalo":
+		entries := splitPath(target.Path)
+		token := target.Query["token"]
+		if token != "" {
+			if target.Host != "" {
+				entries = append([]string{target.Host}, entries...)
+			}
+		} else {
+			token = target.Host + ":"
+			if len(entries) > 0 {
+				token += entries[0]
+				entries = entries[1:]
+			}
+		}
+		values["token"] = schemaValueAny(token)
+		values["targets"] = schemaValueList(append(append([]string{}, entries...), parseDelimitedList(target.Query["to"])...))
+
 	case "gotify", "gotifys", "pinglet", "pinglets":
 		if _, ok := values["fullpath"]; !ok {
 			values["fullpath"] = schemaValueAny("/")
@@ -917,7 +979,8 @@ func ensureListDefaults(specs schemaSpecs, values map[string]SchemaValue) {
 
 func ensureEmptyKwargs(specs schemaSpecs, kwargs map[string]map[string]string) {
 	defaultMapTos := map[string]struct{}{
-		"badges":           {},
+		"badges": {}, "meta": {},
+		"add_tokens": {}, "del_tokens": {}, "labels": {}, "metadata": {}, "tags": {},
 		"custom":           {},
 		"data":             {},
 		"data_kwargs":      {},

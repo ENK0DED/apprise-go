@@ -61,5 +61,12 @@
     "title": "over",
     "type": "info",
     "body_format": "html"
+  },
+  {
+    "name": "declared-heading",
+    "url": "kook://bottoken123/1234567890?format=markdown",
+    "body": "# Heading\n**Bold**",
+    "title": "Title",
+    "body_format": "markdown"
   }
 ]

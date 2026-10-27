@@ -18,6 +18,7 @@ const sesDefaultFromName = "Apprise Notifications"
 var awsRegionPattern = regexp.MustCompile(`^[A-Za-z]{2}-[A-Za-z-]+-[0-9]+$`)
 
 type SESTarget struct {
+	deliveryTracker
 	accessKey    string
 	secretKey    string
 	sessionToken string
@@ -174,7 +175,7 @@ func (s *SESTarget) SendWithAttachments(body, title string, notifyType NotifyTyp
 		return fmt.Errorf("missing targets")
 	}
 
-	for _, target := range s.targets {
+	for deliveryIndex0, target := range s.targets {
 		payload := s.buildPayload(body, title, target, attachments)
 		spec := RequestSpec{
 			Method:  "POST",
@@ -182,7 +183,7 @@ func (s *SESTarget) SendWithAttachments(body, title string, notifyType NotifyTyp
 			Headers: s.signer().headers(payload, fixedTime()),
 			Body:    payload,
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(s.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -432,7 +433,7 @@ func init() {
 					"alias_of": "access_key_id",
 				},
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -441,7 +442,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -450,7 +451,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -466,16 +467,20 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"alias_of": "from_email",
+				},
+				"key": map[string]any{
+					"alias_of": "access_key_id",
 				},
 				"name": map[string]any{
 					"map_to":   "from_name",
@@ -484,11 +489,13 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
-				"key": map[string]any{
-					"alias_of": "access_key_id",
-				},
-				"token": map[string]any{
-					"alias_of": "token",
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -497,7 +504,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"region": map[string]any{
 					"alias_of": "region",
@@ -509,8 +524,18 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -530,7 +555,10 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
+				},
+				"token": map[string]any{
+					"alias_of": "token",
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -548,9 +576,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{from_email}/{access_key_id}/{secret_access_key}/{region}/{targets}", "{schema}://{from_email}/{access_key_id}/{secret_access_key}/{region}"},
+			"templates": []any{"{schema}://{from_email}/{access_key_id}/{secret_access_key}/{region}/{targets}", "{schema}://{from_email}/{access_key_id}/{secret_access_key}/{region}"},
 			"tokens": map[string]any{
 				"access_key_id": map[string]any{
 					"map_to":   "access_key_id",
@@ -564,13 +602,13 @@ func init() {
 					"name":     "From Email",
 					"private":  false,
 					"required": true,
-					"type":     "string",
+					"type":     "email",
 				},
 				"region": map[string]any{
 					"map_to":   "region_name",
 					"name":     "Region",
 					"private":  false,
-					"regex":    []string{"^[a-z]{2}-[a-z-]+?-[0-9]+$", "i"},
+					"regex":    []any{"^[a-z]{2}-[a-z-]+?-[0-9]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -581,7 +619,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"ses"},
+					"values":   []any{"ses"},
 				},
 				"secret_access_key": map[string]any{
 					"map_to":   "secret_access_key",
@@ -590,21 +628,21 @@ func init() {
 					"required": true,
 					"type":     "string",
 				},
-				"token": map[string]any{
-					"map_to":   "session_token",
-					"name":     "Session Token",
-					"private":  true,
-					"required": false,
-					"type":     "string",
-				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Target Emails",
 					"private":  false,
 					"required": false,
 					"type":     "list:string",
+				},
+				"token": map[string]any{
+					"map_to":   "session_token",
+					"name":     "Session Token",
+					"private":  true,
+					"required": false,
+					"type":     "string",
 				},
 			},
 		},

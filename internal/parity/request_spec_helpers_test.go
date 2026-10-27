@@ -21,11 +21,13 @@ var headerDrop = map[string]struct{}{
 }
 
 var headerKeep = map[string]struct{}{
-	"user-agent":    {},
-	"content-type":  {},
-	"accept":        {},
-	"accepts":       {},
-	"authorization": {},
+	"api-token":       {},
+	"idempotency-key": {},
+	"user-agent":      {},
+	"content-type":    {},
+	"accept":          {},
+	"accepts":         {},
+	"authorization":   {},
 }
 
 const (

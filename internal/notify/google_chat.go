@@ -12,6 +12,7 @@ const googleChatURL = "https://chat.googleapis.com/v1/spaces/%s/messages"
 const googleChatReplyOption = "REPLY_MESSAGE_FALLBACK_TO_NEW_THREAD"
 
 type GoogleChatTarget struct {
+	parsed    *ParsedURL
 	workspace string
 	key       string
 	token     string
@@ -57,10 +58,10 @@ func NewGoogleChatTarget(target *ParsedURL) (*GoogleChatTarget, error) {
 	}
 
 	return &GoogleChatTarget{
-		workspace: workspace,
-		key:       key,
-		token:     token,
-		thread:    thread,
+		workspace: workspace, parsed: target,
+		key:    key,
+		token:  token,
+		thread: thread,
 	}, nil
 }
 
@@ -71,7 +72,9 @@ func (g *GoogleChatTarget) BuildRequest(body, title string, notifyType NotifyTyp
 	}
 
 	// Google Chat speaks its own markdown dialect, not CommonMark.
-	message = commonMarkToGoogleChat(message)
+	if !g.parsed.dialectApplied && g.parsed.sourceNotifyFormat != "" && targetNotifyFormat(g.parsed) == "markdown" {
+		message = commonMarkToGoogleChat(message)
+	}
 
 	payload := map[string]any{
 		"text": message,
@@ -151,7 +154,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -167,16 +170,25 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "markdown",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "markdown",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"key": map[string]any{
 					"alias_of": "webhook_key",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -185,10 +197,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -225,12 +255,22 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 				"workspace": map[string]any{
 					"alias_of": "workspace",
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{workspace}/{webhook_key}/{webhook_token}", "{schema}://{workspace}/{webhook_key}/{webhook_token}/{thread_key}"},
+			"templates": []any{"{schema}://{workspace}/{webhook_key}/{webhook_token}", "{schema}://{workspace}/{webhook_key}/{webhook_token}/{thread_key}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "gchat",
@@ -239,7 +279,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"gchat"},
+					"values":   []any{"gchat"},
 				},
 				"thread_key": map[string]any{
 					"map_to":   "thread_key",

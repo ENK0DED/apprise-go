@@ -10,5 +10,21 @@
     "url": "nctalks://user:pass@talk.local/room1/room2?url_prefix=nextcloud&+X-Test=abc",
     "body": "hello from python",
     "title": "apprise parity"
+  },
+  {
+    "name": "bot-secret",
+    "url": "nctalks://example.com/room-one/room-two?secret=public-fixture-secret&silent=yes",
+    "body": "Body",
+    "title": "Title",
+    "volatile_headers": [
+      "x-nextcloud-talk-bot-random",
+      "x-nextcloud-talk-bot-signature"
+    ]
+  },
+  {
+    "name": "user-silent",
+    "url": "nctalk://user:pass@example.com/room?silent=yes",
+    "body": "Body",
+    "title": "Title"
   }
 ]

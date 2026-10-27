@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 
@@ -18,6 +17,7 @@ const embyDefaultPort = 8096
 const embyTimeoutMs = 60000
 
 type EmbyTarget struct {
+	deliveryTracker
 	host        string
 	port        int
 	secure      bool
@@ -116,7 +116,7 @@ func (e *EmbyTarget) Send(body, title string, notifyType NotifyType) error {
 		return err
 	}
 
-	for _, session := range sessions {
+	for deliveryIndex0, session := range sessions {
 		requestURL := fmt.Sprintf("%s/Sessions/%s/Message", e.baseURL(), session)
 		spec := RequestSpec{
 			Method: "POST",
@@ -129,7 +129,7 @@ func (e *EmbyTarget) Send(body, title string, notifyType NotifyType) error {
 			},
 			Body: string(payloadData),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(e.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	_ = notifyType
@@ -164,7 +164,7 @@ func (e *EmbyTarget) login() error {
 		return err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func (e *EmbyTarget) sessions() ([]string, error) {
 		return nil, err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +322,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -338,18 +338,27 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"modal": map[string]any{
 					"default":  false,
 					"map_to":   "modal",
 					"name":     "Modal",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
 					"type":     "bool",
@@ -361,10 +370,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -395,9 +422,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{host}", "{schema}://{host}:{port}", "{schema}://{user}:{password}@{host}", "{schema}://{user}:{password}@{host}:{port}"},
+			"templates": []any{"{schema}://{host}", "{schema}://{host}:{port}", "{schema}://{user}:{password}@{host}", "{schema}://{user}:{password}@{host}:{port}"},
 			"tokens": map[string]any{
 				"host": map[string]any{
 					"map_to":   "host",
@@ -429,7 +466,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"emby", "embys"},
+					"values":   []any{"emby", "embys"},
 				},
 				"user": map[string]any{
 					"map_to":   "user",

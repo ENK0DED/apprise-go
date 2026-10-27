@@ -16,7 +16,23 @@ permissions: read-all
 jobs:
   parity:
     runs-on: ubuntu-latest
+    services:
+      rabbitmq:
+        image: rabbitmq:4.2-management@sha256:7ce498399b07a9594a3d23e5a7920edf233edb888e82503c35357c23cefc2e61
+        env:
+          RABBITMQ_DEFAULT_USER: parity
+          RABBITMQ_DEFAULT_PASS: parity-pass
+          RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: "+S 2:2"
+        ports:
+          - 5672:5672
+        options: >-
+          --memory=512m --cpus=2 --pids-limit=256
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s --health-timeout 5s --health-retries 12
     env:
+      APPRISE_AMQP_TEST_ADDR: 127.0.0.1:5672
+      APPRISE_AMQP_TEST_USER: parity
+      APPRISE_AMQP_TEST_PASSWORD: parity-pass
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
     steps:
       - name: Checkout
@@ -153,7 +169,7 @@ jobs:
             OUTPUT_NAME="apprise-go-${GOOS}-${GOARCH}${BIN_EXT}"
           fi
           go build -trimpath -ldflags "-s -w" -o "dist/${OUTPUT_NAME}" ./cmd/apprise
-          echo "output_name=${OUTPUT_NAME}" >> $GITHUB_ENV
+          echo "output_name=${OUTPUT_NAME}" >> "$GITHUB_ENV"
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v7

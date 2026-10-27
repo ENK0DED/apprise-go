@@ -1,0 +1,97 @@
+[
+  {
+    "name": "channel",
+    "requests": [
+      {
+        "body": "{\"text\": \"Body\", \"card\": {\"title\": \"Title\", \"theme\": \"modern-inline\"}, \"bot\": {\"name\": \"Apprise\", \"image\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-info-72x72.png\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/channelsbyname/general/message?zapikey=1000.secret"
+      }
+    ]
+  },
+  {
+    "name": "bot-broadcast",
+    "requests": [
+      {
+        "body": "{\"text\": \"Body\", \"card\": {\"title\": \"Title\", \"theme\": \"modern-inline\"}, \"bot\": {\"name\": \"Storage\", \"image\": \"https://raw.githubusercontent.com/unraid/apprise-go/main/assets/themes/default/apprise-warning-72x72.png\"}, \"broadcast\": true}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.eu/company/company1/api/v2/bots/notify/message?zapikey=1000.secret"
+      }
+    ]
+  },
+  {
+    "name": "mixed",
+    "requests": [
+      {
+        "body": "{\"text\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/channelsbyname/storage/message?zapikey=1000.secret"
+      },
+      {
+        "body": "{\"text\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/bots/notify/message?zapikey=1000.secret"
+      },
+      {
+        "body": "{\"text\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/channelsbyname/general/message?zapikey=1000.secret"
+      }
+    ]
+  },
+  {
+    "name": "declared-markdown",
+    "requests": [
+      {
+        "body": "{\"text\": \"*bold* _italic_ [link](https://example.com) `**literal**` https://example.org\", \"card\": {\"title\": \"Title\", \"theme\": \"modern-inline\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/channelsbyname/general/message?zapikey=1000.secret"
+      }
+    ]
+  },
+  {
+    "name": "declared-text",
+    "requests": [
+      {
+        "body": "{\"text\": \"**literal** &amp; stuff.\", \"card\": {\"title\": \"Title\", \"theme\": \"modern-inline\"}}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json; charset=utf-8",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://cliq.zoho.com/api/v2/channelsbyname/general/message?zapikey=1000.secret"
+      }
+    ]
+  }
+]

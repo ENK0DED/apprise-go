@@ -155,7 +155,7 @@ func NewSendPulseTarget(target *ParsedURL) (*SendPulseTarget, error) {
 
 	// An unrecognized ?format= falls back to the plugin default rather than
 	// failing; see the note in telegram.go.
-	format := normalizeNotifyFormat(target.Query["format"])
+	format := normalizeNotifyFormat(targetNotifyFormat(target))
 	switch format {
 	case "html", "markdown", "text":
 	default:
@@ -221,7 +221,7 @@ func (s *SendPulseTarget) SendWithAttachments(body, title string, notifyType Not
 		req.Header.Set("Authorization", "Bearer "+token)
 		req.Header.Set("Accept", "*/*")
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := httpClient().Do(req)
 		if err != nil {
 			return err
 		}
@@ -272,7 +272,7 @@ func (s *SendPulseTarget) login() (string, error) {
 		return "", err
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient().Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -410,7 +410,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"bcc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "bcc",
 					"name":     "Blind Carbon Copy",
@@ -419,7 +419,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cc": map[string]any{
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 					"group":    []any{},
 					"map_to":   "cc",
 					"name":     "Carbon Copy",
@@ -428,7 +428,7 @@ func init() {
 					"type":     "list:string",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -444,13 +444,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "html",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "html",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"html", "text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"map_to":   "from_addr",
@@ -462,6 +463,14 @@ func init() {
 				"id": map[string]any{
 					"alias_of": "client_id",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"overflow": map[string]any{
 					"default":  "upstream",
 					"map_to":   "overflow",
@@ -469,10 +478,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -499,7 +526,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -517,6 +544,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"template_data": map[string]any{
@@ -528,13 +565,13 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{user}@{host}/{client_secret}/", "{schema}://{user}@{host}/{client_id}/{client_secret}/{targets}"},
+			"templates": []any{"{schema}://{user}@{host}/{client_secret}/", "{schema}://{user}@{host}/{client_id}/{client_secret}/{targets}"},
 			"tokens": map[string]any{
 				"client_id": map[string]any{
 					"map_to":   "client_id",
 					"name":     "Client ID",
 					"private":  true,
-					"regex":    []string{"^[A-Z0-9._-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9._-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -542,7 +579,7 @@ func init() {
 					"map_to":   "client_secret",
 					"name":     "Client Secret",
 					"private":  true,
-					"regex":    []string{"^[A-Z0-9._-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9._-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -560,18 +597,18 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"sendpulse"},
+					"values":   []any{"sendpulse"},
 				},
 				"target_email": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

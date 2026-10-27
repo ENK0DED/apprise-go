@@ -27,5 +27,13 @@
     "body": "hello from python",
     "title": "apprise parity",
     "type": "info"
+  },
+  {
+    "name": "single-format-url-override",
+    "url": "workflow://example.com/WORKFLOWID/SIGNATURE?format=html&image=no",
+    "body": "**bold**",
+    "body_format": "markdown",
+    "title": "Title",
+    "type": "info"
   }
 ]

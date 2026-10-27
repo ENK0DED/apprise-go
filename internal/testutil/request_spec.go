@@ -209,13 +209,18 @@ func CapturePythonRequestsWithFailuresResult(
 	url, body, title string,
 	failures int,
 ) ([]notify.RequestSpec, *bool) {
-	t.Helper()
 
+	t.Helper()
+	return CapturePythonRequestsWithFailuresFormatResult(t, url, body, title, "", failures)
+}
+func CapturePythonRequestsWithFailuresFormatResult(t *testing.T, url, body, title, bodyFormat string, failures int) ([]notify.RequestSpec, *bool) {
+	t.Helper()
 	script := filepath.Join(RepoRoot(t), "internal", "testutil", "scripts", "capture_request.py")
-	stdout, stderr, err := RunPythonScript(t, script,
-		"--url", url, "--body", body, "--title", title,
-		"--type", string(notify.NotifyInfo),
-		"--fail-first", strconv.Itoa(failures))
+	args := []string{"--url", url, "--body", body, "--title", title, "--type", string(notify.NotifyInfo), "--fail-first", strconv.Itoa(failures)}
+	if bodyFormat != "" {
+		args = append(args, "--body-format", bodyFormat)
+	}
+	stdout, stderr, err := RunPythonScript(t, script, args...)
 	if err != nil {
 		t.Fatalf("capture with failures: %v (stderr: %s)", err, strings.TrimSpace(stderr))
 	}

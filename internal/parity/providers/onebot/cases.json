@@ -1,0 +1,37 @@
+[
+  {
+    "name": "private-group",
+    "url": "onebot://example.com/12345/%236789?to=@1122",
+    "title": "Title",
+    "body": "Body",
+    "type": "info"
+  },
+  {
+    "name": "auth-port",
+    "url": "onebots://token@example.com:8443/12345?token=override",
+    "title": "",
+    "body": "你好",
+    "type": "warning"
+  },
+  {
+    "name": "attachment",
+    "url": "onebot://example.com/12345/%236789",
+    "title": "Title",
+    "body": "Body",
+    "type": "info",
+    "attachments": [
+      "%7Brepo%7D/internal/parity/fixtures/pixel.png",
+      "%7Brepo%7D/internal/parity/fixtures/notes.txt"
+    ]
+  },
+  {
+    "name": "attachment-only",
+    "url": "onebots://example.com/12345",
+    "title": "",
+    "body": "",
+    "type": "info",
+    "attachments": [
+      "%7Brepo%7D/internal/parity/fixtures/pixel.png"
+    ]
+  }
+]

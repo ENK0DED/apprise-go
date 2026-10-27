@@ -11,7 +11,7 @@
           "user-agent": "Apprise"
         },
         "method": "POST",
-        "url": "https://fcm.googleapis.com/fcm/send"
+        "url": "https://fcm.googleapis.com/fcm/send/abc123"
       }
     ]
   }

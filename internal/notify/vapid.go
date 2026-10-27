@@ -11,10 +11,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/hkdf"
 )
@@ -33,6 +39,11 @@ var vapidURLByMode = map[string]string{
 }
 
 type VapidTarget struct {
+	ready      bool
+	readyError error
+	deliveryTracker
+	store         Store
+	retired       map[string]bool
 	subscriber    string
 	mode          string
 	ttl           int
@@ -45,8 +56,9 @@ type VapidTarget struct {
 }
 
 type vapidSubscription struct {
-	publicKey  *ecdh.PublicKey
-	authSecret []byte
+	endpoint, origin string
+	publicKey        *ecdh.PublicKey
+	authSecret       []byte
 }
 
 func NewVapidTarget(target *ParsedURL) (*VapidTarget, error) {
@@ -99,55 +111,22 @@ func NewVapidTarget(target *ParsedURL) (*VapidTarget, error) {
 		targets = append(targets, strings.ToLower(subscriber))
 	}
 
-	jwtOverride := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_JWT"))
-	publicOverride := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_PUBLIC_KEY"))
-	encryptedOverride := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_ENCRYPTED"))
-
-	var (
-		privateKey   *ecdsa.PrivateKey
-		publicKeyStr string
-	)
-	if keyfile != "" && jwtOverride == "" {
-		loadedKey, loadedPublic, err := loadVapidKey(keyfile)
-		if err != nil {
-			return nil, err
-		}
-		privateKey = loadedKey
-		publicKeyStr = loadedPublic
-	} else if keyfile != "" && publicOverride == "" {
-		_, loadedPublic, err := loadVapidKey(keyfile)
-		if err != nil {
-			return nil, err
-		}
-		publicKeyStr = loadedPublic
-	}
-	if publicOverride != "" {
-		publicKeyStr = publicOverride
-	}
-
-	subscriptions := map[string]vapidSubscription{}
-	if encryptedOverride == "" && subfile != "" {
-		loadedSubs, err := loadVapidSubscriptions(subfile, strings.ToLower(subscriber))
-		if err != nil {
-			return nil, err
-		}
-		subscriptions = loadedSubs
-	}
-
 	return &VapidTarget{
-		subscriber:    subscriber,
-		mode:          mode,
-		ttl:           ttl,
-		keyfile:       keyfile,
-		subfile:       subfile,
-		targets:       targets,
-		privateKey:    privateKey,
-		publicKeyStr:  publicKeyStr,
-		subscriptions: subscriptions,
+		subscriber: subscriber,
+		mode:       mode,
+		ttl:        ttl,
+		keyfile:    keyfile,
+		subfile:    subfile,
+		targets:    targets,
+
+		retired: map[string]bool{}, store: StoreFor(target),
 	}, nil
 }
 
 func (v *VapidTarget) BuildRequest(body, title string, notifyType NotifyType) (RequestSpec, error) {
+	if err := v.ensureReady(); err != nil {
+		return RequestSpec{}, err
+	}
 	if len(v.targets) == 0 {
 		return RequestSpec{}, fmt.Errorf("missing targets")
 	}
@@ -155,54 +134,157 @@ func (v *VapidTarget) BuildRequest(body, title string, notifyType NotifyType) (R
 	if err != nil {
 		return RequestSpec{}, err
 	}
-	headers, err := v.buildHeaders()
+	entry, ok := v.subscriptions[strings.ToLower(v.targets[0])]
+	if !ok {
+		return RequestSpec{}, fmt.Errorf("missing subscription")
+	}
+	headers, err := v.buildHeadersForOrigin(entry.origin)
 	if err != nil {
 		return RequestSpec{}, err
 	}
 	return RequestSpec{
 		Method:  "POST",
-		URL:     vapidURLByMode[v.mode],
+		URL:     entry.endpoint,
 		Headers: headers,
 		Body:    string(payload),
 	}, nil
 }
 
 func (v *VapidTarget) Send(body, title string, notifyType NotifyType) error {
-	// Upstream keeps going after a failed target; see sendOutcome.
-	var outcome sendOutcome
-	if len(v.targets) == 0 {
-		return fmt.Errorf("missing targets")
-	}
-
-	headers, err := v.buildHeaders()
-	if err != nil {
+	if err := v.ensureReady(); err != nil {
 		return err
 	}
-
+	var outcome sendOutcome
+	if v.retired == nil {
+		v.retired = map[string]bool{}
+	}
+	if v.store != nil {
+		var retired []string
+		if storeGetJSON(v.store, "retired", &retired) {
+			for _, endpoint := range retired {
+				v.retired[endpoint] = true
+			}
+		}
+	}
+	delivered := 0
+	expired := map[string]bool{}
 	for _, target := range v.targets {
+		if v.isDelivered(target) {
+			delivered++
+			continue
+		}
+		entry, ok := v.subscriptions[strings.ToLower(target)]
+		if !ok {
+			outcome.record(fmt.Errorf("missing Vapid subscription: %s", target))
+			continue
+		}
+		if v.retired[entry.endpoint] {
+			continue
+		}
 		payload, err := v.buildPayload(body, target)
 		if err != nil {
-			return err
+			outcome.record(err)
+			continue
 		}
-		spec := RequestSpec{
-			Method:  "POST",
-			URL:     vapidURLByMode[v.mode],
-			Headers: headers,
-			Body:    string(payload),
+		headers, err := v.buildHeadersForOrigin(entry.origin)
+		if err != nil {
+			outcome.record(err)
+			continue
 		}
-		outcome.record(SendRequest(spec))
+		req, err := (RequestSpec{Method: http.MethodPost, URL: entry.endpoint, Headers: headers, Body: string(payload)}).HTTPRequest()
+		if err != nil {
+			outcome.record(err)
+			continue
+		}
+		resp, err := httpClient().Do(req)
+		if err != nil {
+			outcome.record(err)
+			continue
+		}
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+		switch resp.StatusCode {
+		case http.StatusOK, http.StatusNoContent, http.StatusCreated, http.StatusAccepted:
+			v.markDelivered(target)
+			delivered++
+		case http.StatusNotFound, http.StatusGone:
+			expired[target] = true
+			v.retired[entry.endpoint] = true
+			outcome.record(&HTTPStatusError{StatusCode: resp.StatusCode})
+		default:
+			outcome.record(&HTTPStatusError{StatusCode: resp.StatusCode})
+		}
 	}
-
-	_ = notifyType
-	_ = title
+	if len(expired) > 0 {
+		v.pruneSubscriptions(expired)
+		if v.store != nil {
+			var endpoints []string
+			for endpoint := range v.retired {
+				endpoints = append(endpoints, endpoint)
+			}
+			_ = v.store.Set("retired", endpoints, 30*24*time.Hour)
+		}
+	}
+	if delivered == 0 {
+		outcome.record(fmt.Errorf("no Vapid subscriptions could be notified"))
+	}
 	return outcome.err()
 }
 
+// Prune only named expired entries, preserving the rest of the source document.
+// A read-only source stays untouched; retired endpoints remain suppressed here.
+func (v *VapidTarget) pruneSubscriptions(expired map[string]bool) {
+	if v.subfile == "" {
+		return
+	}
+	info, err := os.Lstat(v.subfile)
+	if err != nil || !info.Mode().IsRegular() || info.Mode().Perm()&0200 == 0 {
+		return
+	}
+	data, err := os.ReadFile(v.subfile)
+	if err != nil {
+		return
+	}
+	var document map[string]json.RawMessage
+	if json.Unmarshal(data, &document) != nil {
+		return
+	}
+	if _, single := document["endpoint"]; single {
+		document = map[string]json.RawMessage{}
+	} else {
+		for name := range document {
+			if expired[strings.ToLower(name)] {
+				delete(document, name)
+			}
+		}
+	}
+	data, err = json.MarshalIndent(document, "", "  ")
+	if err != nil {
+		return
+	}
+	file, err := os.CreateTemp(filepath.Dir(v.subfile), ".apprise-vapid-*")
+	if err != nil {
+		return
+	}
+	name := file.Name()
+	defer os.Remove(name)
+	if err = file.Chmod(info.Mode().Perm()); err == nil {
+		_, err = file.Write(append(data, '\n'))
+	}
+	err = errors.Join(err, file.Close())
+	if err == nil {
+		_ = os.Rename(name, v.subfile)
+	}
+}
+
 func (v *VapidTarget) buildHeaders() (map[string]string, error) {
+	return v.buildHeadersForOrigin(vapidURLByMode[v.mode])
+}
+func (v *VapidTarget) buildHeadersForOrigin(origin string) (map[string]string, error) {
 	jwtToken := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_JWT"))
 	publicKey := strings.TrimSpace(os.Getenv("APPRISE_VAPID_TEST_PUBLIC_KEY"))
 	if jwtToken == "" {
-		token, err := buildVapidJWT(v.privateKey, v.subscriber, vapidURLByMode[v.mode])
+		token, err := buildVapidJWT(v.privateKey, v.subscriber, origin)
 		if err != nil {
 			return nil, err
 		}
@@ -308,6 +390,10 @@ func loadVapidSubscriptions(path, defaultName string) (map[string]vapidSubscript
 func parseVapidSubscriptions(input map[string]vapidSubscriptionFile) (map[string]vapidSubscription, error) {
 	subscriptions := make(map[string]vapidSubscription, len(input))
 	for name, entry := range input {
+		origin, err := vapidOrigin(entry.Endpoint)
+		if err != nil {
+			continue
+		}
 		publicKeyBytes, err := decodeBase64URL(entry.Keys.P256dh)
 		if err != nil {
 			return nil, err
@@ -323,6 +409,7 @@ func parseVapidSubscriptions(input map[string]vapidSubscriptionFile) (map[string
 		}
 
 		subscriptions[strings.ToLower(name)] = vapidSubscription{
+			endpoint: entry.Endpoint, origin: origin,
 			publicKey:  publicKey,
 			authSecret: authSecret,
 		}
@@ -502,7 +589,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"chrome", "firefox", "edge", "opera", "apple"},
+					"values":   []any{"chrome", "firefox", "edge", "opera", "apple"},
 				},
 				"subfile": map[string]any{
 					"map_to":   "subfile",
@@ -513,7 +600,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"ttl": map[string]any{
 					"default":  0,
@@ -527,7 +614,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{subscriber}", "{schema}://{subscriber}/{targets}"},
+			"templates": []any{"{schema}://{subscriber}", "{schema}://{subscriber}/{targets}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "vapid",
@@ -536,7 +623,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"vapid"},
+					"values":   []any{"vapid"},
 				},
 				"subscriber": map[string]any{
 					"map_to":   "subscriber",
@@ -546,7 +633,7 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
+					"delim":    []any{"/"},
 					"group":    []any{},
 					"map_to":   "targets",
 					"name":     "Targets",
@@ -568,4 +655,43 @@ func init() {
 		"service_url":      "https://datatracker.ietf.org/doc/html/draft-thomson-webpush-vapid",
 		"setup_url":        "https://appriseit.com/services/vapid/",
 	})
+}
+
+func vapidOrigin(endpoint string) (string, error) {
+	u, err := url.Parse(endpoint)
+	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
+		return "", fmt.Errorf("invalid Vapid HTTPS endpoint")
+	}
+	host := strings.ToLower(u.Hostname())
+	if strings.Contains(host, ":") {
+		host = "[" + host + "]"
+	}
+	if port := u.Port(); port != "" && port != "443" {
+		n, err := strconv.Atoi(port)
+		if err != nil || n < 1 || n > 65535 {
+			return "", fmt.Errorf("invalid Vapid endpoint port")
+		}
+		host += ":" + port
+	}
+	return "https://" + host, nil
+}
+
+func (v *VapidTarget) ensureReady() error {
+	if v.ready {
+		return v.readyError
+	}
+	v.ready = true
+	if v.keyfile != "" && os.Getenv("APPRISE_VAPID_TEST_JWT") == "" {
+		v.privateKey, v.publicKeyStr, v.readyError = loadVapidKey(v.keyfile)
+		if v.readyError != nil {
+			return v.readyError
+		}
+	}
+	if public := os.Getenv("APPRISE_VAPID_TEST_PUBLIC_KEY"); public != "" {
+		v.publicKeyStr = public
+	}
+	if v.subfile != "" {
+		v.subscriptions, v.readyError = loadVapidSubscriptions(v.subfile, strings.ToLower(v.subscriber))
+	}
+	return v.readyError
 }

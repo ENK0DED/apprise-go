@@ -37,7 +37,7 @@ DEFAULT_ENV = {
     "APPRISE_VAPID_TEST_JWT": "parity.jwt.token",
     "APPRISE_VAPID_TEST_PUBLIC_KEY": "parity-public-key",
     "APPRISE_VAPID_TEST_ENCRYPTED": "cGFyaXR5LXZhcGlk",
-    "APPRISE_SIMPLEPUSH_TEST_IV": "00112233445566778899AABBCCDDEEFF",
+    "APPRISE_SIMPLEPUSH_TEST_NONCE": "000102030405060708090a0b0c0d0e0f1011121314151617",
     "APPRISE_BARK_TEST_IV": "paritybark12",
 }
 UPSTREAM_ASSET_BASE = (
@@ -235,11 +235,12 @@ def main():
             specs = normalize_multipart(rewrite_values(payload.get("requests", [])))
             if canonicalize_json_bodies:
                 specs = normalize_json_bodies(specs)
-            if volatile_headers:
+            case_volatile_headers = volatile_headers | {str(h).strip().lower() for h in case.get("volatile_headers", [])}
+            if case_volatile_headers:
                 for spec in specs:
                     headers = spec.get("headers") or {}
                     for name in list(headers):
-                        if name.strip().lower() in volatile_headers:
+                        if name.strip().lower() in case_volatile_headers:
                             headers[name] = "<volatile>"
             golden_cases.append({"name": case["name"], "requests": specs})
 

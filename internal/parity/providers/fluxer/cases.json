@@ -64,5 +64,19 @@
     "attachments": [
       "%7Brepo%7D/internal/parity/fixtures/report.pdf"
     ]
+  },
+  {
+    "name": "private-custom-path",
+    "url": "fluxers://fluxer.example.com/custom/api/1234567890/abcdefghijklmnopqrstuvwxyz",
+    "body": "body",
+    "title": "title",
+    "type": "info"
+  },
+  {
+    "name": "private-root-path",
+    "url": "fluxers://fluxer.example.com/1234567890/abcdefghijklmnopqrstuvwxyz?path=/",
+    "body": "body",
+    "title": "title",
+    "type": "info"
   }
 ]

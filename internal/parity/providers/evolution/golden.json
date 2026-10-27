@@ -68,5 +68,20 @@
         "url": "https://evo.example.com/message/sendText/instance1"
       }
     ]
+  },
+  {
+    "name": "declared-commonmark-links",
+    "requests": [
+      {
+        "body": "{\"number\": \"14051231234\", \"text\": \"*Title*\\n*Heading*\\n*Bold* link (https://example.com/a_(x%29) & ```code```\"}",
+        "headers": {
+          "accept": "*/*",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "http://example.com/message/sendText/instance"
+      }
+    ]
   }
 ]

@@ -1,6 +1,7 @@
 package notify
 
 var systemSchemas = map[string]struct{}{
+	"amqp": {}, "amqps": {},
 	"aprs":    {},
 	"dbus":    {},
 	"gio":     {},

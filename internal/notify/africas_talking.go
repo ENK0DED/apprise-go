@@ -21,6 +21,7 @@ var africasTalkingTokenRe = regexp.MustCompile(`(?i)^[a-z0-9_-]+$`)
 var africasTalkingModes = []string{"bulksms", "premium", "sandbox"}
 
 type AfricasTalkingTarget struct {
+	deliveryTracker
 	appuser string
 	apikey  string
 	sender  string
@@ -151,7 +152,7 @@ func (a *AfricasTalkingTarget) Send(body, title string, notifyType NotifyType) e
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(a.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType))
 	}
 
 	_ = notifyType
@@ -228,7 +229,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -244,13 +245,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"default":  "AFRICASTKNG",
@@ -267,7 +269,15 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"bulksms", "premium", "sandbox"},
+					"values":   []any{"bulksms", "premium", "sandbox"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -276,10 +286,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -296,7 +324,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -314,15 +342,25 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{appuser}@{apikey}/{targets}"},
+			"templates": []any{"{schema}://{appuser}@{apikey}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
 					"name":     "API Key",
 					"private":  true,
-					"regex":    []string{"^[A-Z0-9_-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9_-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -330,7 +368,7 @@ func init() {
 					"map_to":   "appuser",
 					"name":     "App User Name",
 					"private":  false,
-					"regex":    []string{"^[A-Z0-9_-]+$", "i"},
+					"regex":    []any{"^[A-Z0-9_-]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -341,7 +379,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"atalk"},
+					"values":   []any{"atalk"},
 				},
 				"target_phone": map[string]any{
 					"map_to":   "targets",
@@ -351,8 +389,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

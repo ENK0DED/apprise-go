@@ -1,0 +1,82 @@
+[
+  {
+    "name": "batch",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"to\": \"61412345678\", \"message\": \"Title\\r\\nBody\", \"sender\": \"Unraid\", \"custom_ref\": \"storage\"}, {\"to\": \"61498765432\", \"message\": \"Title\\r\\nBody\", \"sender\": \"Unraid\", \"custom_ref\": \"storage\"}], \"enable_unicode\": false, \"max_parts\": 10}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "idempotency-key": "00000000-0000-4000-8000-000000000000",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.mobilemessage.com.au/v1/messages"
+      }
+    ]
+  },
+  {
+    "name": "individual",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"to\": \"61412345678\", \"message\": \"Title\\r\\n\\u4f60\\u597d\", \"sender\": \"Unraid\"}], \"enable_unicode\": true, \"max_parts\": 2}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "idempotency-key": "00000000-0000-4000-8000-000000000000",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.mobilemessage.com.au/v1/messages"
+      },
+      {
+        "body": "{\"messages\": [{\"to\": \"61498765432\", \"message\": \"Title\\r\\n\\u4f60\\u597d\", \"sender\": \"Unraid\"}], \"enable_unicode\": true, \"max_parts\": 2}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "idempotency-key": "00000000-0000-4000-8000-000000000000",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.mobilemessage.com.au/v1/messages"
+      }
+    ]
+  },
+  {
+    "name": "numeric-sender",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"to\": \"61412345678\", \"message\": \"Body\", \"sender\": \"61412345678\"}], \"enable_unicode\": false, \"max_parts\": 10}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "idempotency-key": "00000000-0000-4000-8000-000000000000",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.mobilemessage.com.au/v1/messages"
+      }
+    ]
+  },
+  {
+    "name": "from-query",
+    "requests": [
+      {
+        "body": "{\"messages\": [{\"to\": \"61412345678\", \"message\": \"Title\\r\\nBody\", \"sender\": \"Unraid\"}, {\"to\": \"61498765432\", \"message\": \"Title\\r\\nBody\", \"sender\": \"Unraid\"}], \"enable_unicode\": false, \"max_parts\": 10}",
+        "headers": {
+          "accept": "application/json",
+          "authorization": "Basic dXNlcjpwYXNz",
+          "content-type": "application/json",
+          "idempotency-key": "00000000-0000-4000-8000-000000000000",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://api.mobilemessage.com.au/v1/messages"
+      }
+    ]
+  }
+]

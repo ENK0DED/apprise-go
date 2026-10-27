@@ -1,0 +1,93 @@
+[
+  {
+    "name": "incident",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"name\": \"Title\", \"description\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://incidents.betterstack.com/api/v3/incidents"
+      }
+    ]
+  },
+  {
+    "name": "body-summary",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Body only\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://incidents.betterstack.com/api/v3/incidents"
+      }
+    ]
+  },
+  {
+    "name": "teams",
+    "requests": [
+      {
+        "body": "{\"summary\": \"Title\", \"name\": \"Title\", \"description\": \"Body\", \"requester_email\": \"person@example.com\", \"policy_id\": \"policy1\", \"team_wait\": 0, \"call\": false, \"sms\": true, \"email\": false, \"push\": false, \"critical_alert\": true, \"team_name\": \"OnCall\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://incidents.betterstack.com/api/v3/incidents"
+      },
+      {
+        "body": "{\"summary\": \"Title\", \"name\": \"Title\", \"description\": \"Body\", \"requester_email\": \"person@example.com\", \"policy_id\": \"policy1\", \"team_wait\": 0, \"call\": false, \"sms\": true, \"email\": false, \"push\": false, \"critical_alert\": true, \"team_name\": \"Storage Team\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://incidents.betterstack.com/api/v3/incidents"
+      }
+    ]
+  },
+  {
+    "name": "logs",
+    "requests": [
+      {
+        "body": "{\"dt\": \"2024-01-01T00:00:00+00:00\", \"level\": \"warn\", \"message\": \"Body\", \"title\": \"Title\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://logs.example.com:8443/"
+      }
+    ]
+  },
+  {
+    "name": "logs-key",
+    "requests": [
+      {
+        "body": "{\"dt\": \"2024-01-01T00:00:00+00:00\", \"level\": \"info\", \"message\": \"Body\"}",
+        "headers": {
+          "accept": "*/*",
+          "authorization": "Bearer token123",
+          "content-type": "application/json",
+          "user-agent": "Apprise"
+        },
+        "method": "POST",
+        "url": "https://logs.example.com/"
+      }
+    ]
+  }
+]

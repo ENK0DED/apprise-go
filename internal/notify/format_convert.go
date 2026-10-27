@@ -104,6 +104,9 @@ func ConvertMessageFormat(content, inputFormat, outputFormat string) (string, er
 			return htmlToText(content), nil
 		}
 	case "text":
+		if output == "markdown" {
+			return commonmarkTextEscapes.ReplaceAllStringFunc(content, func(match string) string { return "\\" + match }), nil
+		}
 		if output == "html" {
 			return textToHTML(content), nil
 		}
@@ -111,6 +114,8 @@ func ConvertMessageFormat(content, inputFormat, outputFormat string) (string, er
 
 	return content, nil
 }
+
+var commonmarkTextEscapes = regexp.MustCompile("[\\\\_*\\[\\]()~`>#+=|{}.!-]|&(?:#?[0-9A-Za-z]{1,32};)")
 
 func isSupportedNotifyFormat(format string) bool {
 	switch format {

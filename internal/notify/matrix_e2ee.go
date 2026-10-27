@@ -29,10 +29,6 @@ import (
 // a server would consider them stale.
 const matrixE2EECacheTTL = 7 * 24 * time.Hour
 
-// matrixOneTimeKeyCount is how many one-time keys are published per upload;
-// each is consumed by one recipient device starting a session with us.
-const matrixOneTimeKeyCount = 10
-
 type matrixDeviceKeys struct {
 	Curve25519 string
 	Ed25519    string
@@ -91,10 +87,6 @@ func (m *MatrixTarget) uploadDeviceKeys(binding string) error {
 	if err != nil {
 		return err
 	}
-	oneTimeKeys, err := m.olmAccount.GenerateOneTimeKeys(m.userID, m.deviceID, matrixOneTimeKeyCount)
-	if err != nil {
-		return err
-	}
 	fallbackKeys, err := m.fallbackKeys()
 	if err != nil {
 		return err
@@ -102,7 +94,6 @@ func (m *MatrixTarget) uploadDeviceKeys(binding string) error {
 
 	ok, _, _ := m.fetch("/keys/upload", map[string]any{
 		"device_keys":   deviceKeys,
-		"one_time_keys": oneTimeKeys,
 		"fallback_keys": fallbackKeys,
 	}, nil, http.MethodPost, "")
 	if !ok {

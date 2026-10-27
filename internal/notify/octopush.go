@@ -14,6 +14,7 @@ const (
 )
 
 type OctopushTarget struct {
+	deliveryTracker
 	apiLogin string
 	apiKey   string
 	targets  []string
@@ -125,8 +126,8 @@ func (o *OctopushTarget) Send(body, title string, notifyType NotifyType) error {
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(o.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -206,7 +207,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -222,13 +223,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"key": map[string]any{
 					"alias_of": "api_key",
@@ -251,7 +253,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"purpose": map[string]any{
 					"default":  "alert",
@@ -260,7 +262,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"alert", "wholesale"},
+					"values":   []any{"alert", "wholesale"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -289,7 +291,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -306,7 +308,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"type": map[string]any{
 					"default":  "sms_premium",
@@ -315,7 +317,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"sms_premium", "sms_low_cost"},
+					"values":   []any{"sms_premium", "sms_low_cost"},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -334,10 +336,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -345,7 +347,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{api_login}/{api_key}/{targets}", "{schema}://{sender}:{api_login}/{api_key}/{targets}"},
+			"templates": []any{"{schema}://{api_login}/{api_key}/{targets}", "{schema}://{sender}:{api_login}/{api_key}/{targets}"},
 			"tokens": map[string]any{
 				"api_key": map[string]any{
 					"map_to":   "api_key",
@@ -359,7 +361,7 @@ func init() {
 					"name":     "API Login",
 					"private":  true,
 					"required": true,
-					"type":     "string",
+					"type":     "email",
 				},
 				"schema": map[string]any{
 					"default":  "octopush",
@@ -368,7 +370,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"octopush"},
+					"values":   []any{"octopush"},
 				},
 				"sender": map[string]any{
 					"map_to":   "sender",
@@ -382,13 +384,13 @@ func init() {
 					"name":     "Target Phone No",
 					"prefix":   "+",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

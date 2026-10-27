@@ -141,7 +141,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -157,13 +157,14 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"optional": map[string]any{
 					"default":  false,
@@ -180,7 +181,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"redirect": map[string]any{
 					"default":  true,
@@ -201,7 +202,7 @@ func init() {
 					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -225,7 +226,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"translit": map[string]any{
 					"default":  false,
@@ -252,10 +253,10 @@ func init() {
 					"type":     "bool",
 				},
 				"wait": map[string]any{
-					"default":  0.0,
+					"default":  0,
 					"map_to":   "wait",
-					"max":      20.0,
-					"min":      0.0,
+					"max":      20,
+					"min":      0,
 					"name":     "Inter-Retry Wait",
 					"private":  false,
 					"required": false,
@@ -263,7 +264,7 @@ func init() {
 				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user}:{password}@{targets}"},
+			"templates": []any{"{schema}://{user}:{password}@{targets}"},
 			"tokens": map[string]any{
 				"password": map[string]any{
 					"map_to":   "password",
@@ -279,20 +280,20 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"smsc"},
+					"values":   []any{"smsc"},
 				},
 				"target_phone": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Phone No",
 					"prefix":   "+",
 					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

@@ -17,6 +17,7 @@ var opsgenieRegionURLs = map[string]string{
 }
 
 type OpsgenieTarget struct {
+	deliveryTracker
 	genieAlert
 	region string
 }
@@ -46,8 +47,8 @@ func (o *OpsgenieTarget) Send(body, title string, notifyType NotifyType) error {
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(o.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -121,7 +122,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"map", "new", "close", "delete", "acknowledge", "note"},
+					"values":   []any{"map", "new", "close", "delete", "acknowledge", "note"},
 				},
 				"alias": map[string]any{
 					"map_to":   "alias",
@@ -139,7 +140,7 @@ func init() {
 					"type":     "bool",
 				},
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -162,13 +163,22 @@ func init() {
 					"type":     "string",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -177,7 +187,7 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
 				},
 				"priority": map[string]any{
 					"default":  3,
@@ -188,6 +198,14 @@ func init() {
 					"type":     "choice:int",
 					"values":   []any{1, 2, 3, 4, 5},
 				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
 				"region": map[string]any{
 					"default":  "us",
 					"map_to":   "region_name",
@@ -195,10 +213,20 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"us", "eu"},
+					"values":   []any{"us", "eu"},
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -222,7 +250,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -239,6 +267,16 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "bool",
+				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
 				},
 			},
 			"kwargs": map[string]any{
@@ -259,7 +297,7 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{apikey}", "{schema}://{user}@{apikey}", "{schema}://{apikey}/{targets}", "{schema}://{user}@{apikey}/{targets}"},
+			"templates": []any{"{schema}://{apikey}", "{schema}://{user}@{apikey}", "{schema}://{apikey}/{targets}", "{schema}://{user}@{apikey}/{targets}"},
 			"tokens": map[string]any{
 				"apikey": map[string]any{
 					"map_to":   "apikey",
@@ -275,7 +313,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"opsgenie"},
+					"values":   []any{"opsgenie"},
 				},
 				"target_escalation": map[string]any{
 					"map_to":   "targets",
@@ -310,8 +348,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_escalation", "target_schedule", "target_team", "target_user"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_escalation", "target_schedule", "target_team", "target_user"},
 					"map_to":   "targets",
 					"name":     "Targets ",
 					"private":  false,

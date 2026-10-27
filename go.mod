@@ -9,6 +9,9 @@ require (
 )
 
 require (
+	github.com/Azure/go-amqp v1.7.0
+	github.com/ProtonMail/go-crypto v1.5.2
+	github.com/rabbitmq/amqp091-go v1.16.0
 	gopkg.in/yaml.v3 v3.0.1
 	mellium.im/sasl v0.3.2
 	mellium.im/xmlstream v0.15.4
@@ -16,6 +19,7 @@ require (
 )
 
 require (
+	github.com/cloudflare/circl v1.6.3 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

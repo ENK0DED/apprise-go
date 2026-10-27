@@ -423,7 +423,7 @@ func TestRunConvertsStandardMarkdownInputForTelegramMarkdownTarget(t *testing.T)
 	if payload["parse_mode"] != "MarkdownV2" {
 		t.Fatalf("expected MarkdownV2 parse mode, got %#v", payload["parse_mode"])
 	}
-	if payload["text"] != "~Strike~ *Bold* _Italics_ Text" {
+	if payload["text"] != `\~\~Strike\~\~ *Bold* _Italics_ Text` {
 		t.Fatalf("expected Telegram markdown body, got %#v", payload["text"])
 	}
 }

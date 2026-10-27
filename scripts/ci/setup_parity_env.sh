@@ -12,3 +12,8 @@ if [[ -f ../apprise/pyproject.toml ]]; then
 else
   python -m pip install "apprise[all-plugins]"
 fi
+
+# AMQP 1.0 is intentionally excluded from upstream's all-plugins extra.
+# Its real broker parity cases require the source-built Proton adapter.
+python -m pip install "python-qpid-proton==0.40.0"
+python -c 'import pika, proton'

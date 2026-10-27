@@ -23,6 +23,7 @@ const whatsappDefaultLanguage = "en_US"
 var whatsappComponentKey = regexp.MustCompile(`(?i)^([1-9][0-9]*|body|type)$`)
 
 type WhatsAppTarget struct {
+	deliveryTracker
 	token      string
 	fromID     string
 	template   string
@@ -149,7 +150,7 @@ func (w *WhatsAppTarget) Send(body, title string, notifyType NotifyType) error {
 
 	message := mergeTitleBody(title, body)
 
-	for _, target := range w.targets {
+	for deliveryIndex0, target := range w.targets {
 		payload := w.buildPayload(message, notifyType, target)
 		data, err := json.Marshal(payload)
 		if err != nil {
@@ -170,7 +171,7 @@ func (w *WhatsAppTarget) Send(body, title string, notifyType NotifyType) error {
 			},
 			Body: string(data),
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(w.sendTrackedRequestFor(spec, "Send:0", body, title, notifyType, deliveryIndex0))
 	}
 
 	return outcome.err()
@@ -316,7 +317,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -332,19 +333,28 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"from": map[string]any{
 					"alias_of": "from_phone_id",
 				},
 				"lang": map[string]any{
 					"alias_of": "language",
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -353,10 +363,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -376,7 +404,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"token": map[string]any{
 					"alias_of": "token",
@@ -397,6 +425,16 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs": map[string]any{
 				"template_mapping": map[string]any{
@@ -408,13 +446,13 @@ func init() {
 					"type":     "string",
 				},
 			},
-			"templates": []string{"{schema}://{token}@{from_phone_id}/{targets}", "{schema}://{template}:{token}@{from_phone_id}/{targets}"},
+			"templates": []any{"{schema}://{token}@{from_phone_id}/{targets}", "{schema}://{template}:{token}@{from_phone_id}/{targets}"},
 			"tokens": map[string]any{
 				"from_phone_id": map[string]any{
 					"map_to":   "from_phone_id",
 					"name":     "From Phone ID",
 					"private":  true,
-					"regex":    []string{"^[0-9]+$", "i"},
+					"regex":    []any{"^[0-9]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},
@@ -423,7 +461,7 @@ func init() {
 					"map_to":   "language",
 					"name":     "Language",
 					"private":  false,
-					"regex":    []string{"^[^0-9\\s]+$", "i"},
+					"regex":    []any{"^[^0-9\\s]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -434,29 +472,29 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"whatsapp"},
-				},
-				"target_phone": map[string]any{
-					"map_to":   "targets",
-					"name":     "Target Phone No",
-					"prefix":   "+",
-					"private":  false,
-					"regex":    []string{"^[0-9\\s)(+-]+$", "i"},
-					"required": false,
-					"type":     "string",
+					"values":   []any{"whatsapp"},
 				},
 				"target_group": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Group ID",
 					"prefix":   "#",
 					"private":  false,
-					"regex":    []string{"^[0-9]{16,}$", "i"},
+					"regex":    []any{"^[0-9]{16,}$", "i"},
+					"required": false,
+					"type":     "string",
+				},
+				"target_phone": map[string]any{
+					"map_to":   "targets",
+					"name":     "Target Phone No",
+					"prefix":   "+",
+					"private":  false,
+					"regex":    []any{"^[0-9\\s)(+-]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_group", "target_phone"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_group", "target_phone"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,
@@ -467,7 +505,7 @@ func init() {
 					"map_to":   "template",
 					"name":     "Template Name",
 					"private":  false,
-					"regex":    []string{"^[^\\s]+$", "i"},
+					"regex":    []any{"^[^\\s]+$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -475,7 +513,7 @@ func init() {
 					"map_to":   "token",
 					"name":     "Access Token",
 					"private":  true,
-					"regex":    []string{"^[a-z0-9]+$", "i"},
+					"regex":    []any{"^[a-z0-9]+$", "i"},
 					"required": true,
 					"type":     "string",
 				},

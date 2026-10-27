@@ -13,6 +13,7 @@ const pushbulletURL = "https://api.pushbullet.com/v2/pushes"
 const pushbulletUploadRequestURL = "https://api.pushbullet.com/v2/upload-request"
 
 type PushbulletTarget struct {
+	deliveryTracker
 	accessToken string
 	target      string
 }
@@ -97,21 +98,23 @@ func (p *PushbulletTarget) SendWithAttachments(body, title string, notifyType No
 	if err != nil {
 		return err
 	}
-	outcome.record(SendRequest(spec))
+	outcome.record(p.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments))
 
-	for _, push := range pushes {
+	for deliveryIndex0, push := range pushes {
 		spec, err := p.pushSpec(push)
 		if err != nil {
 			return err
 		}
-		outcome.record(SendRequest(spec))
+		outcome.record(p.sendTrackedRequestFor(spec, "SendWithAttachments:1", body, title,
+
+			// uploadAttachment asks Pushbullet where to put a file, posts it there, and
+			// returns the push describing it.
+			notifyType, attachments, deliveryIndex0))
 	}
 
 	return outcome.err()
 }
 
-// uploadAttachment asks Pushbullet where to put a file, posts it there, and
-// returns the push describing it.
 func (p *PushbulletTarget) uploadAttachment(attachment Attachment, index int) (map[string]any, error) {
 	name := attachment.FileName(index, ".dat")
 
@@ -239,7 +242,7 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
@@ -255,13 +258,22 @@ func init() {
 					"type":     "bool",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
+				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
 					"private":  false,
 					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
+					"type":     "bool",
 				},
 				"overflow": map[string]any{
 					"default":  "upstream",
@@ -270,10 +282,28 @@ func init() {
 					"private":  false,
 					"required": false,
 					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
 				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -290,7 +320,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -308,9 +338,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{accesstoken}", "{schema}://{accesstoken}/{targets}"},
+			"templates": []any{"{schema}://{accesstoken}", "{schema}://{accesstoken}/{targets}"},
 			"tokens": map[string]any{
 				"accesstoken": map[string]any{
 					"map_to":   "accesstoken",
@@ -326,7 +366,7 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pbul"},
+					"values":   []any{"pbul"},
 				},
 				"target_channel": map[string]any{
 					"map_to":   "targets",
@@ -348,11 +388,11 @@ func init() {
 					"name":     "Target Email",
 					"private":  false,
 					"required": false,
-					"type":     "string",
+					"type":     "email",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_channel", "target_device", "target_email"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_channel", "target_device", "target_email"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

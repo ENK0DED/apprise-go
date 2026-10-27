@@ -45,6 +45,7 @@ var pushoverGroupPattern = regexp.MustCompile(`(?i)^\s*(?:%23|#)([a-z0-9]+)\s*$`
 var pushoverEncryptionKeyPattern = regexp.MustCompile(`(?i)^[0-9a-f]{64}$`)
 
 type PushoverTarget struct {
+	deliveryTracker
 	userKey              string
 	token                string
 	devices              []string
@@ -144,7 +145,7 @@ func NewPushoverTarget(target *ParsedURL) (*PushoverTarget, error) {
 		supplementalURLTitle: strings.TrimSpace(target.Query["url_title"]),
 		interval:             interval,
 		expire:               expire,
-		format:               normalizeNotifyFormat(target.Query["format"]),
+		format:               normalizeNotifyFormat(targetNotifyFormat(target)),
 		encryptionKey:        encryptionKey,
 		e2ee:                 e2ee,
 	}, nil
@@ -171,8 +172,8 @@ func (p *PushoverTarget) SendWithAttachments(body, title string, notifyType Noti
 		return err
 	}
 
-	for _, spec := range specs {
-		outcome.record(SendRequest(spec))
+	for deliveryIndex0, spec := range specs {
+		outcome.record(p.sendTrackedRequestFor(spec, "SendWithAttachments:0", body, title, notifyType, attachments, deliveryIndex0))
 	}
 	if err := outcome.err(); err != nil {
 		return err
@@ -381,12 +382,20 @@ func init() {
 		"details": map[string]any{
 			"args": map[string]any{
 				"cto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "cto",
 					"name":     "Socket Connect Timeout",
 					"private":  false,
 					"required": false,
 					"type":     "float",
+				},
+				"e2ee": map[string]any{
+					"default":  true,
+					"map_to":   "e2ee",
+					"name":     "E2EE",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
 				},
 				"emojis": map[string]any{
 					"default":  false,
@@ -407,39 +416,14 @@ func init() {
 					"type":     "int",
 				},
 				"format": map[string]any{
-					"default":  "text",
-					"map_to":   "format",
-					"name":     "Notify Format",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"html", "markdown", "text"},
-				},
-				"overflow": map[string]any{
-					"default":  "upstream",
-					"map_to":   "overflow",
-					"name":     "Overflow Mode",
-					"private":  false,
-					"required": false,
-					"type":     "choice:string",
-					"values":   []string{"split", "truncate", "upstream"},
-				},
-				"priority": map[string]any{
-					"default":  0,
-					"map_to":   "priority",
-					"name":     "Priority",
-					"private":  false,
-					"required": false,
-					"type":     "choice:int",
-					"values":   []any{-2, -1, 0, 1, 2},
-				},
-				"e2ee": map[string]any{
-					"default":  true,
-					"map_to":   "e2ee",
-					"name":     "E2EE",
-					"private":  false,
-					"required": false,
-					"type":     "bool",
+					"default":   "text",
+					"map_to":    "format",
+					"name":      "Notify Format",
+					"private":   false,
+					"required":  false,
+					"supported": []any{"text", "html", "markdown"},
+					"type":      "choice:string",
+					"values":    []any{"html", "markdown", "text"},
 				},
 				"interval": map[string]any{
 					"default":  900,
@@ -457,8 +441,52 @@ func init() {
 					"required": false,
 					"type":     "string",
 				},
+				"optional": map[string]any{
+					"default":  false,
+					"map_to":   "optional",
+					"name":     "Optional Service",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"overflow": map[string]any{
+					"default":  "upstream",
+					"map_to":   "overflow",
+					"name":     "Overflow Mode",
+					"private":  false,
+					"required": false,
+					"type":     "choice:string",
+					"values":   []any{"split", "truncate", "upstream"},
+				},
+				"priority": map[string]any{
+					"default":  0,
+					"map_to":   "priority",
+					"name":     "Priority",
+					"private":  false,
+					"required": false,
+					"type":     "choice:int",
+					"values":   []any{-2, -1, 0, 1, 2},
+				},
+				"redirect": map[string]any{
+					"default":  true,
+					"map_to":   "redirect",
+					"name":     "Follow Redirects",
+					"private":  false,
+					"required": false,
+					"type":     "bool",
+				},
+				"retry": map[string]any{
+					"default":  0,
+					"map_to":   "retry",
+					"max":      10,
+					"min":      0,
+					"name":     "Service Retry",
+					"private":  false,
+					"required": false,
+					"type":     "int",
+				},
 				"rto": map[string]any{
-					"default":  4.0,
+					"default":  4,
 					"map_to":   "rto",
 					"name":     "Socket Read Timeout",
 					"private":  false,
@@ -470,7 +498,7 @@ func init() {
 					"map_to":   "sound",
 					"name":     "Sound",
 					"private":  false,
-					"regex":    []string{"^[a-z]{1,12}$", "i"},
+					"regex":    []any{"^[a-z]{1,12}$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -484,7 +512,7 @@ func init() {
 				},
 				"to": map[string]any{
 					"alias_of": "targets",
-					"delim":    []string{",", " "},
+					"delim":    []any{",", " "},
 				},
 				"tz": map[string]any{
 					"default":  nil,
@@ -516,9 +544,19 @@ func init() {
 					"required": false,
 					"type":     "bool",
 				},
+				"wait": map[string]any{
+					"default":  0,
+					"map_to":   "wait",
+					"max":      20,
+					"min":      0,
+					"name":     "Inter-Retry Wait",
+					"private":  false,
+					"required": false,
+					"type":     "float",
+				},
 			},
 			"kwargs":    map[string]any{},
-			"templates": []string{"{schema}://{user_key}@{token}", "{schema}://{user_key}@{token}/{targets}"},
+			"templates": []any{"{schema}://{user_key}@{token}", "{schema}://{user_key}@{token}/{targets}"},
 			"tokens": map[string]any{
 				"schema": map[string]any{
 					"default":  "pover",
@@ -527,13 +565,13 @@ func init() {
 					"private":  false,
 					"required": true,
 					"type":     "choice:string",
-					"values":   []string{"pover"},
+					"values":   []any{"pover"},
 				},
 				"target_device": map[string]any{
 					"map_to":   "targets",
 					"name":     "Target Device",
 					"private":  false,
-					"regex":    []string{"^[a-z0-9_-]{1,25}$", "i"},
+					"regex":    []any{"^[a-z0-9_-]{1,25}$", "i"},
 					"required": false,
 					"type":     "string",
 				},
@@ -546,8 +584,8 @@ func init() {
 					"type":     "string",
 				},
 				"targets": map[string]any{
-					"delim":    []string{"/"},
-					"group":    []string{"target_device", "target_group"},
+					"delim":    []any{"/"},
+					"group":    []any{"target_device", "target_group"},
 					"map_to":   "targets",
 					"name":     "Targets",
 					"private":  false,

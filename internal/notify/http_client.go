@@ -21,6 +21,7 @@ type httpOptions struct {
 	connectTimeout time.Duration
 	readTimeout    time.Duration
 	followRedirect bool
+	deadline       time.Time
 }
 
 func defaultHTTPOptions() httpOptions {
@@ -63,6 +64,17 @@ func httpClient() *http.Client {
 	options := currentHTTPOptions
 	currentHTTPOptionsMu.RUnlock()
 
+	deadline := options.deadline
+	options.deadline = time.Time{}
+	// Explicit client transports are supported injection points for callers
+	// and tests. Keep them while enforcing the notification's own deadline.
+	if http.DefaultClient.Transport != nil {
+		client := *http.DefaultClient
+		if !options.followRedirect {
+			client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+		}
+		return clientWithDeadline(&client, deadline)
+	}
 	// A test harness swaps the default transport for one that answers without
 	// touching the network. Timeouts are meaningless against it, and cloning
 	// assumes a type it does not have, so it is used unchanged.
@@ -75,7 +87,7 @@ func httpClient() *http.Client {
 			}
 		}
 
-		return client
+		return clientWithDeadline(client, deadline)
 	}
 
 	// The cache is keyed by the transport as well as the options: a harness
@@ -88,7 +100,7 @@ func httpClient() *http.Client {
 	defer clientCacheMu.Unlock()
 
 	if client, ok := clientCache[key]; ok {
-		return client
+		return clientWithDeadline(client, deadline)
 	}
 
 	transport := base.Clone()
@@ -109,7 +121,7 @@ func httpClient() *http.Client {
 
 	clientCache[key] = client
 
-	return client
+	return clientWithDeadline(client, deadline)
 }
 
 // clientKey identifies a cached client by what it was built from.
