@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -153,7 +154,9 @@ func (v *matrixSASVerifier) fetch(path string, payload map[string]any, params ur
 		return nil, false
 	}
 	var data map[string]any
-	if json.Unmarshal(raw, &data) != nil {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	if !json.Valid(raw) || decoder.Decode(&data) != nil {
 		return nil, false
 	}
 	return data, data != nil
@@ -227,9 +230,10 @@ func (v *matrixSASVerifier) handle(event map[string]any) (bool, bool) {
 	transaction := matrixSASString(content, "transaction_id")
 	if kind == "request" {
 		device := matrixSASString(content, "from_device")
-		timestamp, ok := content["timestamp"].(float64)
-		now := float64(time.Now().UnixMilli())
-		if !ok || math.Trunc(timestamp) != timestamp || timestamp < now-600000 || timestamp > now+300000 || !matrixSASID(transaction) || !matrixSASID(device) || !matrixSASHas(content["methods"], matrixolm.SASMethod) {
+		number, ok := content["timestamp"].(json.Number)
+		timestamp, parseError := strconv.ParseInt(string(number), 10, 64)
+		now := time.Now().UnixMilli()
+		if !ok || parseError != nil || timestamp < now-600000 || timestamp > now+300000 || !matrixSASID(transaction) || !matrixSASID(device) || !matrixSASHas(content["methods"], matrixolm.SASMethod) {
 			return false, false
 		}
 		if v.transaction != "" {
